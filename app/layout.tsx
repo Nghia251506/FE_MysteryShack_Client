@@ -1,25 +1,26 @@
-// src/app/layout.tsx
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import './globals.css';
-import { Providers } from './Providers'; // Tạo file này ở bước tiếp
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { TarotProvider } from "@/context/TarotContext"; // <--- Import này
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Mystery Shack - Xem bói Tarot',
-  description: 'Trải bài Tarot chuyên nghiệp với AI giải nghĩa',
+  title: "Mystic Tarot",
+  description: "Kết nối Reader chuyên nghiệp",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="vi">
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <TarotProvider> {/* <--- Bọc Provider ở đây */}
+          {children}
+        </TarotProvider>
       </body>
     </html>
   );

@@ -1,4 +1,4 @@
-// File: /Users/macos/Desktop/code/eproject/app/tarot/page.tsx
+// File: /Users/tranvunamgiang/Documents/tarot client/FE_MysteryShack_Client/app/tarot/page.tsx
 import * as entry from '../../../../app/tarot/page.js'
 import type { ResolvingMetadata } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
