@@ -5,13 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Moon, Eye, EyeOff } from 'lucide-react';
+import { Moon, Eye, EyeOff, Loader2, Sparkles, User, Mail, Lock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -20,208 +25,279 @@ export default function RegisterPage() {
     agreeToTerms: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    // Validate nhanh
     if (formData.password !== formData.confirmPassword) {
-      alert('Mật khẩu không khớp!');
+      setError('Mật khẩu xác nhận không khớp.');
+      setIsLoading(false);
       return;
     }
     if (!formData.agreeToTerms) {
-      alert('Vui lòng đồng ý với điều khoản sử dụng!');
+      setError('Vui lòng đồng ý với điều khoản sử dụng.');
+      setIsLoading(false);
       return;
     }
-    console.log('Register:', formData);
+
+    // Giả lập gọi API đăng ký
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    console.log('Register Data:', formData);
+    alert('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
+    router.push('/login');
+    
+    setIsLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNnoiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLW9wYWNpdHk9Ii4wMiIvPjwvZz48L3N2Zz4=')] opacity-30"></div>
+    <div className="min-h-screen bg-[#0a0510] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Background Effects (Đồng bộ với Login) */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#0a0510] to-[#0a0510]"></div>
+      <div className="absolute top-[-10%] left-[-5%] w-96 h-96 bg-amber-600/10 rounded-full blur-3xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-purple-600/10 rounded-full blur-3xl opacity-30 animate-pulse delay-1000"></div>
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
 
-      <div className="absolute top-6 left-6">
-        <Link href="/" className="flex items-center gap-2 text-amber-100 hover:text-amber-500 transition-colors">
-          <Moon className="w-6 h-6" />
-          <span className="text-xl font-bold">Mystic Tarot</span>
+      {/* Logo Corner */}
+      <div className="absolute top-8 left-8 z-20">
+        <Link href="/" className="group flex items-center gap-3 text-amber-100/80 hover:text-amber-400 transition-all duration-300">
+          <div className="p-2 rounded-lg bg-white/5 border border-white/10 group-hover:border-amber-500/50 backdrop-blur-md transition-colors">
+            <Moon className="w-5 h-5" />
+          </div>
+          <span className="text-lg font-bold tracking-wide">Mystic Tarot</span>
         </Link>
       </div>
 
-      <Card className="w-full max-w-md bg-slate-900/80 border-amber-900/20 backdrop-blur-sm shadow-2xl relative z-10 my-8">
-        <CardHeader className="space-y-4 text-center pb-6">
-          <div className="flex justify-center">
-            <div className="p-4 rounded-full bg-gradient-to-br from-amber-900/30 to-amber-950/30">
-              <Moon className="w-12 h-12 text-amber-500" />
-            </div>
-          </div>
-          <CardTitle className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">
-            Bắt Đầu Hành Trình
-          </CardTitle>
-          <CardDescription className="text-slate-400 text-base">
-            Tạo tài khoản để khám phá những bí ẩn của vận mệnh
-          </CardDescription>
-        </CardHeader>
+      {/* Main Card */}
+      <div className="relative w-full max-w-md z-10 group my-8">
+        {/* Glow Effect */}
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-amber-500 rounded-2xl opacity-20 blur group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
 
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-amber-100">
-                Họ và tên
-              </Label>
-              <Input
-                id="fullName"
-                type="text"
-                placeholder="Nguyễn Văn A"
-                value={formData.fullName}
-                onChange={(e) =>
-                  setFormData({ ...formData, fullName: e.target.value })
-                }
-                className="bg-slate-950/50 border-amber-900/30 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20"
-                required
-              />
+        <Card className="relative w-full bg-[#0f0a19]/90 border-white/10 backdrop-blur-xl shadow-2xl">
+          <CardHeader className="space-y-3 text-center pb-6 pt-8">
+            <div className="mx-auto w-14 h-14 rounded-full bg-gradient-to-b from-amber-500/20 to-transparent flex items-center justify-center border border-amber-500/20 mb-1 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+              <Sparkles className="w-7 h-7 text-amber-400" />
             </div>
+            <CardTitle className="text-3xl font-bold text-white tracking-tight">
+              Khởi Đầu Mới
+            </CardTitle>
+            <CardDescription className="text-slate-400 text-sm">
+              Tạo tài khoản để khám phá vận mệnh của bạn
+            </CardDescription>
+          </CardHeader>
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-amber-100">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="bg-slate-950/50 border-amber-900/30 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20"
-                required
-              />
-            </div>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {/* Error Alert */}
+              {error && (
+                <div className="p-3 rounded-lg bg-red-950/30 border border-red-900/50 flex items-center gap-2 text-red-200 text-xs animate-in fade-in slide-in-from-top-1">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-amber-100">
-                Mật khẩu
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  className="bg-slate-950/50 border-amber-900/30 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20 pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
+              {/* Full Name */}
+              <div className="space-y-1.5">
+                <Label htmlFor="fullName" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">
+                  Họ và tên
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Nguyễn Văn A"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    className="h-10 pl-10 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-amber-100">
-                Xác nhận mật khẩu
-              </Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    setFormData({ ...formData, confirmPassword: e.target.value })
-                  }
-                  className="bg-slate-950/50 border-amber-900/30 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:ring-amber-500/20 pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
+              {/* Email */}
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">
+                  Email
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="h-10 pl-10 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-start gap-3 pt-2">
-              <Checkbox
-                id="terms"
-                checked={formData.agreeToTerms}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, agreeToTerms: checked as boolean })
-                }
-                className="mt-1 border-amber-900/30 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
-              />
-              <Label
-                htmlFor="terms"
-                className="text-sm text-slate-400 leading-relaxed cursor-pointer"
+              {/* Password */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">
+                    Mật khẩu
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="h-10 pl-10 pr-8 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all"
+                      required
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-amber-400 transition-colors"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">
+                    Xác nhận
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="••••••"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      className="h-10 pl-10 pr-8 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all"
+                      required
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-amber-400 transition-colors"
+                      disabled={isLoading}
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Terms Checkbox */}
+              <div className="flex items-start gap-3 py-2">
+                <Checkbox
+                  id="terms"
+                  checked={formData.agreeToTerms}
+                  onCheckedChange={(checked) => setFormData({ ...formData, agreeToTerms: checked as boolean })}
+                  disabled={isLoading}
+                  className="mt-0.5 border-white/20 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600 data-[state=checked]:text-white"
+                />
+                <Label htmlFor="terms" className="text-xs text-slate-400 leading-relaxed cursor-pointer font-normal">
+                  Tôi đồng ý với{' '}
+                  <Link href="/terms" className="text-amber-500 hover:text-amber-300 underline underline-offset-2 transition-colors">
+                    Điều khoản sử dụng
+                  </Link>{' '}
+                  và{' '}
+                  <Link href="/privacy" className="text-amber-500 hover:text-amber-300 underline underline-offset-2 transition-colors">
+                    Chính sách bảo mật
+                  </Link>
+                </Label>
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-11 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold text-sm shadow-lg shadow-amber-900/20 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               >
-                Tôi đồng ý với{' '}
-                <Link href="/terms" className="text-amber-500 hover:text-amber-400">
-                  Điều khoản sử dụng
-                </Link>{' '}
-                và{' '}
-                <Link href="/privacy" className="text-amber-500 hover:text-amber-400">
-                  Chính sách bảo mật
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Đang tạo tài khoản...
+                  </>
+                ) : (
+                  'Đăng Ký Ngay'
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-slate-500 text-sm">
+                Đã có tài khoản?{' '}
+                <Link
+                  href="/login"
+                  className="text-amber-500 hover:text-amber-400 font-semibold transition-colors hover:underline decoration-amber-500/30 underline-offset-4"
+                >
+                  Đăng nhập
                 </Link>
-              </Label>
+              </p>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white text-base py-6 shadow-lg shadow-amber-900/50"
-            >
-              Đăng Ký
-            </Button>
-          </form>
+            {/* Social Login Divider */}
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-white/10" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
+                  <span className="bg-[#0f0a19] px-2 text-slate-500">Hoặc đăng ký với</span>
+                </div>
+              </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-slate-400">
-              Đã có tài khoản?{' '}
-              <Link
-                href="/login"
-                className="text-amber-500 hover:text-amber-400 font-semibold transition-colors"
-              >
-                Đăng nhập
-              </Link>
-            </p>
-          </div>
-
-          <div className="mt-6 pt-6 border-t border-amber-900/20">
-            <p className="text-center text-sm text-slate-500 mb-4">
-              Hoặc đăng ký với
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <Button
-                variant="outline"
-                type="button"
-                className="border-amber-900/30 text-slate-300 hover:bg-amber-950/30 hover:text-amber-500 hover:border-amber-500/30"
-              >
-                Google
-              </Button>
-              <Button
-                variant="outline"
-                type="button"
-                className="border-amber-900/30 text-slate-300 hover:bg-amber-950/30 hover:text-amber-500 hover:border-amber-500/30"
-              >
-                Facebook
-              </Button>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  disabled={isLoading}
+                  className="h-9 border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white hover:border-white/20 transition-all text-xs"
+                >
+                  <svg className="mr-2 h-3.5 w-3.5" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  Google
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={isLoading}
+                  className="h-9 border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white hover:border-white/20 transition-all text-xs"
+                >
+                  <svg className="mr-2 h-3.5 w-3.5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036c-2.148 0-2.797 1.651-2.797 3.363v.896h4.441l-.544 3.667h-3.897v7.98C19.967 22.46 24 18.067 24 12.001 24 5.372 18.627 0 12 0S0 5.372 0 12.001c0 6.066 4.033 10.459 9.101 11.69z" />
+                  </svg>
+                  Facebook
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
