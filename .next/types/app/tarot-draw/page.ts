@@ -1,8 +1,8 @@
-// File: Q:\Decepticon\FPT_APTECH\sem4\eproject\FE_MysteryShack_Client\app\booking\page.tsx
-import * as entry from '../../../../app/booking/page.js'
+// File: Q:\Decepticon\FPT_APTECH\sem4\eproject\FE_MysteryShack_Client\app\tarot-draw\page.tsx
+import * as entry from '../../../../app/tarot-draw/page.js'
 import type { ResolvingMetadata } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
-type TEntry = typeof import('../../../../app/booking/page.js')
+type TEntry = typeof import('../../../../app/tarot-draw/page.js')
 
 // Check that the entry is a valid entry
 checkFields<Diff<{

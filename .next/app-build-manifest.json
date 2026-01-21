@@ -11,6 +11,11 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
+    "/tarot-draw/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/tarot-draw/page.js"
+    ],
     "/booking/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
