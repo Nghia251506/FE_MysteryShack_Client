@@ -8,12 +8,11 @@ import { Moon, Eye, EyeOff, Loader2, Sparkles, AlertCircle } from 'lucide-react'
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-// Import AuthContext
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth(); // Lấy hàm login từ context
+  const { login } = useAuth(); 
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,26 +29,55 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // --- LOGIC XỬ LÝ USERNAME/EMAIL ĐỂ TRÁNH LỖI 401 ---
-      // Nếu người dùng nhập Email (có chứa @), ta lấy phần trước @ làm username
+      // 1. Xử lý Username/Email
       let usernameToSend = formData.email.trim();
       if (usernameToSend.includes('@')) {
           usernameToSend = usernameToSend.split('@')[0];
       }
 
-      // Gọi API Login
-      await login({ 
+      // 2. Gọi API Login thông qua Context
+      // Hứng kết quả trả về từ hàm login (đảm bảo authContext return đúng response.data)
+      const data: any = await login({ 
         username: usernameToSend, 
         passwordHash: formData.password 
       });
 
-      // --- CHUYỂN HƯỚNG SANG TAROT DRAW ---
-      // Sau khi login thành công, chuyển ngay sang trang rút bài
-      router.push("/tarot-draw");
+      // --- LOG DEBUG QUAN TRỌNG (Bấm F12 để xem cấu trúc thật) ---
+      console.log("🔥 Full Login Response:", data);
+
+      // 3. --- LOGIC TÌM ROLE (Quét mọi vị trí có thể) ---
+      let rawRole = "";
+
+      // Ưu tiên 1: Role nằm ngay ở root (VD: { token: "...", role: "READER" })
+      if (data?.role) {
+        rawRole = data.role;
+      } 
+      // Ưu tiên 2: Role nằm trong object user (VD: { token: "...", user: { role: "READER" } })
+      else if (data?.user?.role) {
+        rawRole = data.user.role;
+      }
+      // Ưu tiên 3: Role là mảng (Spring Security hay trả về mảng authorities)
+      else if (data?.roles && Array.isArray(data.roles)) {
+        rawRole = data.roles[0]; // Lấy cái đầu tiên
+      }
+
+      console.log("🎯 Detected Role:", rawRole);
+
+      // Chuẩn hóa role về chữ hoa để so sánh cho chắc ăn
+      const userRole = String(rawRole).toUpperCase();
+
+      // 4. --- ĐIỀU HƯỚNG ---
+      // Chỉ cần role có chứa chữ "READER" (VD: "ROLE_READER", "READER", "Professional_Reader")
+      if (userRole.includes("READER")) {
+          console.log("✅ Redirecting to Dashboard...");
+          router.push("/readerdashboard");
+      } else {
+          console.log("✅ Redirecting to Tarot Draw...");
+          router.push("/tarot-draw");
+      }
 
     } catch (err: any) {
       console.error("Lỗi đăng nhập:", err);
-      // Hiển thị lỗi
       const msg = err.response?.data?.message || 'Tên đăng nhập hoặc mật khẩu không chính xác.';
       setError(msg);
     } finally {
