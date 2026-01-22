@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; 
 import { useTarotSession } from "@/context/TarotContext";
-// Import Service - Đảm bảo đường dẫn đúng với project của bạn
-import { ReadingSessionService } from "@/services/readingSessionService";
+// Chúng ta sẽ dùng axios trực tiếp để kiểm soát Header thủ công
+import axios from "axios"; 
+import { useAuth } from "@/context/AuthContext";
 
 import { 
   User, Calendar, Sparkles, Zap, Heart, Briefcase, Wallet, Search,
@@ -14,33 +15,9 @@ import { motion, AnimatePresence } from "framer-motion";
 
 // --- MOCK DATA ---
 const TOPICS = [
-  { 
-    id: "love", 
-    dbId: 1, 
-    icon: <Heart className="w-6 h-6" />, 
-    label: "Tình Yêu", 
-    desc: "Crush, người cũ, hôn nhân",
-    color: "from-pink-500 to-rose-600",
-    bg: "bg-pink-500/10 border-pink-500/20"
-  },
-  { 
-    id: "career", 
-    dbId: 2, 
-    icon: <Briefcase className="w-6 h-6" />, 
-    label: "Sự Nghiệp", 
-    desc: "Công việc, thăng tiến, định hướng",
-    color: "from-blue-500 to-cyan-600",
-    bg: "bg-blue-500/10 border-blue-500/20"
-  },
-  { 
-    id: "finance", 
-    dbId: 3, 
-    icon: <Wallet className="w-6 h-6" />, 
-    label: "Tài Chính", 
-    desc: "Tiền bạc, đầu tư, vận may",
-    color: "from-emerald-500 to-green-600",
-    bg: "bg-emerald-500/10 border-emerald-500/20"
-  }
+  { id: "love", dbId: 1, icon: <Heart className="w-6 h-6" />, label: "Tình Yêu", desc: "Crush, người cũ, hôn nhân", color: "from-pink-500 to-rose-600", bg: "bg-pink-500/10 border-pink-500/20" },
+  { id: "career", dbId: 2, icon: <Briefcase className="w-6 h-6" />, label: "Sự Nghiệp", desc: "Công việc, thăng tiến, định hướng", color: "from-blue-500 to-cyan-600", bg: "bg-blue-500/10 border-blue-500/20" },
+  { id: "finance", dbId: 3, icon: <Wallet className="w-6 h-6" />, label: "Tài Chính", desc: "Tiền bạc, đầu tư, vận may", color: "from-emerald-500 to-green-600", bg: "bg-emerald-500/10 border-emerald-500/20" }
 ];
 
 const QUESTION_DB_MAP: Record<string, number> = {
@@ -77,29 +54,28 @@ const MATCHED_READER = {
   bio: "Chuyên gia chữa lành với 7 năm kinh nghiệm. Dẫn lối bạn bằng ánh sáng của sự thật và lòng trắc ẩn."
 };
 
-const REVIEWS = [
-  { id: 1, user: "Minh Anh", comment: "Reader giải bài rất tận tâm, nói đúng trọng tâm vấn đề mình đang gặp phải.", stars: 5 },
-  { id: 2, user: "Hoàng Nam", comment: "Năng lượng rất tích cực, mình cảm thấy nhẹ lòng hơn sau buổi trải bài.", stars: 5 },
-  { id: 3, user: "Thùy Chi", comment: "Cách giải thích dễ hiểu, logic và có chiều sâu kiến thức.", stars: 4 },
-];
-
 export default function BookingRequestPage() {
   const router = useRouter(); 
   const { session, updateSession } = useTarotSession();
+  const { user } = useAuth();
   
-  // State quản lý luồng
   const [step, setStep] = useState<1|2|3|4>(1); 
   const [scanStatus, setScanStatus] = useState("Đang kết nối vệ tinh tâm linh...");
   const [progress, setProgress] = useState(0);
-  const [showProfile, setShowProfile] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: session.userName || "",
+    name: session.userName || user?.fullName || "",
     dob: session.birthDate || "",
     topic: session.topic || "",
     question: session.question || ""
   });
+
+  useEffect(() => {
+    if (user?.fullName && !formData.name) {
+      setFormData(prev => ({ ...prev, name: user.fullName }));
+    }
+  }, [user]);
 
   useEffect(() => {
     if (step === 1 && session.drawnCards.length > 0) {
@@ -115,18 +91,8 @@ export default function BookingRequestPage() {
   const handleNextStep = () => {
     if (step === 1 && (!formData.topic || !formData.question)) return alert("Vui lòng chọn chủ đề và câu hỏi");
     if (step === 2 && (!formData.name || !formData.dob)) return alert("Vui lòng nhập họ tên và ngày sinh");
-    
-    if (step === 2) {
-      updateSession({ 
-        userName: formData.name, 
-        birthDate: formData.dob, 
-        topic: formData.topic, 
-        question: formData.question 
-      });
-      setStep(3); 
-    } else if (step < 4) {
-      setStep(prev => (prev + 1) as 1 | 2 | 3 | 4);
-    }
+    if (step === 2) { updateSession({ userName: formData.name, birthDate: formData.dob, topic: formData.topic, question: formData.question }); setStep(3); } 
+    else if (step < 4) setStep(prev => (prev + 1) as 1 | 2 | 3 | 4);
   };
 
   useEffect(() => {
@@ -141,15 +107,8 @@ export default function BookingRequestPage() {
       let currentStage = 0;
       const interval = setInterval(() => {
         setProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setTimeout(() => setStep(4), 500);
-            return 100;
-          }
-          if (currentStage < stages.length && prev >= stages[currentStage].pct) {
-            setScanStatus(stages[currentStage].msg);
-            currentStage++;
-          }
+          if (prev >= 100) { clearInterval(interval); setTimeout(() => setStep(4), 500); return 100; }
+          if (currentStage < stages.length && prev >= stages[currentStage].pct) { setScanStatus(stages[currentStage].msg); currentStage++; }
           return prev + 1;
         });
       }, 40);
@@ -157,75 +116,84 @@ export default function BookingRequestPage() {
     }
   }, [step]);
 
-  // --- HÀM GỌI API FIX LỖI "null into int" ---
+  // --- HÀM GỌI API ĐÃ FIX AUTH + ARRAY ERROR ---
   const handleCreateBooking = async () => {
+    // 1. Kiểm tra Token
+    const token = localStorage.getItem("accessToken");
+    if (!user || !token) {
+        if (confirm("Phiên đăng nhập hết hạn hoặc chưa đăng nhập. Đi đến trang đăng nhập?")) {
+            router.push("/login");
+        }
+        return;
+    }
+
     setIsSubmitting(true);
     
-    // Tìm ID Topic dựa trên topic text (mock)
-    // Map: love -> 1, career -> 2, finance -> 3
     const topicIdMap: Record<string, number> = { "love": 1, "career": 2, "finance": 3 };
     const currentTopicId = topicIdMap[formData.topic] || 1;
-    
     const questionIdToSend = QUESTION_DB_MAP[formData.question] || 1;
 
-    // PAYLOAD "BẤT TỬ": Gửi đầy đủ trường INT để tránh Java crash
+    // 2. Chuyển đổi Cards thành MẢNG SỐ (List<Long>)
+    // Backend yêu cầu ArrayList<Long> nên ta map ra array các ID
+    const cardIds = session.drawnCards.map(c => {
+        // Ưu tiên lấy dbId (nếu có), nếu không lấy id và ép về số
+        return Number(c.dbId || c.id || 0); 
+    }).filter(id => id > 0); // Lọc bỏ ID lỗi
+
+    // PAYLOAD FINAL
     const payload: any = {
-        // 1. Customer: Users có cột elo_score (int)
-        customer: { 
-            id: 1,
-            isVerified: true, 
-            eloScore: 0,         // <-- QUAN TRỌNG: Fix lỗi int
-            role: "CUSTOMER"
-        }, 
-        userId: 1, 
+        customer: user.id,   
+        customerId: user.id,
         
-        // 2. Reader: Users có cột elo_score (int)
+        reader: 99,
         readerId: 99,
-        reader: {
-            id: 99,
-            isVerified: true, 
-            eloScore: 1000,      // <-- QUAN TRỌNG: Fix lỗi int
-            role: "READER"
-        },
 
-        // 3. Question: TopicQuestion có cột topic_id (int)
-        question: { 
-            id: questionIdToSend,
-            isPopular: true,
-            topicId: currentTopicId, // <-- QUAN TRỌNG: Fix lỗi int
-            // Gửi kèm object Topic cho chắc ăn
-            topic: {
-                id: currentTopicId,
-                name: "Topic Name"
-            }
-        },
+        question: questionIdToSend, 
+        questionId: questionIdToSend,
 
-        // 4. Các trường int/boolean khác phòng hờ
+        topicId: currentTopicId,
+        
+        // FIX LỖI JSON: Gửi mảng trực tiếp, KHÔNG dùng JSON.stringify
+        selectedCards: cardIds, 
+
+        status: "PENDING",
         isPaid: false,
         active: true,
         confirmed: false,
         amount: 0, 
-        duration: 30, // int duration?
-
-        // 5. Thông tin chính
-        status: "PENDING",
-        note: `KH: ${formData.name} (${formData.dob}) - Chủ đề: ${formData.topic} - Hỏi: ${formData.question}`,
+        note: `KH: ${formData.name} - Hỏi: ${formData.question}`,
         createdAt: new Date().toISOString()
     };
 
     try {
-        console.log("Đang gửi payload:", payload);
-        const result = await ReadingSessionService.create(payload);
+        console.log("Sending Payload:", payload);
         
-        console.log("Kết quả trả về:", result);
-        alert(`Gửi thành công! Mã phiên: ${result.id || 'Mới'}`);
+        // GỌI TRỰC TIẾP AXIOS ĐỂ GẮN HEADER THỦ CÔNG (Tránh lỗi service quên gắn token)
+        const response = await axios.post(
+            'http://localhost:8080/api/v1/sessions', // URL chuẩn có v1
+            payload,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`, // Gắn chìa khóa vào đây
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        
+        console.log("Success:", response.data);
+        alert(`Gửi thành công! Mã phiên: ${response.data.id || 'Mới'}.`);
         router.push("/"); 
         
     } catch (error: any) {
-        console.error("Lỗi API:", error);
-        // Lấy thông báo lỗi chi tiết nhất có thể
+        console.error("API Error:", error);
         const serverMsg = error.response?.data?.message || JSON.stringify(error.response?.data) || error.message;
-        alert(`Thất bại: ${serverMsg}\n(Check F12 > Network để xem chi tiết)`);
+        
+        if (error.response?.status === 401 || error.response?.status === 403) {
+             alert("Lỗi xác thực: Token không hợp lệ hoặc hết hạn. Vui lòng đăng nhập lại.");
+             router.push("/login");
+        } else {
+             alert(`Thất bại: ${serverMsg}`);
+        }
     } finally {
         setIsSubmitting(false);
     }
@@ -233,8 +201,7 @@ export default function BookingRequestPage() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 font-sans overflow-hidden relative selection:bg-amber-500/30 flex items-center justify-center p-4">
-      
-      {/* Background Effects */}
+      {/* Background */}
       <div className="fixed inset-0 pointer-events-none">
          <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-purple-900/20 rounded-full blur-[120px] animate-pulse-slow" />
          <div className="absolute bottom-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-amber-900/10 rounded-full blur-[100px]" />
@@ -242,24 +209,8 @@ export default function BookingRequestPage() {
       </div>
 
       <div className="w-full max-w-6xl relative z-10">
-        
-        {/* Progress Bar */}
-        {step < 4 && (
-          <div className="flex justify-center mb-8">
-            <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md">
-               {[1, 2, 3].map(i => (
-                 <div key={i} className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${step >= i ? "bg-amber-500 scale-110 shadow-[0_0_10px_rgba(245,158,11,0.5)]" : "bg-white/20"}`} />
-               ))}
-               <span className="ml-2 text-xs text-slate-400 font-medium uppercase tracking-wider">
-                 {step === 1 ? "Chủ đề" : step === 2 ? "Xác nhận & Thông tin" : "Kết nối"}
-               </span>
-            </div>
-          </div>
-        )}
-
         <AnimatePresence mode="wait">
-
-          {/* === STEP 1: CHỌN CHỦ ĐỀ === */}
+          {/* STEP 1: CHỌN CHỦ ĐỀ */}
           {step === 1 && (
             <motion.div 
               key="step1"
@@ -322,14 +273,13 @@ export default function BookingRequestPage() {
             </motion.div>
           )}
 
-          {/* === STEP 2: THÔNG TIN KHÁCH HÀNG === */}
+          {/* STEP 2: THÔNG TIN KHÁCH HÀNG */}
           {step === 2 && (
              <motion.div 
                key="step2"
                initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
                className={`mx-auto ${session.drawnCards.length > 0 ? 'grid grid-cols-1 lg:grid-cols-12 gap-8' : 'max-w-2xl'}`}
              >
-                {/* Phần hiển thị bài rút gọn */}
                 {session.drawnCards.length > 0 && (
                    <div className="lg:col-span-5 flex flex-col justify-center order-2 lg:order-1">
                       <div className="bg-[#1a1025]/60 p-6 rounded-[2rem] border border-white/10">
@@ -348,9 +298,9 @@ export default function BookingRequestPage() {
                 <div className={`${session.drawnCards.length > 0 ? 'lg:col-span-7 order-1 lg:order-2' : 'w-full'}`}>
                     <div className="bg-[#130823]/80 border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden">
                        <button onClick={() => setStep(1)} className="text-xs text-slate-500 mb-6 font-bold">← Quay lại</button>
-                       <h2 className="text-3xl font-bold text-white mb-2">Thông tin của bạn</h2>
+                       <h2 className="text-3xl font-bold text-white mb-6">Thông tin của bạn</h2>
                        
-                       <div className="space-y-6 mt-6">
+                       <div className="space-y-6">
                           <div>
                              <label className="text-xs font-bold text-slate-400 uppercase">Họ và tên</label>
                              <div className="relative group mt-2">
@@ -385,7 +335,7 @@ export default function BookingRequestPage() {
              </motion.div>
           )}
 
-          {/* === STEP 3: SCANNING === */}
+          {/* STEP 3: SCANNING */}
           {step === 3 && (
              <motion.div 
                key="step3"
@@ -405,7 +355,7 @@ export default function BookingRequestPage() {
              </motion.div>
           )}
 
-          {/* === STEP 4: KẾT QUẢ & NÚT GỬI === */}
+          {/* STEP 4: KẾT QUẢ & NÚT GỬI */}
           {step === 4 && (
              <motion.div 
                 key="step4"
@@ -425,13 +375,11 @@ export default function BookingRequestPage() {
                       <p className="text-xs text-amber-500 italic mt-1">"{formData.question}"</p>
                    </div>
 
-                   {/* --- ACTION BUTTONS --- */}
                    <div className="flex gap-3 justify-center">
                       <button onClick={() => {setStep(3); setProgress(0)}} className="px-4 py-3 bg-white/5 rounded-xl text-slate-300 text-sm hover:bg-white/10">
                          Đổi người khác
                       </button>
                       
-                      {/* NÚT GỬI ĐÃ TÍCH HỢP HÀM FIX LỖI */}
                       <button 
                          onClick={handleCreateBooking}
                          disabled={isSubmitting}
@@ -451,7 +399,6 @@ export default function BookingRequestPage() {
              </motion.div>
           )}
         </AnimatePresence>
-
       </div>
     </div>
   );

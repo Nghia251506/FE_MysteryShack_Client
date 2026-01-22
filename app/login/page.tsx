@@ -8,15 +8,13 @@ import { Moon, Eye, EyeOff, Loader2, Sparkles, AlertCircle } from 'lucide-react'
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-// CẤU HÌNH TÀI KHOẢN TEST
-const TEST_CREDENTIALS = {
-  email: 'demo@mystictarot.com',
-  password: 'password123'
-};
+// Import AuthContext
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth(); // Lấy hàm login từ context
+
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,22 +29,32 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
 
-    // Giả lập độ trễ mạng (Network delay) để trải nghiệm thật hơn
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // --- LOGIC XỬ LÝ USERNAME/EMAIL ĐỂ TRÁNH LỖI 401 ---
+      // Nếu người dùng nhập Email (có chứa @), ta lấy phần trước @ làm username
+      let usernameToSend = formData.email.trim();
+      if (usernameToSend.includes('@')) {
+          usernameToSend = usernameToSend.split('@')[0];
+      }
 
-    if (
-      formData.email === TEST_CREDENTIALS.email &&
-      formData.password === TEST_CREDENTIALS.password
-    ) {
-      console.log('Đăng nhập thành công!');
-      // Chỗ này bạn sẽ redirect sang trang Dashboard
-      // router.push('/dashboard'); 
-      alert("Đăng nhập thành công! Chào mừng trở lại.");
-    } else {
-      setError('Email hoặc mật khẩu không chính xác. Vui lòng thử lại.');
+      // Gọi API Login
+      await login({ 
+        username: usernameToSend, 
+        passwordHash: formData.password 
+      });
+
+      // --- CHUYỂN HƯỚNG SANG TAROT DRAW ---
+      // Sau khi login thành công, chuyển ngay sang trang rút bài
+      router.push("/tarot-draw");
+
+    } catch (err: any) {
+      console.error("Lỗi đăng nhập:", err);
+      // Hiển thị lỗi
+      const msg = err.response?.data?.message || 'Tên đăng nhập hoặc mật khẩu không chính xác.';
+      setError(msg);
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -100,12 +108,12 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-slate-300 text-xs uppercase tracking-wider font-semibold">
-                  Email
+                  Email hoặc Tên đăng nhập
                 </Label>
                 <Input
                   id="email"
-                  type="email"
-                  placeholder="name@example.com"
+                  type="text"
+                  placeholder="username hoặc email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="h-11 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all duration-300"
@@ -160,7 +168,7 @@ export default function LoginPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Đang kết nối...
+                    Đang đăng nhập...
                   </>
                 ) : (
                   'Đăng Nhập'

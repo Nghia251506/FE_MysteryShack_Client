@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { TarotProvider } from "@/context/TarotContext"; // <--- Import này
+
+// Import các Context Provider
+import { TarotProvider } from "@/context/TarotContext";
+import { AuthProvider } from "@/context/AuthContext"; // <--- Thêm dòng này
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,9 +21,12 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={inter.className}>
-        <TarotProvider> {/* <--- Bọc Provider ở đây */}
-          {children}
-        </TarotProvider>
+        {/* Bọc AuthProvider ở ngoài cùng để quản lý User toàn cục */}
+        <AuthProvider>
+          <TarotProvider>
+            {children}
+          </TarotProvider>
+        </AuthProvider>
       </body>
     </html>
   );
