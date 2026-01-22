@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; 
 import { useTarotSession } from "@/context/TarotContext";
-// Chúng ta sẽ dùng axios trực tiếp để kiểm soát Header thủ công
+// Giữ logic axios trực tiếp để fix lỗi backend
 import axios from "axios"; 
 import { useAuth } from "@/context/AuthContext";
 
 import { 
   User, Calendar, Sparkles, Zap, Heart, Briefcase, Wallet, Search,
-  ArrowRight, Star, ShieldCheck
+  ArrowRight, Star, ShieldCheck, X, Award, Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -41,18 +41,25 @@ const QUESTIONS: Record<string, string[]> = {
   finance: ["Tình hình tài chính tháng tới?", "Cơ hội đầu tư sinh lời?", "Vận may tiền bạc sắp tới?", "Tôi có nên mua tài sản lớn?"]
 };
 
+// --- DATA READER & REVIEWS THEO MẪU BẠN GỬI ---
 const MATCHED_READER = {
   id: "reader-99",
   dbId: 99, 
-  name: "Master Tuệ Minh",
+  name: "Grand Master Giang",
   avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-  rating: 4.98,
-  reviews: "2.4k",
+  rating: 5.0,
+  reviews: "2.5k+",
   tags: ["Tarot", "Chiêm Tinh", "Reiki"],
-  matchScore: 99,
-  status: "Vừa online",
+  matchScore: 98,
+  status: "Vừa online 1 phút trước",
   bio: "Chuyên gia chữa lành với 7 năm kinh nghiệm. Dẫn lối bạn bằng ánh sáng của sự thật và lòng trắc ẩn."
 };
+
+const REVIEWS = [
+  { id: 1, user: "Minh Anh", comment: "Reader giải bài rất tận tâm, nói đúng trọng tâm vấn đề mình đang gặp phải.", stars: 5 },
+  { id: 2, user: "Hoàng Nam", comment: "Năng lượng rất tích cực, mình cảm thấy nhẹ lòng hơn sau buổi trải bài.", stars: 5 },
+  { id: 3, user: "Thùy Chi", comment: "Cách giải thích dễ hiểu, logic và có chiều sâu kiến thức.", stars: 4 },
+];
 
 export default function BookingRequestPage() {
   const router = useRouter(); 
@@ -63,6 +70,7 @@ export default function BookingRequestPage() {
   const [scanStatus, setScanStatus] = useState("Đang kết nối vệ tinh tâm linh...");
   const [progress, setProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showProfile, setShowProfile] = useState(false); 
 
   const [formData, setFormData] = useState({
     name: session.userName || user?.fullName || "",
@@ -116,9 +124,8 @@ export default function BookingRequestPage() {
     }
   }, [step]);
 
-  // --- HÀM GỌI API ĐÃ FIX AUTH + ARRAY ERROR ---
+  // --- LOGIC GỌI API (GIỮ NGUYÊN ĐỂ KHÔNG LỖI) ---
   const handleCreateBooking = async () => {
-    // 1. Kiểm tra Token
     const token = localStorage.getItem("accessToken");
     if (!user || !token) {
         if (confirm("Phiên đăng nhập hết hạn hoặc chưa đăng nhập. Đi đến trang đăng nhập?")) {
@@ -133,29 +140,18 @@ export default function BookingRequestPage() {
     const currentTopicId = topicIdMap[formData.topic] || 1;
     const questionIdToSend = QUESTION_DB_MAP[formData.question] || 1;
 
-    // 2. Chuyển đổi Cards thành MẢNG SỐ (List<Long>)
-    // Backend yêu cầu ArrayList<Long> nên ta map ra array các ID
-    const cardIds = session.drawnCards.map(c => {
-        // Ưu tiên lấy dbId (nếu có), nếu không lấy id và ép về số
-        return Number(c.dbId || c.id || 0); 
-    }).filter(id => id > 0); // Lọc bỏ ID lỗi
+    // Convert mảng bài sang số để tránh lỗi JSON backend
+    const cardIds = session.drawnCards.map(c => Number(c.dbId || c.id || 0)).filter(id => id > 0);
 
-    // PAYLOAD FINAL
     const payload: any = {
         customer: user.id,   
         customerId: user.id,
-        
         reader: 99,
         readerId: 99,
-
         question: questionIdToSend, 
         questionId: questionIdToSend,
-
         topicId: currentTopicId,
-        
-        // FIX LỖI JSON: Gửi mảng trực tiếp, KHÔNG dùng JSON.stringify
         selectedCards: cardIds, 
-
         status: "PENDING",
         isPaid: false,
         active: true,
@@ -167,27 +163,22 @@ export default function BookingRequestPage() {
 
     try {
         console.log("Sending Payload:", payload);
-        
-        // GỌI TRỰC TIẾP AXIOS ĐỂ GẮN HEADER THỦ CÔNG (Tránh lỗi service quên gắn token)
         const response = await axios.post(
-            'http://localhost:8080/api/v1/sessions', // URL chuẩn có v1
+            'http://localhost:8080/api/v1/sessions', 
             payload,
             {
                 headers: {
-                    'Authorization': `Bearer ${token}`, // Gắn chìa khóa vào đây
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             }
         );
-        
         console.log("Success:", response.data);
         alert(`Gửi thành công! Mã phiên: ${response.data.id || 'Mới'}.`);
         router.push("/"); 
-        
     } catch (error: any) {
         console.error("API Error:", error);
         const serverMsg = error.response?.data?.message || JSON.stringify(error.response?.data) || error.message;
-        
         if (error.response?.status === 401 || error.response?.status === 403) {
              alert("Lỗi xác thực: Token không hợp lệ hoặc hết hạn. Vui lòng đăng nhập lại.");
              router.push("/login");
@@ -280,6 +271,7 @@ export default function BookingRequestPage() {
                initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
                className={`mx-auto ${session.drawnCards.length > 0 ? 'grid grid-cols-1 lg:grid-cols-12 gap-8' : 'max-w-2xl'}`}
              >
+                {/* Phần hiển thị bài rút gọn */}
                 {session.drawnCards.length > 0 && (
                    <div className="lg:col-span-5 flex flex-col justify-center order-2 lg:order-1">
                       <div className="bg-[#1a1025]/60 p-6 rounded-[2rem] border border-white/10">
@@ -355,48 +347,170 @@ export default function BookingRequestPage() {
              </motion.div>
           )}
 
-          {/* STEP 4: KẾT QUẢ & NÚT GỬI */}
+          {/* STEP 4: KẾT QUẢ & NÚT GỬI (ĐÚNG GIAO DIỆN MẪU BẠN GỬI) */}
           {step === 4 && (
              <motion.div 
                 key="step4"
                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                className="max-w-md mx-auto"
+                className="max-w-4xl mx-auto bg-[#1a0f2e]/90 backdrop-blur-3xl border border-amber-500/30 rounded-[2.5rem] p-8 text-center shadow-[0_0_100px_rgba(168,85,247,0.15)]"
              >
-                <div className="bg-[#1a0f2e]/90 border border-amber-500/30 rounded-[2.5rem] p-8 text-center relative overflow-hidden">
-                   <div className="absolute top-6 right-0 bg-green-600 text-white text-[10px] font-bold px-3 py-1 rounded-l-full">99% MATCH</div>
-                   
-                   <img src={MATCHED_READER.avatar} className="w-32 h-32 mx-auto rounded-full border-4 border-[#130823] object-cover mb-4" alt="Reader" />
-                   
-                   <h2 className="text-3xl font-bold text-white mb-2">{MATCHED_READER.name}</h2>
-                   <p className="text-slate-400 text-sm mb-6 px-4">"{MATCHED_READER.bio}"</p>
-                   
-                   <div className="pt-4 border-t border-white/5 mb-6">
-                      <p className="text-[10px] text-slate-500 uppercase">Reader sẽ giải đáp về:</p>
-                      <p className="text-xs text-amber-500 italic mt-1">"{formData.question}"</p>
-                   </div>
+                  {/* Avatar Section */}
+                  <div className="w-32 h-32 mx-auto rounded-full p-1 bg-gradient-to-br from-amber-400 via-purple-500 to-amber-400 mb-6 relative animate-border-spin">
+                     <img src={MATCHED_READER.avatar} className="w-full h-full rounded-full border-4 border-[#130823] object-cover" alt="Reader" />
+                     <div className="absolute bottom-2 right-2 bg-green-500 border-4 border-[#130823] w-7 h-7 rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                     </div>
+                  </div>
+                  
+                  {/* Name & Stats */}
+                  <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
+                     <h2 className="text-4xl font-bold text-white mb-2">{MATCHED_READER.name}</h2>
+                     <div className="flex items-center justify-center gap-2 mb-6">
+                        <span className="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-bold border border-amber-500/30 flex items-center gap-1">
+                           <Star className="w-3 h-3 fill-current" /> {MATCHED_READER.rating}
+                        </span>
+                        <span className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs font-bold border border-purple-500/30">
+                           {MATCHED_READER.matchScore}% Tương thích
+                        </span>
+                     </div>
+                  </motion.div>
+                  
+                  {/* Question Box */}
+                  <div className="bg-slate-900/50 rounded-xl p-6 mb-8 text-left max-w-xl mx-auto border border-slate-700/50 relative overflow-hidden">
+                     <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-amber-500 to-purple-600"></div>
+                     <p className="text-xs text-slate-500 uppercase font-bold mb-2 tracking-wider flex items-center gap-2">
+                        <Zap className="w-3 h-3 text-amber-500" /> Reader đã nhận được câu hỏi:
+                     </p>
+                     <p className="text-white italic text-lg font-serif">"{session.question}"</p>
+                  </div>
 
-                   <div className="flex gap-3 justify-center">
-                      <button onClick={() => {setStep(3); setProgress(0)}} className="px-4 py-3 bg-white/5 rounded-xl text-slate-300 text-sm hover:bg-white/10">
-                         Đổi người khác
-                      </button>
-                      
-                      <button 
-                         onClick={handleCreateBooking}
-                         disabled={isSubmitting}
-                         className={`flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all ${isSubmitting ? 'opacity-70 cursor-wait' : ''}`}
-                      >
-                         {isSubmitting ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-                              Đang gửi...
-                            </>
-                         ) : (
-                            <>Gửi câu hỏi <ArrowRight className="w-4 h-4"/></>
-                         )}
-                      </button>
-                   </div>
-                </div>
+                  {/* Buttons Action */}
+                  <div className="flex justify-center gap-4">
+                     <button 
+                        onClick={() => setShowProfile(true)} 
+                        className="px-8 py-4 text-slate-400 hover:text-white font-medium transition-colors"
+                     >
+                        Xem hồ sơ
+                     </button>
+                     
+                     <button 
+                       onClick={() => {
+                         setStep(3);       // Quay lại bước quét
+                         setProgress(0);   // Reset tiến trình
+                       }} 
+                       className="px-6 py-4 border border-white/10 hover:border-amber-500/50 hover:bg-white/5 text-slate-300 rounded-2xl font-medium transition-all flex items-center gap-2"
+                     >
+                       <Search className="w-4 h-4" /> Đổi Reader
+                     </button>
+
+                     <button 
+                        onClick={handleCreateBooking}
+                        disabled={isSubmitting}
+                        className="group px-10 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-2xl shadow-lg hover:shadow-green-500/40 transition-all flex items-center gap-3 transform hover:-translate-y-1"
+                     >
+                        {isSubmitting ? (
+                             <>
+                               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                               Đang gửi...
+                             </>
+                          ) : (
+                             <>
+                               <span className="relative flex h-3 w-3">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                               </span>
+                               Gửi câu hỏi <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                             </>
+                          )}
+                     </button>
+                  </div>
+                  
+                  <div className="mt-8 flex items-center justify-center gap-2 text-xs text-slate-600">
+                     <ShieldCheck className="w-4 h-4" /> Bảo mật & Riêng tư tuyệt đối
+                  </div>
              </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* --- MODAL HỒ SƠ READER (CÓ REVIEWS) --- */}
+        <AnimatePresence>
+          {showProfile && (
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            >
+               <motion.div 
+                 initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                 className="relative w-full max-w-2xl bg-[#130823] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl"
+               >
+                 {/* Header Modal */}
+                 <div className="h-32 bg-gradient-to-r from-purple-900 to-amber-900 relative">
+                    <button onClick={() => setShowProfile(false)} className="absolute top-6 right-6 w-10 h-10 bg-black/20 hover:bg-black/40 rounded-full flex items-center justify-center text-white transition-colors">
+                       ✕
+                    </button>
+                 </div>
+
+                 <div className="px-8 pb-8 -mt-12 relative">
+                    <div className="flex flex-col md:flex-row gap-6 items-end mb-8">
+                       <img src={MATCHED_READER.avatar} className="w-32 h-32 rounded-3xl border-4 border-[#130823] shadow-xl object-cover" alt="Avatar" />
+                       <div className="flex-1 pb-2">
+                          <h3 className="text-3xl font-bold text-white">{MATCHED_READER.name}</h3>
+                          <div className="flex gap-2 mt-2">
+                             {MATCHED_READER.tags.map(tag => (
+                                <span key={tag} className="text-[10px] uppercase tracking-wider bg-white/5 border border-white/10 px-2 py-1 rounded text-slate-400">
+                                   {tag}
+                                </span>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                       <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
+                          <p className="text-amber-400 font-bold text-xl">{MATCHED_READER.rating}</p>
+                          <p className="text-[10px] text-slate-500 uppercase">Sao đánh giá</p>
+                       </div>
+                       <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
+                          <p className="text-purple-400 font-bold text-xl">{MATCHED_READER.reviews}</p>
+                          <p className="text-[10px] text-slate-500 uppercase">Lượt xem</p>
+                       </div>
+                       <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
+                          <p className="text-green-400 font-bold text-xl">Online</p>
+                          <p className="text-[10px] text-slate-500 uppercase">Trạng thái</p>
+                       </div>
+                    </div>
+
+                    {/* Danh sách Reviews */}
+                    <div className="space-y-4">
+                       <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <Star className="w-4 h-4 text-amber-500 fill-amber-500" /> Đánh giá từ khách hàng
+                       </h4>
+                       <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                          {REVIEWS.map(rev => (
+                             <div key={rev.id} className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                <div className="flex justify-between items-center mb-1">
+                                   <span className="text-sm font-bold text-slate-200">{rev.user}</span>
+                                   <div className="flex gap-0.5">
+                                      {[...Array(rev.stars)].map((_, i) => (
+                                         <Star key={i} className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                      ))}
+                                   </div>
+                                </div>
+                                <p className="text-sm text-slate-400 italic">"{rev.comment}"</p>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+
+                    <button 
+                       onClick={() => { setShowProfile(false); handleCreateBooking(); }}
+                       className="w-full mt-8 py-4 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:opacity-90 transition-opacity"
+                    >
+                       Kết nối ngay với {MATCHED_READER.name}
+                    </button>
+                 </div>
+               </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
