@@ -1,4 +1,4 @@
-// File: C:\Users\Administrator\Desktop\code\FE_MysteryShack_Client\app\layout.tsx
+// File: /Users/tranvunamgiang/Documents/tarot client/FE_MysteryShack_Client/app/layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
