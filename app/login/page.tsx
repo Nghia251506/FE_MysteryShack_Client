@@ -9,6 +9,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+// Import thư viện giải mã token
+import { jwtDecode } from "jwt-decode";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,6 +25,37 @@ export default function LoginPage() {
     password: '',
   });
 
+  // --- HÀM THÔNG MINH ĐỂ TÌM ROLE ---
+  const extractRole = (data: any): string => {
+    try {
+      let foundRole = "";
+
+      // CÁCH 1: Tìm trong dữ liệu JSON trả về trực tiếp
+      if (data?.role) foundRole = data.role;
+      else if (data?.user?.role) foundRole = data.user.role;
+      else if (Array.isArray(data?.roles)) foundRole = data.roles[0];
+      else if (Array.isArray(data?.user?.roles)) foundRole = data.user.roles[0];
+
+      // CÁCH 2: Nếu chưa thấy, giải mã Token (JWT) để tìm
+      if (!foundRole && (data?.accessToken || data?.token)) {
+        const token = data.accessToken || data.token;
+        const decoded: any = jwtDecode(token);
+        
+        console.log("🔓 Decoded JWT:", decoded); // Xem log này để biết token chứa gì
+
+        // Spring Boot thường để role trong 'sub', 'roles', 'authorities' hoặc 'scope'
+        if (decoded.role) foundRole = decoded.role;
+        else if (Array.isArray(decoded.roles)) foundRole = decoded.roles[0];
+        else if (Array.isArray(decoded.authorities)) foundRole = decoded.authorities[0];
+      }
+
+      return String(foundRole || "").toUpperCase(); // Trả về chữ hoa để dễ so sánh
+    } catch (e) {
+      console.error("Lỗi khi trích xuất role:", e);
+      return "";
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -35,44 +68,24 @@ export default function LoginPage() {
           usernameToSend = usernameToSend.split('@')[0];
       }
 
-      // 2. Gọi API Login thông qua Context
-      // Hứng kết quả trả về từ hàm login (đảm bảo authContext return đúng response.data)
-      const data: any = await login({ 
+      // 2. Gọi API Login
+      const response: any = await login({ 
         username: usernameToSend, 
         passwordHash: formData.password 
       });
 
-      // --- LOG DEBUG QUAN TRỌNG (Bấm F12 để xem cấu trúc thật) ---
-      console.log("🔥 Full Login Response:", data);
+      console.log("🔥 API Response:", response);
 
-      // 3. --- LOGIC TÌM ROLE (Quét mọi vị trí có thể) ---
-      let rawRole = "";
+      // 3. --- LOGIC PHÂN LUỒNG ---
+      const userRole = extractRole(response);
+      console.log("🎯 Role tìm thấy:", userRole);
 
-      // Ưu tiên 1: Role nằm ngay ở root (VD: { token: "...", role: "READER" })
-      if (data?.role) {
-        rawRole = data.role;
-      } 
-      // Ưu tiên 2: Role nằm trong object user (VD: { token: "...", user: { role: "READER" } })
-      else if (data?.user?.role) {
-        rawRole = data.user.role;
-      }
-      // Ưu tiên 3: Role là mảng (Spring Security hay trả về mảng authorities)
-      else if (data?.roles && Array.isArray(data.roles)) {
-        rawRole = data.roles[0]; // Lấy cái đầu tiên
-      }
-
-      console.log("🎯 Detected Role:", rawRole);
-
-      // Chuẩn hóa role về chữ hoa để so sánh cho chắc ăn
-      const userRole = String(rawRole).toUpperCase();
-
-      // 4. --- ĐIỀU HƯỚNG ---
-      // Chỉ cần role có chứa chữ "READER" (VD: "ROLE_READER", "READER", "Professional_Reader")
+      // Kiểm tra xem Role có chứa chữ READER không (Ví dụ: "READER", "ROLE_READER")
       if (userRole.includes("READER")) {
-          console.log("✅ Redirecting to Dashboard...");
+          // -> Nếu là Reader
           router.push("/readerdashboard");
       } else {
-          console.log("✅ Redirecting to Tarot Draw...");
+          // -> Nếu là Customer (hoặc không tìm thấy role)
           router.push("/tarot-draw");
       }
 
@@ -107,7 +120,7 @@ export default function LoginPage() {
 
       {/* Main Card */}
       <div className="relative w-full max-w-md z-10 group">
-        {/* Glow Effect behind card */}
+        {/* Glow Effect */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500 to-purple-600 rounded-2xl opacity-20 blur group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
         
         <Card className="relative w-full bg-[#0f0a19]/90 border-white/10 backdrop-blur-xl shadow-2xl">
@@ -126,7 +139,6 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
               
-              {/* Error Message */}
               {error && (
                 <div className="p-3 rounded-lg bg-red-950/30 border border-red-900/50 flex items-center gap-2 text-red-200 text-sm animate-in fade-in slide-in-from-top-1">
                   <AlertCircle className="w-4 h-4 shrink-0" />

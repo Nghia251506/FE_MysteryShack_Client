@@ -41,7 +41,7 @@ const QUESTIONS: Record<string, string[]> = {
   finance: ["Tình hình tài chính tháng tới?", "Cơ hội đầu tư sinh lời?", "Vận may tiền bạc sắp tới?", "Tôi có nên mua tài sản lớn?"]
 };
 
-// --- DATA READER & REVIEWS THEO MẪU BẠN GỬI ---
+// --- DATA READER & REVIEWS ---
 const MATCHED_READER = {
   id: "reader-99",
   dbId: 99, 
@@ -124,7 +124,7 @@ export default function BookingRequestPage() {
     }
   }, [step]);
 
-  // --- LOGIC GỌI API (GIỮ NGUYÊN ĐỂ KHÔNG LỖI) ---
+  // --- LOGIC GỌI API (ĐÃ SỬA LỖI JSON) ---
   const handleCreateBooking = async () => {
     const token = localStorage.getItem("accessToken");
     if (!user || !token) {
@@ -140,8 +140,13 @@ export default function BookingRequestPage() {
     const currentTopicId = topicIdMap[formData.topic] || 1;
     const questionIdToSend = QUESTION_DB_MAP[formData.question] || 1;
 
-    // Convert mảng bài sang số để tránh lỗi JSON backend
-    const cardIds = session.drawnCards.map(c => Number(c.dbId || c.id || 0)).filter(id => id > 0);
+    // --- 👇 SỬA LỖI TẠI ĐÂY 👇 ---
+    // Backend cần List<SelectedCardDto>, tức là mảng Object chứ không phải mảng số.
+    // Map từng lá bài sang cấu trúc Object: { id: number, isReversed: boolean }
+    const cardsPayload = session.drawnCards.map(c => ({
+        id: Number(c.dbId || c.id || 0), // ID lá bài
+        isReversed: c.isReversed || false // Trạng thái ngược/xuôi
+    })).filter(c => c.id > 0);
 
     const payload: any = {
         customer: user.id,   
@@ -151,7 +156,8 @@ export default function BookingRequestPage() {
         question: questionIdToSend, 
         questionId: questionIdToSend,
         topicId: currentTopicId,
-        selectedCards: cardIds, 
+        // Gửi mảng OBJECT thay vì mảng số
+        selectedCards: cardsPayload, 
         status: "PENDING",
         isPaid: false,
         active: true,

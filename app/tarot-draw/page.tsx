@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTarotSession, TarotCard } from "@/context/TarotContext";
 import { 
   Sparkles, ArrowRight, RefreshCw, Lock, 
-  Eye, Heart, Briefcase, Wallet, ChevronRight, Hand, RotateCcw 
+  Eye, Heart, Briefcase, Wallet, ChevronRight, Hand, RotateCcw, LogOut 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -98,6 +98,13 @@ export default function TarotDrawPage() {
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [shouldFlipToFace, setShouldFlipToFace] = useState(false);
 
+  // LOGOUT FUNCTION
+  const handleLogout = () => {
+    // Xóa token hoặc thông tin đăng nhập khỏi localStorage/cookies nếu có
+    // Ví dụ: localStorage.removeItem('token');
+    router.push('/login'); // Điều hướng về trang đăng nhập
+  };
+
   // LOGIC TRÁO BÀI
   const handleStartDraw = () => {
     if (!selectedTopic || !selectedQuestion) return;
@@ -166,6 +173,17 @@ export default function TarotDrawPage() {
          <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-purple-900/10 rounded-full blur-[120px]" />
          <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-amber-900/10 rounded-full blur-[100px]" />
          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+      </div>
+
+      {/* Logout Button */}
+      <div className="absolute top-4 right-4 z-50">
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="text-sm font-medium">Đăng xuất</span>
+        </button>
       </div>
 
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
