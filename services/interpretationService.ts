@@ -3,6 +3,7 @@ import axios from "axios";
 const API_URL = "http://localhost:8080/api/v1/interpretations";
 
 const getConfig = () => {
+  // Lấy token từ localStorage (đảm bảo key là accessToken hoặc token tùy project của bạn)
   const token = localStorage.getItem("accessToken");
   return {
     headers: {
@@ -13,11 +14,9 @@ const getConfig = () => {
 };
 
 export const InterpretationService = {
-  // 1. API: Submit Interpretation (Reader gửi bài)
-  // URL: POST http://localhost:8080/api/v1/interpretations/submit/{sessionId}
+  // 1. Reader gửi bài (Dùng trong ReaderDashboard)
   submit: async (sessionId: number | string, content: string) => {
-    // Backend đang hứng @RequestBody Map<String, String> payload
-    // Nên chúng ta gửi object JSON đơn giản chứa key "content"
+    // Backend nhận Map<String, String> nên phải gói content vào object
     const payload = {
         content: content
     };
@@ -30,18 +29,18 @@ export const InterpretationService = {
     return response.data;
   },
 
-  // 2. API: Xác nhận thanh toán (Nếu cần dùng sau này)
+  // 2. User thanh toán (Dùng trong trang Result của User)
   confirmPayment: async (sessionId: number | string) => {
     const response = await axios.post(
         `${API_URL}/confirm-payment/${sessionId}`, 
-        {}, 
+        {}, // Body rỗng
         getConfig()
     );
     return response.data;
   },
 
-  // 3. API: View Interpretation (Khách xem bài)
-  // URL: GET http://localhost:8080/api/v1/interpretations/customer/view/{sessionId}
+  // 3. User xem bài (Dùng trong trang Result của User)
+  // Lưu ý: Tên hàm là getView (khớp với file bạn đưa)
   getView: async (sessionId: number | string) => {
     const response = await axios.get(
         `${API_URL}/customer/view/${sessionId}`, 

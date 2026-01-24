@@ -9,8 +9,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-// Import thư viện giải mã token
-import { jwtDecode } from "jwt-decode";
+import { jwtDecode } from "jwt-decode"; 
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,33 +24,40 @@ export default function LoginPage() {
     password: '',
   });
 
-  // --- HÀM THÔNG MINH ĐỂ TÌM ROLE ---
+  // --- LOGIC TÌM ROLE (ĐÃ SỬA LỖI) ---
   const extractRole = (data: any): string => {
     try {
       let foundRole = "";
 
-      // CÁCH 1: Tìm trong dữ liệu JSON trả về trực tiếp
-      if (data?.role) foundRole = data.role;
-      else if (data?.user?.role) foundRole = data.user.role;
-      else if (Array.isArray(data?.roles)) foundRole = data.roles[0];
-      else if (Array.isArray(data?.user?.roles)) foundRole = data.user.roles[0];
-
-      // CÁCH 2: Nếu chưa thấy, giải mã Token (JWT) để tìm
-      if (!foundRole && (data?.accessToken || data?.token)) {
-        const token = data.accessToken || data.token;
-        const decoded: any = jwtDecode(token);
-        
-        console.log("🔓 Decoded JWT:", decoded); // Xem log này để biết token chứa gì
-
-        // Spring Boot thường để role trong 'sub', 'roles', 'authorities' hoặc 'scope'
-        if (decoded.role) foundRole = decoded.role;
-        else if (Array.isArray(decoded.roles)) foundRole = decoded.roles[0];
-        else if (Array.isArray(decoded.authorities)) foundRole = decoded.authorities[0];
+      // 1. Tìm trong data trả về
+      if (data) {
+          if (data?.role) foundRole = data.role;
+          else if (data?.user?.role) foundRole = data.user.role;
+          else if (Array.isArray(data?.roles)) foundRole = typeof data.roles[0] === 'string' ? data.roles[0] : data.roles[0].authority;
       }
 
-      return String(foundRole || "").toUpperCase(); // Trả về chữ hoa để dễ so sánh
+      // 2. Tìm trong localStorage (Cứu cánh nếu API không trả về ngay)
+      if (!foundRole) {
+          const localUser = localStorage.getItem("user");
+          if (localUser) {
+              const parsedUser = JSON.parse(localUser);
+              if (parsedUser.role) foundRole = parsedUser.role;
+              if (Array.isArray(parsedUser.roles)) foundRole = parsedUser.roles[0];
+          }
+
+          const localToken = localStorage.getItem("accessToken");
+          if (!foundRole && localToken) {
+              try {
+                  const decoded: any = jwtDecode(localToken);
+                  if (decoded.role) foundRole = decoded.role;
+                  else if (decoded.sub && decoded.sub.includes("READER")) foundRole = "READER"; 
+                  else if (Array.isArray(decoded.roles)) foundRole = decoded.roles[0];
+                  else if (Array.isArray(decoded.authorities)) foundRole = decoded.authorities[0];
+              } catch (e) {}
+          }
+      }
+      return String(foundRole || "").toUpperCase();
     } catch (e) {
-      console.error("Lỗi khi trích xuất role:", e);
       return "";
     }
   };
@@ -62,30 +68,24 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // 1. Xử lý Username/Email
       let usernameToSend = formData.email.trim();
       if (usernameToSend.includes('@')) {
           usernameToSend = usernameToSend.split('@')[0];
       }
 
-      // 2. Gọi API Login
+      // Gọi hàm Login
       const response: any = await login({ 
         username: usernameToSend, 
         passwordHash: formData.password 
       });
 
-      console.log("🔥 API Response:", response);
-
-      // 3. --- LOGIC PHÂN LUỒNG ---
+      // Kiểm tra Role để điều hướng
       const userRole = extractRole(response);
-      console.log("🎯 Role tìm thấy:", userRole);
+      console.log("🎯 Role detected:", userRole);
 
-      // Kiểm tra xem Role có chứa chữ READER không (Ví dụ: "READER", "ROLE_READER")
-      if (userRole.includes("READER")) {
-          // -> Nếu là Reader
+      if (userRole.includes("READER") || userRole.includes("ADMIN") || userRole.includes("MASTER")) {
           router.push("/readerdashboard");
       } else {
-          // -> Nếu là Customer (hoặc không tìm thấy role)
           router.push("/tarot-draw");
       }
 
@@ -120,7 +120,7 @@ export default function LoginPage() {
 
       {/* Main Card */}
       <div className="relative w-full max-w-md z-10 group">
-        {/* Glow Effect */}
+        {/* Glow Effect behind card */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500 to-purple-600 rounded-2xl opacity-20 blur group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
         
         <Card className="relative w-full bg-[#0f0a19]/90 border-white/10 backdrop-blur-xl shadow-2xl">
@@ -139,6 +139,7 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
               
+              {/* Error Message */}
               {error && (
                 <div className="p-3 rounded-lg bg-red-950/30 border border-red-900/50 flex items-center gap-2 text-red-200 text-sm animate-in fade-in slide-in-from-top-1">
                   <AlertCircle className="w-4 h-4 shrink-0" />
@@ -228,6 +229,7 @@ export default function LoginPage() {
               </p>
             </div>
 
+            {/* PHẦN FOOTER SOCIAL LOGIN ĐÃ ĐƯỢC KHÔI PHỤC */}
             <div className="mt-8">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -276,6 +278,7 @@ export default function LoginPage() {
                 </Button>
               </div>
             </div>
+
           </CardContent>
         </Card>
       </div>

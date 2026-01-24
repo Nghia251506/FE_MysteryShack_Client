@@ -1,16 +1,24 @@
-export interface ReadingSessionDTO {
-    userId: number;
+export interface CreateReadingSessionDTO {
+    customerId: number;
     readerId: number;
+    questionId: number;
+    topicId: number;
+    selectedCards: { id: number; isReversed: boolean }[]; 
     note: string;
-    sessionDate?: string; 
-    // Các trường khác tùy ý
+    birthDate?: string; // Bắt buộc phải có dòng này
+    amount: number;
+    status: string;
 }
 
 export interface ReadingSession {
     id: number;
-    userId: number;
-    readerId: number;
+    fullName?: string;       
+    questionName?: string;   
+    birthDate?: string;      
+    selectedCards: any;      
+    status: string;
     note: string;
-    sessionDate: string;
-    // ...
+    createdAt?: string;
+    customer?: { id: number; fullName: string }; // Fallback
+    question?: { id: number; questionText: string }; // Fallback
 }

@@ -1,54 +1,55 @@
-// Import từ thư mục gốc dùng alias @/
-import axios from "@/lib/axios"; 
-import { ReadingSession, ReadingSessionDTO } from '@/types/readingSession';
+import axios from "axios";
+import { ReadingSession, CreateReadingSessionDTO } from "@/types/readingSession";
 
-const ENDPOINT = '/v1/sessions';
+const API_URL = "http://localhost:8080/api/v1/sessions";
+
+const getAuthHeader = () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem("accessToken") : "";
+    return { 
+        headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' 
+        } 
+    };
+};
 
 export const ReadingSessionService = {
-    // 1. Lấy tất cả (Dùng cho Dashboard của Reader)
-    getAll: async (): Promise<ReadingSession[]> => {
-        // Lưu ý: Endpoint này lấy tất cả session. 
-        // Nếu backend phân trang, bạn có thể cần thêm params (page, size)
-        const response = await axios.get(`${ENDPOINT}/matched`);
-        return response.data;
-    },
+  // Lấy danh sách (Dùng /matched để tránh lỗi 500 Lazy Load)
+  getAll: async (): Promise<ReadingSession[]> => {
+    const response = await axios.get(`${API_URL}/matched`, getAuthHeader());
+    return response.data;
+  },
 
-    // 2. Tạo mới (User gửi request từ trang Tarot Draw)
-    create: async (data: ReadingSessionDTO): Promise<ReadingSession> => {
-        const response = await axios.post(ENDPOINT, data);
-        return response.data;
-    },
+  // Tạo mới (Booking)
+  create: async (data: CreateReadingSessionDTO): Promise<ReadingSession> => {
+    console.log("Payload gửi đi:", JSON.stringify(data, null, 2)); // Check log này
+    const response = await axios.post(API_URL, data, getAuthHeader());
+    return response.data;
+  },
 
-    // 3. Cập nhật thông tin chung (Nếu cần sửa note, status thủ công)
-    update: async (id: number | string, data: Partial<ReadingSessionDTO>): Promise<ReadingSession> => {
-        const response = await axios.put(`${ENDPOINT}/${id}`, data);
-        return response.data;
-    },
+  // [FIX] Accept theo ảnh (POST)
+  accept: async (id: number | string): Promise<ReadingSession> => {
+    const response = await axios.post(`${API_URL}/${id}/accept`, {}, getAuthHeader());
+    return response.data;
+  },
 
-    // 4. Xóa cứng (Dùng cho admin hoặc dọn dẹp dữ liệu)
-    delete: async (id: number | string): Promise<void> => {
-        await axios.delete(`${ENDPOINT}/${id}`);
-    },
+  // [FIX] Reject theo ảnh (POST)
+  reject: async (id: number | string): Promise<ReadingSession> => {
+    const response = await axios.post(`${API_URL}/${id}/reject`, {}, getAuthHeader());
+    return response.data;
+  },
 
-    // 5. Lấy chi tiết theo ID (Option)
-    getById: async (id: number | string): Promise<ReadingSession> => {
-        const response = await axios.get(`${ENDPOINT}/${id}`);
-        return response.data;
-    },
+  update: async (id: number | string, data: Partial<ReadingSession>): Promise<ReadingSession> => {
+    const response = await axios.put(`${API_URL}/${id}`, data, getAuthHeader());
+    return response.data;
+  },
 
-    // --- 👇 CÁC HÀM BỔ SUNG CHO READER DASHBOARD 👇 ---
+  delete: async (id: number | string): Promise<void> => {
+    await axios.delete(`${API_URL}/${id}`, getAuthHeader());
+  },
 
-    // 6. Reader Chấp nhận yêu cầu (Chuyển trạng thái sang ACCEPTED/IN_PROGRESS)
-    // API: POST /api/v1/sessions/{id}/accept
-    accept: async (id: number | string): Promise<any> => {
-        const response = await axios.post(`${ENDPOINT}/${id}/accept`);
-        return response.data;
-    },
-
-    // 7. Reader Từ chối yêu cầu (Chuyển trạng thái sang REJECTED)
-    // API: POST /api/v1/sessions/{id}/reject
-    reject: async (id: number | string): Promise<any> => {
-        const response = await axios.post(`${ENDPOINT}/${id}/reject`);
-        return response.data;
-    }
+  getById: async (id: number | string): Promise<ReadingSession> => {
+    const response = await axios.get(`${API_URL}/${id}`, getAuthHeader());
+    return response.data;
+  }
 };
