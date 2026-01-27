@@ -1,7 +1,7 @@
 {
-  "/page": "app/page.js",
-  "/readerdashboard/page": "app/readerdashboard/page.js",
-  "/login/page": "app/login/page.js",
   "/booking/page": "app/booking/page.js",
-  "/profile/page": "app/profile/page.js"
+  "/profile/page": "app/profile/page.js",
+  "/readerdashboard/page": "app/readerdashboard/page.js",
+  "/tarot-draw/page": "app/tarot-draw/page.js",
+  "/login/page": "app/login/page.js"
 }
