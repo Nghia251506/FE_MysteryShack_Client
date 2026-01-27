@@ -5,13 +5,29 @@ import { Button } from '@/components/ui/button';
 import { 
   Sparkles, Moon, Star, Eye, ArrowRight, Zap, 
   Heart, Briefcase, Wallet, Compass, 
-  ShieldCheck, ChevronRight, Orbit
+  ShieldCheck, ChevronRight, Orbit, LogOut, LayoutDashboard
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
+// --- REDUX IMPORTS ---
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
+import { logout } from '@/store/features/authSlice';
+import { useRouter } from 'next/navigation';
+
 export default function Home() {
   const [hoveredTopic, setHoveredTopic] = useState<number | null>(null);
+  
+  // --- LOGIC AUTH ---
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state: RootState) => state.auth);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    router.refresh(); // Refresh lại trang để cập nhật UI
+  };
 
   const topics = [
     {
@@ -64,7 +80,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-25 mix-blend-overlay"></div>
       </div>
 
-      {/* 2. NAVIGATION BAR (UI TỐI ƯU) */}
+      {/* 2. NAVIGATION BAR (UI TỐI ƯU & LOGIC AUTH) */}
       <header className="sticky top-0 z-50 bg-[#050505]/60 backdrop-blur-xl border-b border-white/5 px-6 py-4">
         <nav className="max-w-7xl mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2.5 group">
@@ -78,19 +94,47 @@ export default function Home() {
           </Link>
           
           <div className="hidden md:flex items-center gap-10">
+            <Link href="/tarot-draw" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Rút Bài</Link>
             <Link href="/about" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Sứ mệnh</Link>
-            <Link href="/login" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Dịch vụ</Link>
+            
             <div className="h-4 w-px bg-white/10" />
-            <Link href="/login">
-              <button className="px-6 py-2 bg-white/5 border border-white/10 text-slate-200 hover:text-amber-400 hover:bg-white/10 rounded-full text-sm font-bold transition-all">
-                Đăng Nhập
-              </button>
-            </Link>
-            <Link href="/register">
-              <button className="px-6 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold rounded-full text-sm shadow-lg shadow-amber-900/20 hover:scale-105 transition-all">
-                Bắt đầu ngay
-              </button>
-            </Link>
+            
+            {/* --- LOGIC HIỂN THỊ THEO TRẠNG THÁI LOGIN --- */}
+            {user ? (
+              <div className="flex items-center gap-4">
+                 <div className="text-right">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">Xin chào</p>
+                    <p className="text-sm font-bold text-amber-500">{user.fullName || user.username}</p>
+                 </div>
+                 
+                 {/* Nếu là Reader thì hiện nút Dashboard */}
+                 {user.role === 'READER' && (
+                    <Link href="/readerdashboard">
+                      <button className="p-2 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-amber-400 transition-colors" title="Dashboard">
+                         <LayoutDashboard className="w-5 h-5" />
+                      </button>
+                    </Link>
+                 )}
+
+                 <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-red-900/20 border border-red-500/20 text-red-400 hover:bg-red-900/40 rounded-full text-xs font-bold transition-all">
+                    <LogOut className="w-3 h-3" /> Thoát
+                 </button>
+              </div>
+            ) : (
+              // CHƯA ĐĂNG NHẬP (GIAO DIỆN CŨ)
+              <>
+                <Link href="/login">
+                  <button className="px-6 py-2 bg-white/5 border border-white/10 text-slate-200 hover:text-amber-400 hover:bg-white/10 rounded-full text-sm font-bold transition-all">
+                    Đăng Nhập
+                  </button>
+                </Link>
+                <Link href="/register">
+                  <button className="px-6 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold rounded-full text-sm shadow-lg shadow-amber-900/20 hover:scale-105 transition-all">
+                    Bắt đầu ngay
+                  </button>
+                </Link>
+              </>
+            )}
           </div>
         </nav>
       </header>
@@ -122,7 +166,8 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
-              <Link href="/login">
+              {/* Sửa Link: Dẫn vào trang Rút Bài thay vì Login */}
+              <Link href="/tarot-draw">
                 <button className="group relative px-12 py-5 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-500 text-black font-black text-lg rounded-2xl shadow-[0_0_50px_-10px_rgba(245,158,11,0.6)] hover:scale-[1.03] transition-all flex items-center justify-center gap-3 overflow-hidden">
                   <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                   Bắt Đầu Rút Bài <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -219,11 +264,21 @@ export default function Home() {
             </h2>
             <p className="text-xl text-slate-400 max-w-xl mx-auto font-light">Đã đến lúc tìm thấy câu trả lời cho những trăn trở sâu thẳm nhất trong lòng bạn.</p>
             <div className="pt-8">
-                <Link href="/register">
-                  <button className="px-16 py-6 bg-white text-black font-black text-xl rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:bg-slate-200 hover:scale-105 transition-all">
-                    Đăng Ký Miễn Phí
-                  </button>
-                </Link>
+                {/* Ẩn nút đăng ký nếu đã login */}
+                {!user && (
+                  <Link href="/register">
+                    <button className="px-16 py-6 bg-white text-black font-black text-xl rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:bg-slate-200 hover:scale-105 transition-all">
+                      Đăng Ký Miễn Phí
+                    </button>
+                  </Link>
+                )}
+                {user && (
+                  <Link href="/tarot-draw">
+                    <button className="px-16 py-6 bg-white text-black font-black text-xl rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:bg-slate-200 hover:scale-105 transition-all">
+                      Rút Bài Ngay
+                    </button>
+                  </Link>
+                )}
             </div>
             <div className="flex items-center justify-center gap-6 pt-10">
                 <div className="flex -space-x-3">
@@ -288,7 +343,7 @@ export default function Home() {
   );
 }
 
-// Icon User để hiển thị trong phần CTA thành viên
+// Icon User helper
 const User = ({ className }: { className?: string }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

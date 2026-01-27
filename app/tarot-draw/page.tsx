@@ -4,19 +4,17 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Sparkles, ArrowRight, Lock, 
-  Eye, Heart, Briefcase, Wallet, ChevronRight, Hand, RotateCcw, LogOut 
+  Heart, Briefcase, Wallet, ChevronRight, Hand, RotateCcw, LogOut, Zap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// --- REDUX INTEGRATION ---
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "@/store/store";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
 import { setTopicAndQuestion, addCard, resetSession } from "@/store/slices/tarotSlice";
-import { logout } from "@/store/features/authSlice"; // Đảm bảo import đúng đường dẫn logout của bạn
-import { LogoutModal } from "@/components/LogoutModal"; // Đảm bảo import đúng đường dẫn LogoutModal
+import { logout } from "@/store/features/authSlice";
+import { LogoutModal } from "@/components/LogoutModal";
 
-// --- 1. CẤU HÌNH GIAO DIỆN & DỮ LIỆU ---
-
+// --- 1. ĐỊNH NGHĨA TYPE ĐỂ FIX LỖI TS(7005) ---
 interface LocalTarotCard {
   id: number;
   name: string;
@@ -25,6 +23,8 @@ interface LocalTarotCard {
   shortMsg: string;
   isReversed?: boolean;
 }
+
+// --- 2. CẤU HÌNH GIAO DIỆN & DỮ LIỆU ---
 
 const CardBackDesign = () => (
   <div className="w-full h-full bg-[#1a0b2e] relative overflow-hidden rounded-lg shadow-inner flex items-center justify-center border border-slate-900">
@@ -45,7 +45,9 @@ const getCardImg = (prefix: string, number: number) => {
 };
 
 const generateFullDeck = (): LocalTarotCard[] => {
+  // SỬA LỖI TẠI ĐÂY: Khai báo kiểu mảng rõ ràng
   const deck: LocalTarotCard[] = [];
+  
   let idCounter = 1;
   const majors = [
     "The Fool", "The Magician", "The High Priestess", "The Empress", "The Emperor", 
@@ -84,11 +86,17 @@ const QUESTIONS: Record<string, string[]> = {
 export default function TarotDrawPage() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  
+  // Lấy thông tin user từ Redux
+  const { user } = useSelector((state: RootState) => state.auth);
 
   const [step, setStep] = useState<"topic" | "shuffling" | "picking" | "revealing" | "result">("topic");
   const [selectedTopic, setSelectedTopic] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState("");
+  
+  // Sử dụng Interface cho state deck
   const [shuffledDeck, setShuffledDeck] = useState<LocalTarotCard[]>([]);
+  
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [shouldFlipToFace, setShouldFlipToFace] = useState(false);
 
@@ -139,8 +147,24 @@ export default function TarotDrawPage() {
     }
   }, [step]);
 
+  // --- LOGIC KẾT NỐI (GUEST FLOW) ---
   const handleConnectReader = () => {
     const finalCards = selectedIndices.map(idx => shuffledDeck[idx]);
+    
+    // 1. Lưu session cho guest vào sessionStorage
+    const sessionData = {
+        topic: selectedTopic,
+        question: selectedQuestion,
+        cards: finalCards.map(c => ({
+            id: c.id,
+            name: c.name,
+            img: c.img,
+            isReversed: c.isReversed || false
+        }))
+    };
+    sessionStorage.setItem("guestTarotSession", JSON.stringify(sessionData));
+
+    // 2. Dispatch Redux (phòng khi user đã login rồi)
     dispatch(resetSession());
     dispatch(setTopicAndQuestion({
         topic: selectedTopic,
@@ -154,7 +178,15 @@ export default function TarotDrawPage() {
             isReversed: card.isReversed || false
         }));
     });
-    router.push("/booking"); 
+
+    // 3. Kiểm tra user & Điều hướng
+    if (!user) {
+        // Chưa login -> Login với callback quay về Booking
+        router.push("/login?callbackUrl=/booking"); 
+    } else {
+        // Đã login -> Vào thẳng Booking
+        router.push("/booking"); 
+    }
   };
 
   return (
@@ -167,16 +199,18 @@ export default function TarotDrawPage() {
          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
       </div>
 
-      {/* Logout Button - Updated to trigger modal */}
-      <div className="absolute top-4 right-4 z-50">
-        <button 
-          onClick={handleLogoutClick}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm shadow-lg font-bold"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="text-sm">Đăng xuất</span>
-        </button>
-      </div>
+      {/* Nút Đăng xuất (Chỉ hiện khi đã Login) */}
+      {user && (
+        <div className="absolute top-4 right-4 z-50">
+          <button 
+            onClick={handleLogoutClick}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm shadow-lg font-bold"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm">Đăng xuất</span>
+          </button>
+        </div>
+      )}
 
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-7xl">
@@ -300,6 +334,7 @@ export default function TarotDrawPage() {
                          <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center border-2 border-amber-500/50 mb-4 shadow-[0_0_40px_rgba(245,158,11,0.3)] animate-bounce mx-auto">
                             <Lock className="w-8 h-8 text-amber-500 fill-amber-500/20" />
                          </div>
+                         {/* Nút Kết Nối (Guest Flow) */}
                          <button onClick={handleConnectReader} className="group relative px-10 py-5 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-xl rounded-2xl shadow-xl hover:scale-105 transition-transform flex items-center gap-3 mx-auto">
                             Tìm Reader Để Giải Nghĩa <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                          </button>
@@ -313,7 +348,7 @@ export default function TarotDrawPage() {
         </div>
       </div>
 
-      {/* --- ADDED LOGOUT MODAL --- */}
+      {/* LOGOUT MODAL */}
       <LogoutModal 
         isOpen={showLogoutModal} 
         onClose={() => setShowLogoutModal(false)} 
