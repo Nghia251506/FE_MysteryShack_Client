@@ -82,8 +82,8 @@ export default function Home() {
             </p>
 
             <div className="flex gap-4 justify-center pt-8">
-              {/* NÚT CHÍNH - DẪN ĐẾN TRANG BÓI BÀI */}
-              <Link href="/tarot">
+              {/* NÚT CHÍNH - ĐÃ SỬA LINK SANG /login */}
+              <Link href="/login">
                 <Button
                   size="lg"
                   className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white text-lg px-8 py-6 shadow-lg shadow-amber-900/50"
@@ -92,10 +92,10 @@ export default function Home() {
                 </Button>
               </Link>
 
+              {/* NÚT TÌM HIỂU THÊM - ĐÃ SỬA GIAO DIỆN GIỐNG NÚT CHÍNH */}
               <Button
                 size="lg"
-                variant="outline"
-                className="border-amber-500/30 text-amber-100 hover:bg-amber-950/30 hover:text-amber-500 text-lg px-8 py-6"
+                className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white text-lg px-8 py-6 shadow-lg shadow-amber-900/50"
               >
                 Tìm Hiểu Thêm
               </Button>

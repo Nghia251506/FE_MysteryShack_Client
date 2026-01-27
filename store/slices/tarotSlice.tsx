@@ -1,96 +1,72 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { shuffleDeck, interpretCards } from '../../services/tarotService';
-import { TarotState, DrawTarotRequest, InterpretRequest, InterpretResponse, DrawnCard, TarotCard } from '../../types/tarot';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-const initialState: TarotState = {
-    deck: [],
-    selectedCards: [],
+// Định nghĩa kiểu dữ liệu chuẩn cho lá bài trong Store
+export interface TarotCard {
+  id: number;
+  name: string;
+  img: string;
+  isReversed: boolean;
+}
+
+interface TarotState {
+  drawnCards: TarotCard[]; // Đổi từ selectedCards -> drawnCards cho khớp
+  topic: string;
+  question: string;        // Thêm trường này (quan trọng cho Booking)
+  isDrawing: boolean;
+}
+
+// Lấy dữ liệu từ LocalStorage để F5 không mất bài
+const getInitialState = (): TarotState => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('tarot-session');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Lỗi parse storage", e);
+      }
+    }
+  }
+  return {
+    drawnCards: [],
     topic: '',
-    birthday: undefined,
-    aiInterpretation: '',
-    loading: false,
-    error: null,
+    question: '',
+    isDrawing: false,
+  };
 };
 
-// Thunk: Xáo bài theo chủ đề
-export const fetchShuffledDeck = createAsyncThunk(
-    'tarot/fetchShuffledDeck',
-    async (request: DrawTarotRequest) => {
-        const response = await shuffleDeck(request);
-        return response; // Giữ nguyên object { success, message, data }
-    }
-);
-
-// Thunk: Gửi 3 lá đã chọn để AI giải nghĩa
-export const submitForInterpretation = createAsyncThunk(
-    'tarot/submitForInterpretation',
-    async (request: InterpretRequest) => {
-        const response = await interpretCards(request);
-        return response;
-    }
-);
-
 const tarotSlice = createSlice({
-    name: 'tarot',
-    initialState,
-    reducers: {
-        setTopicAndBirthday: (state, action: PayloadAction<{ topic: string; birthday?: string }>) => {
-            state.topic = action.payload.topic;
-            state.birthday = action.payload.birthday;
-        },
-        addSelectedCard: (state, action: PayloadAction<DrawnCard>) => {
-            if (state.selectedCards.length < 3) {
-                state.selectedCards.push(action.payload);
-            }
-        },
-        removeSelectedCard: (state, action: PayloadAction<number>) => {
-            state.selectedCards = state.selectedCards.filter((_, index) => index !== action.payload);
-        },
-        resetTarotSession: (state) => {
-            state.deck = [];
-            state.selectedCards = [];
-            state.aiInterpretation = '';
-            state.error = null;
-        },
+  name: 'tarot',
+  initialState: getInitialState(),
+  reducers: {
+    // 1. Action lưu Chủ đề & Câu hỏi (Sửa tên cho khớp tarot-draw)
+    setTopicAndQuestion: (state, action: PayloadAction<{ topic: string; question: string }>) => {
+      state.topic = action.payload.topic;
+      state.question = action.payload.question;
+      // Lưu ngay vào local
+      if (typeof window !== 'undefined') localStorage.setItem('tarot-session', JSON.stringify(state));
     },
-    extraReducers: (builder) => {
-        builder
-            // Fetch shuffled deck
-            .addCase(fetchShuffledDeck.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-            })
-            .addCase(fetchShuffledDeck.fulfilled, (state, action) => {
-                state.loading = false;
-                state.deck = action.payload;
-            })
-            .addCase(fetchShuffledDeck.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.error.message || 'Lỗi khi xáo bài';
-            })
 
-            // Submit for interpretation
-            .addCase(submitForInterpretation.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-            })
-            .addCase(submitForInterpretation.fulfilled, (state, action: PayloadAction<InterpretResponse>) => {
-                state.loading = false;
-                state.selectedCards = action.payload.cards;
-                state.aiInterpretation = action.payload.aiInterpretation;
-            })
-            .addCase(submitForInterpretation.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.error.message || 'Lỗi khi gọi AI giải nghĩa';
-            });
+    // 2. Action thêm bài (Sửa tên từ addSelectedCard -> addCard)
+    addCard: (state, action: PayloadAction<TarotCard>) => {
+      // Chỉ cho phép lưu tối đa 3 lá
+      if (state.drawnCards.length < 3) {
+        state.drawnCards.push(action.payload);
+        if (typeof window !== 'undefined') localStorage.setItem('tarot-session', JSON.stringify(state));
+      }
     },
+
+    // 3. Action Reset (Sửa tên từ resetTarotSession -> resetSession)
+    resetSession: (state) => {
+      state.drawnCards = [];
+      state.topic = '';
+      state.question = '';
+      state.isDrawing = false;
+      if (typeof window !== 'undefined') localStorage.removeItem('tarot-session');
+    },
+  },
 });
 
-export const {
-    setTopicAndBirthday,
-    addSelectedCard,
-    removeSelectedCard,
-    resetTarotSession
-} = tarotSlice.actions;
-
+// Xuất đúng các tên hàm mà file tarot-draw đang gọi
+export const { setTopicAndQuestion, addCard, resetSession } = tarotSlice.actions;
 export default tarotSlice.reducer;

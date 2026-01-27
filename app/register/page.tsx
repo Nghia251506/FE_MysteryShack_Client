@@ -5,25 +5,32 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Moon, Eye, EyeOff, Loader2, Sparkles, User, Mail, Lock, AlertCircle, UserCircle } from 'lucide-react';
+import { Moon, Eye, EyeOff, Loader2, Sparkles, User, Mail, Lock, AlertCircle, UserCircle, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
+
+// --- REDUX IMPORTS ---
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '@/store/store';
+import { registerUser } from '@/store/features/authSlice';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register } = useAuth();
+  
+  // 1. Dùng Redux hooks
+  const dispatch = useDispatch<AppDispatch>();
+  const { loading, error: reduxError } = useSelector((state: RootState) => state.auth);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState(''); // Lỗi validate form cục bộ
 
   const [formData, setFormData] = useState({
-    username: '', // Thêm trường username
+    username: '', 
     fullName: '',
     email: '',
+    birthDate: '', 
     password: '',
     confirmPassword: '',
     agreeToTerms: false,
@@ -31,53 +38,53 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
+    setValidationError('');
 
-    // Validate cơ bản phía Client
+    // Validate form
     if (formData.password.length < 6) {
-        setError('Mật khẩu phải có ít nhất 6 ký tự.');
-        setIsLoading(false);
+        setValidationError('Mật khẩu phải có ít nhất 6 ký tự.');
         return;
     }
     if (formData.password !== formData.confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp.');
-      setIsLoading(false);
+      setValidationError('Mật khẩu xác nhận không khớp.');
       return;
     }
     if (!formData.agreeToTerms) {
-      setError('Vui lòng đồng ý với điều khoản sử dụng.');
-      setIsLoading(false);
+      setValidationError('Vui lòng đồng ý với điều khoản sử dụng.');
       return;
     }
 
     try {
-      // Gọi API đăng ký
-      await register({
-        username: formData.username, // Gửi username người dùng nhập
+      // 2. Dispatch Register Action
+      const resultAction = await dispatch(registerUser({
+        username: formData.username,
         passwordHash: formData.password,
         email: formData.email,
         fullName: formData.fullName,
+        birthDate: formData.birthDate,
         role: "CUSTOMER"
-      });
+      }));
 
-      alert('Đăng ký tài khoản thành công! Hãy đăng nhập ngay.');
-      router.push('/login');
+      // 3. Kiểm tra kết quả
+      if (registerUser.fulfilled.match(resultAction)) {
+        alert('Đăng ký tài khoản thành công! Hãy đăng nhập ngay.');
+        router.push('/login');
+      } else {
+        // Lỗi từ server sẽ tự động vào reduxError, nhưng ta có thể log ra để debug
+        console.error("Đăng ký thất bại:", resultAction.payload);
+      }
 
-    } catch (err: any) {
-      console.error("Lỗi đăng ký:", err);
-      // Hiển thị lỗi chi tiết từ Backend (nếu có)
-      const msg = err.response?.data?.message || JSON.stringify(err.response?.data) || 'Đăng ký thất bại. Kiểm tra lại thông tin.';
-      // Mẹo: Nếu msg chứa "Validation failed", hãy bảo user check lại độ dài username/password
-      setError(msg);
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      console.error("Lỗi không mong muốn:", err);
+      setValidationError('Đã xảy ra lỗi. Vui lòng thử lại.');
     }
   };
 
+  // Ưu tiên hiển thị lỗi validate form trước, nếu không có thì hiện lỗi từ Redux (Server trả về)
+  const displayError = validationError || (typeof reduxError === 'string' ? reduxError : null);
+
   return (
     <div className="min-h-screen bg-[#0a0510] flex items-center justify-center p-4 relative overflow-hidden font-sans">
-      {/* Background Effects */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#0a0510] to-[#0a0510]"></div>
       <div className="absolute top-[-10%] left-[-5%] w-96 h-96 bg-amber-600/10 rounded-full blur-3xl opacity-30 animate-pulse"></div>
       <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-purple-600/10 rounded-full blur-3xl opacity-30 animate-pulse delay-1000"></div>
@@ -111,10 +118,10 @@ export default function RegisterPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               
-              {error && (
+              {displayError && (
                 <div className="p-3 rounded-lg bg-red-950/30 border border-red-900/50 flex items-center gap-2 text-red-200 text-xs animate-in fade-in slide-in-from-top-1 break-words">
                   <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
+                  <span>{displayError}</span>
                 </div>
               )}
 
@@ -133,12 +140,12 @@ export default function RegisterPage() {
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     className="h-10 pl-10 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all"
                     required
-                    disabled={isLoading}
+                    disabled={loading}
                   />
                 </div>
               </div>
 
-              {/* Username Field (ĐÃ THÊM LẠI ĐỂ FIX LỖI VALIDATION) */}
+              {/* Username Field */}
               <div className="space-y-1.5">
                 <Label htmlFor="username" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">
                   Tên đăng nhập
@@ -153,7 +160,26 @@ export default function RegisterPage() {
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     className="h-10 pl-10 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all"
                     required
-                    disabled={isLoading}
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              {/* Date of Birth Field */}
+              <div className="space-y-1.5">
+                <Label htmlFor="birthDate" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">
+                  Ngày sinh
+                </Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  <Input
+                    id="birthDate"
+                    type="date"
+                    value={formData.birthDate}
+                    onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                    className="h-10 pl-10 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all [color-scheme:dark]" 
+                    required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -173,7 +199,7 @@ export default function RegisterPage() {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="h-10 pl-10 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all"
                     required
-                    disabled={isLoading}
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -194,13 +220,13 @@ export default function RegisterPage() {
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       className="h-10 pl-10 pr-8 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all"
                       required
-                      disabled={isLoading}
+                      disabled={loading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-amber-400 transition-colors"
-                      disabled={isLoading}
+                      disabled={loading}
                     >
                       {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
@@ -221,13 +247,13 @@ export default function RegisterPage() {
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                       className="h-10 pl-10 pr-8 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all"
                       required
-                      disabled={isLoading}
+                      disabled={loading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-amber-400 transition-colors"
-                      disabled={isLoading}
+                      disabled={loading}
                     >
                       {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
@@ -241,7 +267,7 @@ export default function RegisterPage() {
                   id="terms"
                   checked={formData.agreeToTerms}
                   onCheckedChange={(checked) => setFormData({ ...formData, agreeToTerms: checked as boolean })}
-                  disabled={isLoading}
+                  disabled={loading}
                   className="mt-0.5 border-white/20 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600 data-[state=checked]:text-white"
                 />
                 <Label htmlFor="terms" className="text-xs text-slate-400 leading-relaxed cursor-pointer font-normal">
@@ -259,10 +285,10 @@ export default function RegisterPage() {
               {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={isLoading}
+                disabled={loading}
                 className="w-full h-11 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold text-sm shadow-lg shadow-amber-900/20 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               >
-                {isLoading ? (
+                {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Đang tạo tài khoản...

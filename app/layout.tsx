@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-// Import các Context Provider
-import { TarotProvider } from "@/context/TarotContext";
-import { AuthProvider } from "@/context/AuthContext"; // <--- Thêm dòng này
+// 1. Import ReduxProvider (Thay thế cho AuthProvider và TarotProvider cũ)
+import { ReduxProvider } from "@/app/providers/ReduxProvider"; 
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,12 +20,10 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={inter.className}>
-        {/* Bọc AuthProvider ở ngoài cùng để quản lý User toàn cục */}
-        <AuthProvider>
-          <TarotProvider>
+        {/* 2. Bọc toàn bộ ứng dụng bằng ReduxProvider */}
+        <ReduxProvider>
             {children}
-          </TarotProvider>
-        </AuthProvider>
+        </ReduxProvider>
       </body>
     </html>
   );
