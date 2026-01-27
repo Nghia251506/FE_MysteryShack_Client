@@ -15,15 +15,16 @@ const getConfig = () => {
 
 export const InterpretationService = {
   // 1. Reader gửi bài (Dùng trong ReaderDashboard)
-  submit: async (sessionId: number | string, content: string) => {
+  submit: async (sessionId: number | string, data: {
+        interpretation1: string;
+        interpretation2: string;
+        interpretation3: string;
+        advice: string;
+        qrPayment: string;}) => {
     // Backend nhận Map<String, String> nên phải gói content vào object
-    const payload = {
-        content: content
-    };
-    
     const response = await axios.post(
         `${API_URL}/submit/${sessionId}`, 
-        payload, 
+        data, 
         getConfig()
     );
     return response.data;

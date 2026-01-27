@@ -17,6 +17,8 @@ export const ReadingSessionService = {
   // Lấy danh sách (Dùng /matched để tránh lỗi 500 Lazy Load)
   getAll: async (): Promise<ReadingSession[]> => {
     const response = await axios.get(`${API_URL}/matched`, getAuthHeader());
+    console.log("----------------")
+    console.log(response);
     return response.data;
   },
 

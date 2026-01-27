@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ReadingSessionService } from "@/services/readingSessionService";
 import { InterpretationService } from "@/services/interpretationService";
+import {interpretCards} from "@/services/tarotService";
+import { convertFileToBase64 } from "@/utils/fileUtils";
 
 // --- 1. LOGIC 78 LÁ BÀI (Helper Functions) ---
 const getCardDetail = (id: number) => {
@@ -76,6 +78,9 @@ export default function ReaderDashboardProfessional() {
   const [timeLeft, setTimeLeft] = useState(59 * 60 + 59); 
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [idCardReques, setIdCardRequest] = useState<any[]>([]);
+  const [idRequest, setIdRequest] = useState<number | null>(null);
+
   const handleLogout = () => {
     if (confirm("Bạn có chắc chắn muốn đăng xuất?")) {
         localStorage.removeItem("accessToken"); 
@@ -83,6 +88,20 @@ export default function ReaderDashboardProfessional() {
         router.push("/login"); 
     }
   };
+  const [qrBase64, setQrBase64] = useState<string>("");
+
+    const handleQrUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        try {
+        const base64 = await convertFileToBase64(file);
+        setQrBase64(base64); // Lưu chuỗi này vào state
+        console.log("QR Base64:", base64);
+        } catch (error) {
+        console.error("Lỗi chuyển đổi ảnh QR:", error);
+        }
+    }
+    };
 
   useEffect(() => {
     fetchData();
@@ -177,11 +196,13 @@ export default function ReaderDashboardProfessional() {
   const handleAcceptRequest = async (request: any) => {
     try {
         await ReadingSessionService.accept(request.id);
+        console.log(request);
         setActiveRequest(request); 
         setTimeLeft(59 * 60 + 59); 
         setIsSent(false);          
         setCardInputs({});         
         setSummary("");
+        setIdRequest(request.id);
         setActiveTab('workspace'); 
     } catch (error: any) {
         alert("Lỗi: " + (error.response?.data?.message || "Không thể chấp nhận yêu cầu"));
@@ -231,9 +252,15 @@ export default function ReaderDashboardProfessional() {
         
         // Phần 3: Tổng kết
         structuredContent += `LỜI KHUYÊN TỔNG KẾT:\n${summary || "Chúc bạn mọi điều tốt lành."}`;
-
+        console.log(`-----------${activeRequest.id}`)
         // Gọi Service gửi đi
-        await InterpretationService.submit(activeRequest.id, structuredContent);
+        await InterpretationService.submit(activeRequest.id, {
+            interpretation1: cardInputs[activeRequest.cards[0]?.id] || "Nội dung lá 1 trống",
+            interpretation2: cardInputs[activeRequest.cards[1]?.id] || "Nội dung lá 2 trống",
+            interpretation3: cardInputs[activeRequest.cards[2]?.id] || "Nội dung lá 3 trống",
+            advice: summary || "Chúc bạn mọi điều tốt lành.",
+            qrPayment: qrBase64 // Hoặc lấy từ state nếu bạn có ô nhập link QR
+        });
 
         setTimeout(() => {
             setIsSubmitting(false);
@@ -450,6 +477,16 @@ export default function ReaderDashboardProfessional() {
                         <h3 className="text-xl font-bold text-amber-500 mb-4 flex items-center gap-2"><Sparkles/> Lời khuyên tổng kết</h3>
                         <EditorToolbar />
                         <textarea value={summary} onChange={(e) => setSummary(e.target.value)} className="w-full h-32 bg-[#0a0410] border border-slate-800 p-4 rounded-b-xl outline-none text-white focus:border-amber-500/50 transition-colors" placeholder="Tóm tắt thông điệp và lời khuyên cho khách hàng..." />
+                    </div>
+                    <div className="mt-4">
+                    <label className="text-sm text-slate-400 mb-2 block">Cập nhật mã QR thanh toán</label>
+                    <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleQrUpload}
+                        className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-purple-900/30 file:text-purple-400 hover:file:bg-purple-900/50"
+                    />
+                    {qrBase64 && <img src={qrBase64} alt="Preview QR" className="w-32 h-32 mt-2 rounded-lg border border-slate-700" />}
                     </div>
                     </div>
                 </motion.div>
