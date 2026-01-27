@@ -2169,6 +2169,9 @@ video {
 .bg-rose-500\/10 {
   background-color: rgb(244 63 94 / 0.1);
 }
+.bg-rose-500\/80 {
+  background-color: rgb(244 63 94 / 0.8);
+}
 .bg-rose-900\/10 {
   background-color: rgb(136 19 55 / 0.1);
 }
@@ -3522,12 +3525,34 @@ video {
   background-color: rgb(168 85 247 / 0.3);
 }
 
+.file\:mr-4::file-selector-button {
+  margin-right: 1rem;
+}
+
+.file\:rounded-full::file-selector-button {
+  border-radius: 9999px;
+}
+
 .file\:border-0::file-selector-button {
   border-width: 0px;
 }
 
+.file\:bg-purple-900\/30::file-selector-button {
+  background-color: rgb(88 28 135 / 0.3);
+}
+
 .file\:bg-transparent::file-selector-button {
   background-color: transparent;
+}
+
+.file\:px-4::file-selector-button {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.file\:py-2::file-selector-button {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .file\:text-sm::file-selector-button {
@@ -3541,6 +3566,11 @@ video {
 
 .file\:text-foreground::file-selector-button {
   color: hsl(var(--foreground));
+}
+
+.file\:text-purple-400::file-selector-button {
+  --tw-text-opacity: 1;
+  color: rgb(192 132 252 / var(--tw-text-opacity));
 }
 
 .placeholder\:text-muted-foreground::-moz-placeholder {
@@ -3875,6 +3905,10 @@ video {
   --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.hover\:file\:bg-purple-900\/50::file-selector-button:hover {
+  background-color: rgb(88 28 135 / 0.5);
 }
 
 .focus\:border-amber-500:focus {

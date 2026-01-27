@@ -5,13 +5,13 @@ import { ReadingSession, ReadingSessionDTO } from '@/types/readingSession';
 const ENDPOINT = '/v1/sessions';
 
 export const ReadingSessionService = {
-    // 1. Lấy tất cả (Dùng cho Dashboard của Reader)
-    getAll: async (): Promise<ReadingSession[]> => {
-        // Lưu ý: Endpoint này lấy tất cả session. 
-        // Nếu backend phân trang, bạn có thể cần thêm params (page, size)
-        const response = await axios.get(`${ENDPOINT}/matched`);
-        return response.data;
-    },
+  // Lấy danh sách (Dùng /matched để tránh lỗi 500 Lazy Load)
+  getAll: async (): Promise<ReadingSession[]> => {
+    const response = await axios.get(`${API_URL}/matched`, getAuthHeader());
+    console.log("----------------")
+    console.log(response);
+    return response.data;
+  },
 
     // 2. Tạo mới (User gửi request từ trang Tarot Draw)
     create: async (data: ReadingSessionDTO): Promise<ReadingSession> => {

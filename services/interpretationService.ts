@@ -13,29 +13,15 @@ const getConfig = () => {
 };
 
 export const InterpretationService = {
-  // FIXED: Gửi đúng field names như backend expect
-  submit: async (sessionId: number | string, cardInterpretations: Record<string, string>) => {
-    // Backend expect: interpretation1, interpretation2, interpretation3, advice, qrPayment
-    // Frontend đang gửi: card1, card2, card3, summary
-    
-    const payload = {
-      interpretation1: cardInterpretations.card1 || "",
-      interpretation2: cardInterpretations.card2 || "",
-      interpretation3: cardInterpretations.card3 || "",
-      advice: cardInterpretations.summary || "",
-      qrPayment: "" // Có thể để trống hoặc thêm URL ảnh QR nếu cần
-    };
-    
-    console.log("=== PAYLOAD ĐÚNG FORMAT ===");
-    console.log(JSON.stringify(payload, null, 2));
-    console.log("===========================");
-    
-    const response = await axios.post(
-        `${API_URL}/submit/${sessionId}`, 
-        payload, 
-        getConfig()
-    );
-    return response.data;
+  // 1. Reader gửi bài (Dùng trong ReaderDashboard)
+  submit: async (sessionId: number, data: {
+    interpretation1: string;
+    interpretation2: string;
+    interpretation3: string;
+    advice: string;
+    qrPayment: string;
+  }) => {
+    return await axios.post(`${API_URL}/submit/${sessionId}`, data);
   },
 
   confirmPayment: async (sessionId: number | string) => {

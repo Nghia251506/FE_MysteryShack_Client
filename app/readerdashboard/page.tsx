@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { ReadingSessionService } from "@/services/readingSessionService";
 import { InterpretationService } from "@/services/interpretationService";
+import { convertFileToBase64 } from "@/utils/fileUtils";
 import { logout } from "@/store/features/authSlice"; // Import action logout từ authSlice
 import { LogoutModal } from "@/components/LogoutModal"; // Đường dẫn đến component LogoutModal của bạn
 import { useRouter } from "next/navigation";
@@ -119,6 +120,16 @@ export default function ReaderDashboardProfessional() {
   const [searchTerm, setSearchTerm] = useState("");
   const [ignoredIds, setIgnoredIds] = useState<number[]>([]);
 
+  const [idCardReques, setIdCardRequest] = useState<any[]>([]);
+  const [idRequest, setIdRequest] = useState<number | null>(null);
+
+  const handleLogout = () => {
+    if (confirm("Bạn có chắc chắn muốn đăng xuất?")) {
+        localStorage.removeItem("accessToken"); 
+        localStorage.removeItem("user"); 
+        router.push("/login"); 
+    }
+  }
   // State cho Logout Pop-up
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -136,6 +147,20 @@ export default function ReaderDashboardProfessional() {
     dispatch(logout()); // Gọi action logout để clear redux state
     router.push("/login");
   };
+  const [qrBase64, setQrBase64] = useState<string>("");
+
+    const handleQrUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        try {
+        const base64 = await convertFileToBase64(file);
+        setQrBase64(base64); // Lưu chuỗi này vào state
+        console.log("QR Base64:", base64);
+        } catch (error) {
+        console.error("Lỗi chuyển đổi ảnh QR:", error);
+        }
+    }
+    };
 
   useEffect(() => {
     fetchData();
@@ -225,7 +250,21 @@ export default function ReaderDashboardProfessional() {
   };
 
   const handleAcceptRequest = async (request: any) => {
-    try { await ReadingSessionService.accept(request.id); setActiveRequest(request); setTimeLeft(3600); setIsSent(false); setCardInputs({}); setSummary(""); setActiveTab('workspace'); } catch (e: any) { alert(e.message); }
+    try {
+        await ReadingSessionService.accept(request.id);
+        console.log(request);
+        setActiveRequest(request); 
+        setTimeLeft(59 * 60 + 59); 
+        setIsSent(false);          
+        setCardInputs({});         
+        setSummary("");
+        setIdRequest(request.id);
+        setActiveTab('workspace'); 
+    } catch (error: any) {
+        alert("Lỗi: " + (error.response?.data?.message || "Không thể chấp nhận yêu cầu"));
+    }
+    // try { await ReadingSessionService.accept(request.id); setActiveRequest(request); setTimeLeft(3600); setIsSent(false); setCardInputs({}); setSummary(""); setActiveTab('workspace'); } catch (e: any) { alert(e.message); }
+
   };
 
   const handleRejectRequest = async (id: any, isAuto: boolean = false) => {
@@ -240,38 +279,50 @@ export default function ReaderDashboardProfessional() {
     setIsSubmitting(true);
     
     try {
-        const interpretationMap: Record<string, string> = {};
+        // const interpretationMap: Record<string, string> = {};
 
-        if (activeRequest.cards.length > 0) {
-            activeRequest.cards.forEach((card: any, index: number) => {
-                const textInput = cardInputs[card.id]?.trim() || "";
-                let content = textInput;
-                if (content === "") {
-                    content = `Lá bài ${card.name} ${card.isReversed ? '(Ngược)' : '(Xuôi)'} - Năng lượng của lá bài này đang mang đến thông điệp quan trọng cho querent trong hành trình hiện tại.`;
-                } else if (content.length < 10) {
-                    content = `Lá bài ${card.name}: ${content}`;
-                }
-                interpretationMap[`card${index + 1}`] = content;
-            });
+        // if (activeRequest.cards.length > 0) {
+        //     activeRequest.cards.forEach((card: any, index: number) => {
+        //         const textInput = cardInputs[card.id]?.trim() || "";
+        //         let content = textInput;
+        //         if (content === "") {
+        //             content = `Lá bài ${card.name} ${card.isReversed ? '(Ngược)' : '(Xuôi)'} - Năng lượng của lá bài này đang mang đến thông điệp quan trọng cho querent trong hành trình hiện tại.`;
+        //         } else if (content.length < 10) {
+        //             content = `Lá bài ${card.name}: ${content}`;
+        //         }
+        //         interpretationMap[`card${index + 1}`] = content;
+        //     });
             
-            if (activeRequest.cards.length < 3) {
-                for (let i = activeRequest.cards.length; i < 3; i++) {
-                    interpretationMap[`card${i + 1}`] = "Lá bài này không được rút trong lần xem bài này.";
-                }
-            }
-        } else {
-            interpretationMap["card1"] = "Lá bài 1 - Năng lượng khởi đầu của hành trình.";
-            interpretationMap["card2"] = "Lá bài 2 - Năng lượng trung tâm và cốt lõi.";
-            interpretationMap["card3"] = "Lá bài 3 - Năng lượng kết thúc và định hướng.";
-        }
+        //     if (activeRequest.cards.length < 3) {
+        //         for (let i = activeRequest.cards.length; i < 3; i++) {
+        //             interpretationMap[`card${i + 1}`] = "Lá bài này không được rút trong lần xem bài này.";
+        //         }
+        //     }
+        // } else {
+        //     interpretationMap["card1"] = "Lá bài 1 - Năng lượng khởi đầu của hành trình.";
+        //     interpretationMap["card2"] = "Lá bài 2 - Năng lượng trung tâm và cốt lõi.";
+        //     interpretationMap["card3"] = "Lá bài 3 - Năng lượng kết thúc và định hướng.";
+        // }
         
-        let summaryText = summary.trim();
-        if (summaryText === "") {
-            summaryText = "Tarot khuyên querent nên lắng nghe trực giác nội tâm.";
-        }
-        interpretationMap["summary"] = summaryText;
+        // Phần 3: Tổng kết
+        // structuredContent += `LỜI KHUYÊN TỔNG KẾT:\n${summary || "Chúc bạn mọi điều tốt lành."}`;
+        console.log(`-----------${activeRequest.id}`)
+        console.log(activeRequest)
+        // Gọi Service gửi đi
+        await InterpretationService.submit(activeRequest.id, {
+            interpretation1: cardInputs[activeRequest.cards[0]?.id] || "Nội dung lá 1 trống",
+            interpretation2: cardInputs[activeRequest.cards[1]?.id] || "Nội dung lá 2 trống",
+            interpretation3: cardInputs[activeRequest.cards[2]?.id] || "Nội dung lá 3 trống",
+            advice: summary || "Chúc bạn mọi điều tốt lành.",
+            qrPayment: qrBase64 // Hoặc lấy từ state nếu bạn có ô nhập link QR
+        });
+        // let summaryText = summary.trim();
+        // if (summaryText === "") {
+        //     summaryText = "Tarot khuyên querent nên lắng nghe trực giác nội tâm.";
+        // }
+        // interpretationMap["summary"] = summaryText;
 
-        await InterpretationService.submit(activeRequest.id, interpretationMap);
+        // await InterpretationService.submit(activeRequest.id, interpretationMap);
 
         setTimeout(() => {
             setIsSubmitting(false);
@@ -377,6 +428,16 @@ export default function ReaderDashboardProfessional() {
                     <div className="pt-8 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div><h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><QrCode className="w-5 h-5 text-green-400"/> Mã QR thanh toán</h3><p className="text-sm text-slate-400 mb-4">Quét mã để xác nhận thanh toán đơn hàng này.</p><div className="p-4 bg-white/5 rounded-2xl border border-slate-700 w-fit"><img src={getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`)} alt="QR Payment" className="w-40 h-40 object-contain rounded-lg"/></div></div>
                         <div className="flex flex-col justify-center space-y-4"><div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700"><div className="flex items-center justify-between mb-2"><span className="text-slate-400 text-sm">Số tiền:</span><span className="text-xl font-bold text-green-400">{activeRequest.amount.toLocaleString('vi-VN')} đ</span></div><div className="flex items-center justify-between"><span className="text-slate-400 text-sm">Trạng thái:</span><span className="text-xs font-bold bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded">Chờ xác nhận</span></div></div><p className="text-xs text-slate-500 italic">* Kiểm tra kỹ thông tin trước khi gửi kết quả.</p></div>
+                    </div>
+                    <div className="mt-4">
+                    <label className="text-sm text-slate-400 mb-2 block">Cập nhật mã QR thanh toán</label>
+                    <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleQrUpload}
+                        className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-purple-900/30 file:text-purple-400 hover:file:bg-purple-900/50"
+                    />
+                    {qrBase64 && <img src={qrBase64} alt="Preview QR" className="w-32 h-32 mt-2 rounded-lg border border-slate-700" />}
                     </div>
                     </div>
                 </motion.div>

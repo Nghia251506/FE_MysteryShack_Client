@@ -20,15 +20,20 @@ import { QuestionService } from "@/services/questionService"; // Cập nhật đ
 import { Topic } from "@/types/topic";
 import { Question } from "@/types/topicQuestion";
 
+// Thêm vào phần import ở đầu file
+import { shuffleDeck } from "@/services/tarotService";
+// Lưu ý: Import đúng kiểu dữ liệu TarotCard từ DB của bạn
+import { TarotCard } from "@/types/tarot";
+
 // --- 1. CẤU HÌNH GIAO DIỆN & DỮ LIỆU ---
 
 interface LocalTarotCard {
   id: number;
-  name: string;
-  img: string;
-  keywords: string[];
+  cardNumber?: number;
+  nameVi: string;
+  imageUrl: string;
   shortMsg: string;
-  isReversed?: boolean;
+  reversed?: boolean;
 }
 
 const CardBackDesign = () => (
@@ -59,14 +64,14 @@ const generateFullDeck = (): LocalTarotCard[] => {
     "The Devil", "The Tower", "The Star", "The Moon", "The Sun",
     "Judgement", "The World"
   ];
-  majors.forEach((name, i) => {
-    deck.push({ id: idCounter++, name, img: getCardImg("ar", i), keywords: ["Ẩn chính"], shortMsg: "Thông điệp lớn." });
+  majors.forEach((nameVi, i) => {
+    deck.push({ id: idCounter++, nameVi, imageUrl: getCardImg("ar", i), shortMsg: "Thông điệp lớn." });
   });
   const suits = [{ code: "wa", name: "Wands" }, { code: "cu", name: "Cups" }, { code: "sw", name: "Swords" }, { code: "pe", name: "Pentacles" }];
   const ranks = ["Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Page", "Knight", "Queen", "King"];
   suits.forEach(suit => {
     ranks.forEach((rank, i) => {
-      deck.push({ id: idCounter++, name: `${rank} of ${suit.name}`, img: getCardImg(suit.code, i + 1), keywords: [suit.name], shortMsg: "Chi tiết nhỏ." });
+      deck.push({ id: idCounter++, nameVi: `${rank} of ${suit.name}`, imageUrl: getCardImg(suit.code, i + 1), shortMsg: "Chi tiết nhỏ." });
     });
   });
   return deck;
@@ -145,21 +150,37 @@ export default function TarotDrawPage() {
   };
 
   // LOGIC TRÁO BÀI
-  const handleStartDraw = () => {
+  const handleStartDraw = async () => {
     if (!selectedTopic || !selectedQuestion) return;
+
     setStep("shuffling");
-    setTimeout(() => {
-      const fullDeck = generateFullDeck();
-      const shuffled = fullDeck
-        .sort(() => 0.5 - Math.random())
-        .map(card => ({
-          ...card,
-          isReversed: Math.random() < 0.5
-        }));
-      setShuffledDeck(shuffled);
-      setStep("picking");
-      setShouldFlipToFace(false);
-    }, 4000);
+
+    try {
+      // 1. Gọi API shuffle bài từ Backend
+      // Truyền vào object đúng định dạng DrawTarotRequest
+      const dbCards = await shuffleDeck({ topic: selectedTopic });
+
+      // 2. Chuyển đổi dữ liệu từ Backend sang định dạng LocalTarotCard để hiển thị
+      const mappedCards: LocalTarotCard[] = dbCards.map((card: any) => ({
+        id: card.id,
+        nameVi: card.nameVi || card.nameEn, // Ưu tiên tên tiếng Việt
+        imageUrl: card.imageUrl || getCardImg("ar", 0), // Dùng link từ DB
+        shortMsg: card.uprightMeaning?.substring(0, 50) + "...",
+        isReversed: Math.random() < 0.5 // Random chiều bài tại Client hoặc Backend
+      }));
+
+      // 3. Đợi một chút để user thấy hiệu ứng shuffle (khoảng 3-4s)
+      setTimeout(() => {
+        setShuffledDeck(mappedCards);
+        setStep("picking");
+        setShouldFlipToFace(false);
+      }, 3000);
+
+    } catch (error) {
+      console.error("Lỗi khi xáo bài:", error);
+      alert("Không thể kết nối với vũ trụ, vui lòng thử lại sau.");
+      setStep("topic"); // Quay lại bước chọn nếu lỗi
+    }
   };
 
   const handlePickCard = (index: number) => {
@@ -192,9 +213,10 @@ export default function TarotDrawPage() {
     finalCards.forEach(card => {
       dispatch(addCard({
         id: card.id,
-        name: card.name,
-        img: card.img,
-        isReversed: card.isReversed || false
+        cardNumber: card.cardNumber,
+        nameVi: card.nameVi,
+        imageUrl: card.imageUrl || "",
+        reversed: card.reversed || false
       }));
     });
     router.push("/booking");
@@ -331,8 +353,8 @@ export default function TarotDrawPage() {
                       <motion.div key={idx} layout initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: isHidden ? 0.3 : 1, zIndex: isSelected ? 50 : 0 }} transition={{ delay: idx * 0.005, duration: 0.3 }} onClick={() => step === "picking" && handlePickCard(idx)} className={`relative w-12 h-20 md:w-16 md:h-28 rounded cursor-pointer transition-all duration-300 ${step === "picking" && !isSelected ? "hover:-translate-y-2 hover:z-10" : ""}`}>
                         <motion.div className="w-full h-full relative" style={{ transformStyle: "preserve-3d" }} animate={{ rotateY: shouldFlipToFace ? 0 : 180 }} transition={{ duration: 0.8, ease: "easeInOut" }}>
                           <div className="absolute inset-0 w-full h-full bg-slate-900 rounded overflow-hidden border border-white/20 shadow-sm flex items-center justify-center" style={{ backfaceVisibility: "hidden" }}>
-                            <img src={card.img} alt="Face" className={`w-full h-full object-cover transition-transform duration-700 ${card.isReversed ? 'rotate-180' : ''}`} />
-                            {card.isReversed && step === "revealing" && (<div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white text-[6px] md:text-[8px] px-1 rounded font-bold">REV</div>)}
+                            <img src={card.imageUrl} alt="Face" className={`w-full h-full object-cover transition-transform duration-700 ${card.reversed ? 'rotate-180' : ''}`} />
+                            {card.reversed && step === "revealing" && (<div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white text-[6px] md:text-[8px] px-1 rounded font-bold">REV</div>)}
                           </div>
                           <div className="absolute inset-0 w-full h-full rounded" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
                             <CardBackDesign />
@@ -356,13 +378,13 @@ export default function TarotDrawPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4 md:px-0">
                   {selectedIndices.map(idx => shuffledDeck[idx]).map((card, idx) => (
                     <motion.div key={idx} initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: idx * 0.2 }} className="bg-[#130823]/80 border border-white/10 rounded-3xl p-6 text-center shadow-xl relative overflow-hidden" >
-                      <div className={`absolute top-4 right-4 text-xs font-bold px-2 py-1 rounded border ${card.isReversed ? 'bg-red-900/50 border-red-500 text-red-300' : 'bg-green-900/50 border-green-500 text-green-300'}`}>
-                        {card.isReversed ? <span className="flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Ngược</span> : "Xuôi"}
+                      <div className={`absolute top-4 right-4 text-xs font-bold px-2 py-1 rounded border ${card.reversed ? 'bg-red-900/50 border-red-500 text-red-300' : 'bg-green-900/50 border-green-500 text-green-300'}`}>
+                        {card.reversed ? <span className="flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Ngược</span> : "Xuôi"}
                       </div>
                       <div className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden mb-5 shadow-2xl bg-[#1e1b2e]">
-                        <img src={card.img} alt={card.name} className={`w-full h-full object-cover ${card.isReversed ? 'rotate-180' : ''}`} />
+                        <img src={card.imageUrl} alt={card.nameVi} className={`w-full h-full object-cover ${card.reversed ? 'rotate-180' : ''}`} />
                       </div>
-                      <h3 className="text-xl font-bold text-white mb-1">{card.name}</h3>
+                      <h3 className="text-xl font-bold text-white mb-1">{card.nameVi}</h3>
                     </motion.div>
                   ))}
                 </div>

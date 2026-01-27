@@ -3,9 +3,10 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 // 1. Định nghĩa kiểu dữ liệu chuẩn cho lá bài
 export interface TarotCard {
   id: number;
-  name: string;
-  img: string;
-  isReversed: boolean;
+  cardNumber?: number;
+  nameVi: string;
+  imageUrl: string;
+  reversed: boolean;
 }
 
 // 2. Định nghĩa State bao gồm cả Tên hiển thị và ID từ Database

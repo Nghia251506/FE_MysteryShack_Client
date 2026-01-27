@@ -1,7 +1,4 @@
 {
-  "/not-found": "app/not-found.js",
-  "/tarot-draw/page": "app/tarot-draw/page.js",
-  "/booking/page": "app/booking/page.js",
-  "/readerdashboard/page": "app/readerdashboard/page.js",
-  "/booking/result/page": "app/booking/result/page.js"
+  "/page": "app/page.js",
+  "/profile/page": "app/profile/page.js"
 }

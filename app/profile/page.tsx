@@ -112,7 +112,7 @@ export default function UserProfilePage() {
             <div className="max-w-6xl mx-auto flex justify-between items-center">
                 <div onClick={() => router.push('/')} className="flex items-center gap-2 cursor-pointer">
                     <Sparkles className="w-6 h-6 text-amber-500" />
-                    <span className="font-bold text-xl text-white">Mystic<span className="text-amber-500">Tarot</span></span>
+                    <span className="font-bold text-xl text-white">MysteryShack<span className="text-amber-500">Tarot</span></span>
                 </div>
                 <button onClick={() => router.push('/tarot-draw')} className="px-5 py-2 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:opacity-90 transition-all text-sm">
                     + Đặt câu hỏi mới
