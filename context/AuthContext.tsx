@@ -11,6 +11,7 @@ interface AuthContextType {
   login: (data: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
+  updateUser: (userData: User) => void; // <--- 1. THÊM DÒNG NÀY
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -26,7 +27,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const token = localStorage.getItem("accessToken");
     
     if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (e) {
+        console.error("Lỗi đọc user cũ:", e);
+        // Nếu lỗi JSON, xóa luôn để tránh lỗi app
+        localStorage.removeItem("currentUser");
+      }
     }
     setIsLoading(false);
   }, []);
@@ -35,33 +43,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const res = await AuthService.login(data);
       
-      // Lưu vào state và localStorage
-      // Lưu ý: Backend bạn trả về cấu trúc nào? 
-      // Giả sử res trả về { token: "...", ...userFields } hoặc { token: "...", user: {...} }
-      // Bạn cần log res ra để map cho đúng nhé. 
-      // Code dưới đây giả định res là object User có chứa token.
-      
-      const userData = res.user || res; // Fallback tùy cấu trúc BE
+      // --- LOG ĐỂ KIỂM TRA BACKEND TRẢ VỀ GÌ ---
+      console.log("LOGIN RESPONSE:", res); 
+      // Nếu ở đây không thấy birthDate, bạn phải bảo Backend thêm vào!
+
+      // Map dữ liệu (Fallback nếu backend trả về cấu trúc khác)
+      const userData = res.user || res; 
       const token = res.token;
 
+      // Lưu vào state & local
       setUser(userData);
       localStorage.setItem("currentUser", JSON.stringify(userData));
-      localStorage.setItem("accessToken", token);
+      if (token) localStorage.setItem("accessToken", token);
       
-      // Setup default header cho các request sau
-      // axiosClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      router.push("/"); // Về trang chủ
+      router.push("/"); 
     } catch (error) {
       console.error("Login failed", error);
-      throw error; // Ném lỗi để UI hiển thị
+      throw error; 
     }
   };
 
   const register = async (data: RegisterRequest) => {
     try {
       await AuthService.register(data);
-      // Đăng ký xong thì auto login hoặc chuyển sang trang login
+      // Đăng ký xong chuyển sang login
       router.push("/login");
     } catch (error) {
       throw error;
@@ -75,8 +80,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.push("/login");
   };
 
+  // 2. THÊM HÀM CẬP NHẬT USER (Dùng cho trang Profile lưu lại)
+  const updateUser = (newUserData: User) => {
+    setUser(newUserData);
+    localStorage.setItem("currentUser", JSON.stringify(newUserData));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    // 3. ĐƯA updateUser VÀO VALUE
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

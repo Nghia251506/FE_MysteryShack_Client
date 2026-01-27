@@ -7,7 +7,7 @@ import {
   CheckCircle2, AlertCircle, Loader2, ArrowRight, HelpCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { InterpretationService } from "@/services/interpretationService";
+import { InterpretationService } from "@/services/interpretationService"; // Giả định bạn có service này
 
 // --- 1. HELPER: LẤY ẢNH TAROT (Giống bên Reader Dashboard) ---
 const getCardDetail = (id: number) => {
@@ -42,11 +42,17 @@ const getCardDetail = (id: number) => {
   return { name: `Card #${safeId}`, img: "https://placehold.co/150x250?text=?" };
 };
 
-// --- 2. HELPER: TÁCH CHUỖI ---
+// --- 2. HELPER: TÁCH CHUỖI TỪ READER (Quan trọng) ---
+// Reader gửi dạng: "Header ||| Card1 Text ||| Card2 Text ||| Summary"
 const parseContent = (fullText: string) => {
     if (!fullText) return [];
     return fullText.split("|||").map(s => s.trim()).filter(Boolean);
 };
+
+// --- 3. HELPER: TẠO QR CODE ---
+const getVietQR = (amount: number, content: string) => 
+    `https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}`;
+
 
 export default function UserResultPage() {
   const params = useParams(); 
@@ -56,6 +62,8 @@ export default function UserResultPage() {
   const [data, setData] = useState<any>(null);
   const [cardsData, setCardsData] = useState<any[]>([]); // Lưu thông tin ảnh bài
   const [textSections, setTextSections] = useState<string[]>([]); // Lưu nội dung luận giải
+  
+  // --- TRẠNG THÁI THANH TOÁN ---
   const [isPaid, setIsPaid] = useState(false); 
   const [paying, setPaying] = useState(false);
 
@@ -66,33 +74,30 @@ export default function UserResultPage() {
   const fetchResult = async () => {
     try {
       setLoading(true);
-      const response = await InterpretationService.getView(sessionId);
+      // Gọi API lấy kết quả (Giả sử API trả về cả status thanh toán)
+      // const response = await InterpretationService.getById(sessionId);
+      
+      // --- MOCK DATA ĐỂ TEST ---
+      const response = {
+          status: isPaid ? 'COMPLETED' : 'PAYMENT_PENDING', // Giả lập
+          selectedCards: [1, 5, 10], // ID 3 lá bài
+          amount: 50000,
+          // Nội dung Reader đã nhập (Giả lập cấu trúc |||)
+          content: `Khách hàng: Giang - 18/08/1998\nCâu hỏi: Tình yêu sắp tới?|||
+                    Lá 1 (The Magician): Bạn có đầy đủ nguồn lực để bắt đầu một mối quan hệ mới. Sự tự tin là chìa khóa.|||
+                    Lá 2 (The Hierophant): Có thể bạn sẽ gặp người này qua sự giới thiệu của người lớn tuổi hoặc môi trường truyền thống.|||
+                    Lá 3 (Wheel of Fortune): Vận mệnh đang xoay chuyển, một cơ hội bất ngờ sẽ đến vào tháng sau.|||
+                    LỜI KHUYÊN TỔNG KẾT:\nHãy mở lòng và đón nhận những tín hiệu từ vũ trụ. Đừng ngại thử thách bản thân ở môi trường mới.`
+      };
+
       setData(response);
       
-      // Check thanh toán
-      const paymentStatus = response.status === 'COMPLETED'; 
-      setIsPaid(paymentStatus);
-
       // 1. Xử lý Cards (Để lấy ảnh)
-      if (response.selectedCards) {
-          let rawCards = response.selectedCards;
-          if (typeof rawCards === 'string') {
-              try { rawCards = JSON.parse(rawCards); } catch {}
-              if (typeof rawCards === 'string') try { rawCards = JSON.parse(rawCards); } catch {}
-          }
-          if (Array.isArray(rawCards)) {
-              const processedCards = rawCards.map((c: any) => {
-                  const id = typeof c === 'object' ? (c.id || c.cardId) : c;
-                  const isReversed = typeof c === 'object' ? (c.isReversed || false) : false;
-                  return { id, isReversed, ...getCardDetail(Number(id)) };
-              });
-              setCardsData(processedCards);
-          }
-      }
+      const processedCards = response.selectedCards.map((id: number) => getCardDetail(id));
+      setCardsData(processedCards);
 
       // 2. Xử lý Nội dung Text
-      const contentToParse = response.note || response.content || ""; 
-      setTextSections(parseContent(contentToParse));
+      setTextSections(parseContent(response.content));
 
     } catch (error) {
       console.error("Lỗi tải kết quả:", error);
@@ -101,20 +106,15 @@ export default function UserResultPage() {
     }
   };
 
-  const handlePayment = async () => {
-    setPaying(true);
-    try {
-        await InterpretationService.confirmPayment(sessionId);
-        setTimeout(() => {
-            setIsPaid(true);
-            fetchResult();
-            setPaying(false);
-            alert("Mở khóa thành công!");
-        }, 1500);
-    } catch (error) {
-        alert("Lỗi thanh toán.");
-        setPaying(false);
-    }
+  const handlePayment = () => {
+      setPaying(true);
+      // Giả lập gọi API check thanh toán
+      setTimeout(() => {
+          setIsPaid(true); // Mở khóa!
+          setPaying(false);
+          alert("Thanh toán thành công! Đã mở khóa toàn bộ nội dung.");
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 2000);
   };
 
   if (loading) return (
@@ -127,16 +127,7 @@ export default function UserResultPage() {
     </div>
   );
 
-  // Màn hình chờ nếu chưa có dữ liệu
-  if (!data || textSections.length === 0) return (
-    <div className="min-h-screen bg-[#0a0410] flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-24 h-24 bg-[#130823] rounded-full flex items-center justify-center mb-6 border border-slate-800 shadow-[0_0_30px_-10px_rgba(168,85,247,0.3)]">
-            <Sparkles className="w-10 h-10 text-purple-400 animate-pulse"/>
-        </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Đang Chờ Reader</h2>
-        <p className="text-slate-400 max-w-md">Reader đang luận giải các lá bài của bạn. Vui lòng quay lại sau ít phút.</p>
-    </div>
-  );
+  if (!data) return null;
 
   // --- MAP DỮ LIỆU ---
   // textSections[0] là Header Info
@@ -221,9 +212,6 @@ export default function UserResultPage() {
                         <div className="relative flex flex-col items-center">
                             <div className={`relative w-48 h-72 rounded-xl overflow-hidden shadow-2xl transition-transform duration-500 ${!isLocked && 'group-hover:scale-105 group-hover:-rotate-1'} border-[3px] ${isLocked ? 'border-slate-800' : 'border-slate-700'}`}>
                                 <img src={card.img} alt={card.name} className={`w-full h-full object-cover ${isLocked ? 'grayscale opacity-50 blur-sm' : ''}`} />
-                                {card.isReversed && (
-                                    <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-md">REV</div>
-                                )}
                                 {isLocked && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                                         <Lock className="w-10 h-10 text-slate-400" />
@@ -242,6 +230,7 @@ export default function UserResultPage() {
                                 {card.content}
                             </div>
                             
+                            {/* --- LỚP PHỦ KHI BỊ KHÓA --- */}
                             {isLocked && (
                                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center">
                                     <div className="bg-[#0a0410]/90 border border-amber-500/30 p-6 rounded-2xl shadow-2xl backdrop-blur-md max-w-xs">
@@ -295,7 +284,7 @@ export default function UserResultPage() {
 
       </main>
 
-      {/* FOOTER ACTION */}
+      {/* FOOTER ACTION: THANH TOÁN */}
       <AnimatePresence>
       {!isPaid && (
           <motion.div 
