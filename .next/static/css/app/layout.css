@@ -1760,6 +1760,9 @@ video {
 .border-t-4 {
   border-top-width: 4px;
 }
+.border-b-0 {
+  border-bottom-width: 0px;
+}
 .border-dashed {
   border-style: dashed;
 }
@@ -1902,6 +1905,9 @@ video {
 }
 .border-white\/5 {
   border-color: rgb(255 255 255 / 0.05);
+}
+.border-green-500\/50 {
+  border-color: rgb(34 197 94 / 0.5);
 }
 .border-l-transparent {
   border-left-color: transparent;
@@ -2223,6 +2229,12 @@ video {
 }
 .bg-yellow-500\/20 {
   background-color: rgb(234 179 8 / 0.2);
+}
+.bg-slate-800\/20 {
+  background-color: rgb(30 41 59 / 0.2);
+}
+.bg-slate-950\/40 {
+  background-color: rgb(2 6 23 / 0.4);
 }
 .bg-\[conic-gradient\(from_0deg\2c transparent_0_deg\2c transparent_270deg\2c rgba\(245\2c 158\2c 11\2c 0\.3\)_360deg\)\] {
   background-image: conic-gradient(from 0deg,transparent 0 deg,transparent 270deg,rgba(245,158,11,0.3) 360deg);
@@ -2563,6 +2575,9 @@ video {
 }
 .p-\[1px\] {
   padding: 1px;
+}
+.p-20 {
+  padding: 5rem;
 }
 .px-1 {
   padding-left: 0.25rem;
@@ -3407,6 +3422,9 @@ video {
 .ease-in-out {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
+.ease-linear {
+  transition-timing-function: linear;
+}
 @keyframes enter {
 
   from {
@@ -3465,6 +3483,9 @@ video {
 }
 .ease-in-out {
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ease-linear {
+  animation-timing-function: linear;
 }
 .\[color-scheme\:dark\] {
   color-scheme: dark;
@@ -3871,6 +3892,11 @@ video {
   color: rgb(255 255 255 / var(--tw-text-opacity));
 }
 
+.hover\:text-amber-500:hover {
+  --tw-text-opacity: 1;
+  color: rgb(245 158 11 / var(--tw-text-opacity));
+}
+
 .hover\:underline:hover {
   text-decoration-line: underline;
 }
@@ -3904,6 +3930,12 @@ video {
 .hover\:shadow-lg:hover {
   --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.hover\:shadow-2xl:hover {
+  --tw-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --tw-shadow-colored: 0 25px 50px -12px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 

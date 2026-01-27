@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RootState } from "@/store/store";
+import { UserService } from '@/services/userService';
+import { setLoading, setMatchedReader } from '@/store/slices/userSlice';
 
 // --- HELPERS ---
 const getCardFallback = (id: number) => {
@@ -75,6 +77,7 @@ export default function BookingRequestPage() {
   const { user, token } = useSelector((state: any) => state.auth);
 
   const session = { drawnCards, topic, question, userName: user?.fullName, birthDate: user?.birthDate };
+  const { matchedReader } = useSelector((state: any) => state.user);
 
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -85,7 +88,34 @@ export default function BookingRequestPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false); // Pop-up thành công
   const { topicId, questionId } = useSelector((state: any) => state.tarot);
 
-  console.log("Đây là questionId lấy từ tarot-draw", questionId)
+  const handleMatchReader = async () => {
+    setStep(3); // Chuyển sang màn hình scanning
+    setProgress(0);
+    setScanStatus("Đang kết nối vệ tinh tâm linh...");
+
+    // Bắt đầu chạy progress giả lập cho đẹp
+    const timer = setInterval(() => {
+      setProgress(prev => (prev >= 90 ? 90 : prev + 2));
+    }, 50);
+
+    try {
+      // GỌI API THỰC TẾ: Loại trừ reader cũ nếu có
+      const reader = await UserService.getRandomTopReader(matchedReader?.id);
+
+      // Giả lập một chút độ trễ để người dùng thấy hiệu ứng scan
+      setTimeout(() => {
+        clearInterval(timer);
+        setProgress(100);
+        dispatch(setMatchedReader(reader)); // Lưu vào Redux
+        setStep(4);
+      }, 1500);
+
+    } catch (err) {
+      console.error("Lỗi match reader:", err);
+      setScanStatus("Không tìm thấy Reader, vui lòng thử lại.");
+      clearInterval(timer);
+    }
+  };
 
   const [formData, setFormData] = useState({
     name: "",
@@ -163,7 +193,7 @@ export default function BookingRequestPage() {
 
     const payload = {
       customerId: user.id,
-      readerId: 99,
+      readerId: matchedReader.id,
       question: questionId,
       topic: currentTopicId,
       selectedCards: cardsPayload,
@@ -311,7 +341,7 @@ export default function BookingRequestPage() {
                   </div>
                   <div className="mt-8">
                     <button
-                      onClick={handleNextStep}
+                      onClick={handleMatchReader}
                       className="w-full py-4 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:scale-[1.02] transition-all"
                     >
                       <Sparkles className="w-5 h-5" /> Tìm Reader Ngay
@@ -345,15 +375,15 @@ export default function BookingRequestPage() {
           {step === 4 && (
             <motion.div key="step4" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl mx-auto bg-[#1a0f2e]/90 border border-amber-500/30 rounded-[2.5rem] p-8 text-center shadow-[0_0_100px_rgba(168,85,247,0.15)]">
               <div className="w-32 h-32 mx-auto rounded-full p-1 bg-gradient-to-br from-amber-400 via-purple-500 to-amber-400 mb-6 relative">
-                <img src={MATCHED_READER.avatar} className="w-full h-full rounded-full border-4 border-[#130823] object-cover" alt="Reader" />
+                <img src={matchedReader?.profilePicture || "/default-avatar.png"} className="w-full h-full rounded-full border-4 border-[#130823] object-cover" alt="Reader" />
                 <div className="absolute bottom-2 right-2 bg-green-500 border-4 border-[#130823] w-7 h-7 rounded-full flex items-center justify-center">
                   <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                 </div>
               </div>
-              <h2 className="text-4xl font-bold text-white mb-2">{MATCHED_READER.name}</h2>
+              <h2 className="text-4xl font-bold text-white mb-2">{matchedReader?.fullName}</h2>
               <div className="flex justify-center gap-3 mb-6">
-                <div className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold flex items-center gap-1"><Star className="w-3 h-3 fill-current" /> {MATCHED_READER.rating}</div>
-                <div className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold">{MATCHED_READER.matchScore}% Tương thích</div>
+                <div className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold flex items-center gap-1"><Star className="w-3 h-3 fill-current" /> {matchedReader?.rating || "5.0"}</div>
+                <div className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold">{95 + (matchedReader?.eloScore % 5)}% Tương thích</div>
               </div>
               <div className="bg-slate-900/50 rounded-xl p-6 mb-8 text-left max-w-xl mx-auto border border-slate-700/50">
                 <p className="text-xs text-slate-500 uppercase font-bold mb-2">Câu hỏi:</p>
