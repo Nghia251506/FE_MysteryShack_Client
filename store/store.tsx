@@ -8,7 +8,7 @@ export const store = configureStore({
     tarot: tarotReducer, // Logic Tarot cũ
     auth: authReducer,   // Logic Auth mới (User, Token, Login...)
   },
-  middleware: (getDefaultMiddleware) =>
+  middleware: (getDefaultMiddleware: (arg0: { serializableCheck: boolean; }) => any) =>
     getDefaultMiddleware({
       serializableCheck: false,
     }),

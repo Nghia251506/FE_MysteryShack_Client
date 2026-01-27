@@ -80,12 +80,15 @@ export default function BookingRequestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showProfile, setShowProfile] = useState(false); 
   const [showSuccessModal, setShowSuccessModal] = useState(false); // Pop-up thành công
+  const { topicId, questionId } = useSelector((state: any) => state.tarot);
+
+  console.log("Đây là questionId lấy từ tarot-draw",questionId)
 
   const [formData, setFormData] = useState({
     name: "",
     dob: "",
-    topic: "",
-    question: ""
+    topic: 0,
+    question: 0
   });
 
   const [isMounted, setIsMounted] = useState(false);
@@ -112,7 +115,6 @@ export default function BookingRequestPage() {
     if (step === 1 && (!formData.topic || !formData.question)) return alert("Vui lòng chọn chủ đề và câu hỏi");
     if (step === 2 && (!formData.name || !formData.dob)) return alert("Vui lòng nhập họ tên và ngày sinh");
     if (step === 2) { 
-        dispatch(setTopicAndQuestion({ topic: formData.topic, question: formData.question })); 
         setStep(3); 
     } 
     else if (step < 4) setStep(prev => (prev + 1) as 1 | 2 | 3 | 4);
@@ -159,9 +161,8 @@ export default function BookingRequestPage() {
     const payload = {
         customerId: user.id,
         readerId: 99,
-        question: questionIdToSend, 
-        questionId: questionIdToSend,
-        topicId: currentTopicId,
+        question: questionId,
+        topic: currentTopicId,
         selectedCards: cardsPayload,
         status: "PENDING",
         amount: 50000,
@@ -214,11 +215,11 @@ export default function BookingRequestPage() {
               <div className="lg:col-span-8 space-y-6">
                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {TOPICS.map(t => (
-                       <button key={t.id} onClick={() => setFormData(prev => ({ ...prev, topic: t.id, question: "" }))} className={`relative group p-5 rounded-2xl border text-left transition-all duration-300 overflow-hidden ${formData.topic === t.id ? `bg-gradient-to-b ${t.color} border-transparent shadow-lg transform -translate-y-1` : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
-                          {formData.topic !== t.id && <div className={`absolute inset-0 bg-gradient-to-br ${t.color} opacity-0 group-hover:opacity-10 transition-opacity`} />}
-                          <div className={`mb-3 p-3 rounded-xl w-fit ${formData.topic === t.id ? 'bg-black/20 text-white' : `${t.bg} text-slate-300`}`}>{t.icon}</div>
-                          <h3 className={`font-bold text-lg mb-1 ${formData.topic === t.id ? 'text-white' : 'text-slate-200'}`}>{t.label}</h3>
-                          <p className={`text-xs ${formData.topic === t.id ? 'text-white/80' : 'text-slate-500'}`}>{t.desc}</p>
+                       <button key={t.id} onClick={() => setFormData(prev => ({ ...prev, topic: topicId, question: questionId }))} className={`relative group p-5 rounded-2xl border text-left transition-all duration-300 overflow-hidden ${formData.topic === topicId ? `bg-gradient-to-b ${t.color} border-transparent shadow-lg transform -translate-y-1` : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+                          {formData.topic !== topicId && <div className={`absolute inset-0 bg-gradient-to-br ${t.color} opacity-0 group-hover:opacity-10 transition-opacity`} />}
+                          <div className={`mb-3 p-3 rounded-xl w-fit ${formData.topic === topicId ? 'bg-black/20 text-white' : `${t.bg} text-slate-300`}`}>{t.icon}</div>
+                          <h3 className={`font-bold text-lg mb-1 ${formData.topic === topicId ? 'text-white' : 'text-slate-200'}`}>{t.label}</h3>
+                          <p className={`text-xs ${formData.topic === topicId ? 'text-white/80' : 'text-slate-500'}`}>{t.desc}</p>
                        </button>
                     ))}
                  </div>
@@ -228,10 +229,10 @@ export default function BookingRequestPage() {
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Câu hỏi cụ thể</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                            {QUESTIONS[formData.topic]?.map((q, i) => (
-                              <label key={i} className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${formData.question === q ? 'bg-purple-600/20 border-purple-500' : 'bg-black/20 border-white/5 hover:bg-white/5'}`}>
-                                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${formData.question === q ? 'border-purple-500' : 'border-slate-600'}`}>{formData.question === q && <div className="w-2.5 h-2.5 bg-purple-500 rounded-full" />}</div>
-                                 <input type="radio" className="hidden" checked={formData.question === q} onChange={() => setFormData(prev => ({...prev, question: q}))} />
-                                 <span className={`text-sm ${formData.question === q ? 'text-white font-medium' : 'text-slate-400'}`}>{q}</span>
+                              <label key={i} className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${formData.question === questionId ? 'bg-purple-600/20 border-purple-500' : 'bg-black/20 border-white/5 hover:bg-white/5'}`}>
+                                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${formData.question === questionId ? 'border-purple-500' : 'border-slate-600'}`}>{formData.question === questionId && <div className="w-2.5 h-2.5 bg-purple-500 rounded-full" />}</div>
+                                 <input type="radio" className="hidden" checked={formData.question === questionId} onChange={() => setFormData(prev => ({...prev, question: questionId}))} />
+                                 <span className={`text-sm ${formData.question === questionId ? 'text-white font-medium' : 'text-slate-400'}`}>{q}</span>
                               </label>
                            ))}
                         </div>
