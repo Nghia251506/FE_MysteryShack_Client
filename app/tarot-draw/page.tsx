@@ -2,16 +2,30 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useTarotSession, TarotCard } from "@/context/TarotContext";
 import { 
-  Sparkles, ArrowRight, RefreshCw, Lock, 
+  Sparkles, ArrowRight, Lock, 
   Eye, Heart, Briefcase, Wallet, ChevronRight, Hand, RotateCcw, LogOut 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+// --- REDUX INTEGRATION ---
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store/store";
+import { setTopicAndQuestion, addCard, resetSession } from "@/store/slices/tarotSlice";
+import { logout } from "@/store/features/authSlice"; // Đảm bảo import đúng đường dẫn logout của bạn
+import { LogoutModal } from "@/components/LogoutModal"; // Đảm bảo import đúng đường dẫn LogoutModal
+
 // --- 1. CẤU HÌNH GIAO DIỆN & DỮ LIỆU ---
 
-// COMPONENT: LƯNG BÀI CAO CẤP
+interface LocalTarotCard {
+  id: number;
+  name: string;
+  img: string;
+  keywords: string[];
+  shortMsg: string;
+  isReversed?: boolean;
+}
+
 const CardBackDesign = () => (
   <div className="w-full h-full bg-[#1a0b2e] relative overflow-hidden rounded-lg shadow-inner flex items-center justify-center border border-slate-900">
     <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
@@ -25,17 +39,14 @@ const CardBackDesign = () => (
   </div>
 );
 
-// HÀM SINH BỘ BÀI (Giữ nguyên logic của bạn)
 const getCardImg = (prefix: string, number: number) => {
   const padded = number.toString().padStart(2, '0');
   return `https://www.sacred-texts.com/tarot/pkt/img/${prefix}${padded}.jpg`;
 };
 
-const generateFullDeck = () => {
-  const deck: TarotCard[] = [];
-  let idCounter = 0;
-
-  // Major Arcana
+const generateFullDeck = (): LocalTarotCard[] => {
+  const deck: LocalTarotCard[] = [];
+  let idCounter = 1;
   const majors = [
     "The Fool", "The Magician", "The High Priestess", "The Empress", "The Emperor", 
     "The Hierophant", "The Lovers", "The Chariot", "Strength", "The Hermit", 
@@ -44,34 +55,18 @@ const generateFullDeck = () => {
     "Judgement", "The World"
   ];
   majors.forEach((name, i) => {
-    // ID để string hay number đều được, miễn là Context chấp nhận
     deck.push({ id: idCounter++, name, img: getCardImg("ar", i), keywords: ["Ẩn chính"], shortMsg: "Thông điệp lớn." });
   });
-
-  // Minor Arcana
-  const suits = [
-    { code: "wa", name: "Wands" }, { code: "cu", name: "Cups" },
-    { code: "sw", name: "Swords" }, { code: "pe", name: "Pentacles" }
-  ];
+  const suits = [{ code: "wa", name: "Wands" }, { code: "cu", name: "Cups" }, { code: "sw", name: "Swords" }, { code: "pe", name: "Pentacles" }];
   const ranks = ["Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Page", "Knight", "Queen", "King"];
-
   suits.forEach(suit => {
     ranks.forEach((rank, i) => {
-      deck.push({ 
-        id: idCounter++, 
-        name: `${rank} of ${suit.name}`, 
-        img: getCardImg(suit.code, i + 1), 
-        keywords: [suit.name], 
-        shortMsg: "Chi tiết nhỏ." 
-      });
+      deck.push({ id: idCounter++, name: `${rank} of ${suit.name}`, img: getCardImg(suit.code, i + 1), keywords: [suit.name], shortMsg: "Chi tiết nhỏ." });
     });
   });
-
   return deck;
 };
 
-// DỮ LIỆU CHỦ ĐỀ & CÂU HỎI
-// QUAN TRỌNG: ID topic và Text câu hỏi phải KHỚP với booking/page.tsx
 const TOPICS = [
   { id: "love", icon: <Heart className="w-5 h-5" />, label: "Tình Yêu", color: "from-pink-500 to-rose-500" },
   { id: "career", icon: <Briefcase className="w-5 h-5" />, label: "Sự Nghiệp", color: "from-blue-500 to-cyan-500" },
@@ -79,7 +74,7 @@ const TOPICS = [
 ];
 
 const QUESTIONS: Record<string, string[]> = {
-  love: ["Người ấy nghĩ gì về tôi?", "Tương lai mối quan hệ này?", "Khi nào tôi có người yêu?"], // Text này phải khớp Booking Page
+  love: ["Người ấy nghĩ gì về tôi?", "Tương lai mối quan hệ này?", "Khi nào tôi có người yêu?"], 
   career: ["Tôi có nên nhảy việc lúc này?", "Cơ hội thăng tiến sắp tới?", "Tôi hợp với nghề nào?"],
   finance: ["Tình hình tài chính tháng tới?", "Cơ hội đầu tư sinh lời?", "Vận may tiền bạc sắp tới?"],
 };
@@ -88,80 +83,77 @@ const QUESTIONS: Record<string, string[]> = {
 
 export default function TarotDrawPage() {
   const router = useRouter();
-  const { updateSession } = useTarotSession();
+  const dispatch = useDispatch<AppDispatch>();
 
   const [step, setStep] = useState<"topic" | "shuffling" | "picking" | "revealing" | "result">("topic");
   const [selectedTopic, setSelectedTopic] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState("");
-  
-  const [shuffledDeck, setShuffledDeck] = useState<TarotCard[]>([]);
+  const [shuffledDeck, setShuffledDeck] = useState<LocalTarotCard[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [shouldFlipToFace, setShouldFlipToFace] = useState(false);
 
-  // LOGOUT FUNCTION
-  const handleLogout = () => {
-    // Xóa token hoặc thông tin đăng nhập khỏi localStorage/cookies nếu có
-    // Ví dụ: localStorage.removeItem('token');
-    router.push('/login'); // Điều hướng về trang đăng nhập
+  // --- LOGOUT MODAL STATE ---
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = () => {
+    dispatch(logout());
+    router.push('/login'); 
   };
 
   // LOGIC TRÁO BÀI
   const handleStartDraw = () => {
     if (!selectedTopic || !selectedQuestion) return;
     setStep("shuffling");
-    
     setTimeout(() => {
       const fullDeck = generateFullDeck();
-      // Xào bài + Random chiều (50% Ngược)
       const shuffled = fullDeck
         .sort(() => 0.5 - Math.random())
         .map(card => ({
           ...card,
           isReversed: Math.random() < 0.5 
         }));
-      
       setShuffledDeck(shuffled);
       setStep("picking");
       setShouldFlipToFace(false); 
     }, 4000); 
   };
 
-  // LOGIC CHỌN BÀI
   const handlePickCard = (index: number) => {
     if (selectedIndices.includes(index) || selectedIndices.length >= 3) return;
-    
     const newIndices = [...selectedIndices, index];
     setSelectedIndices(newIndices);
-
-    // Nếu chọn đủ 3 lá -> Chuyển sang lật bài
     if (newIndices.length === 3) {
       setTimeout(() => setStep("revealing"), 500);
     }
   };
 
-  // LOGIC LẬT BÀI
   useEffect(() => {
     if (step === "picking") setShouldFlipToFace(false);
     if (step === "revealing") {
-      setTimeout(() => setShouldFlipToFace(true), 800); // Lật ngửa
-      setTimeout(() => setStep("result"), 5000); // Chờ xem bài rồi sang kết quả
+      setTimeout(() => setShouldFlipToFace(true), 800);
+      setTimeout(() => setStep("result"), 5000);
     }
   }, [step]);
 
-  // --- KẾT NỐI SANG TRANG BOOKING (QUAN TRỌNG NHẤT) ---
   const handleConnectReader = () => {
-    // 1. Lấy ra 3 lá bài user đã chọn
     const finalCards = selectedIndices.map(idx => shuffledDeck[idx]);
-    
-    // 2. Lưu vào Context toàn cục
-    updateSession({
-      topic: selectedTopic,       // string: "love" | "career" | "finance"
-      question: selectedQuestion, // string: "Người ấy nghĩ gì về tôi?"...
-      drawnCards: finalCards,     // array: 3 object bài (có img, name, isReversed)
+    dispatch(resetSession());
+    dispatch(setTopicAndQuestion({
+        topic: selectedTopic,
+        question: selectedQuestion
+    }));
+    finalCards.forEach(card => {
+        dispatch(addCard({
+            id: card.id,
+            name: card.name,
+            img: card.img,
+            isReversed: card.isReversed || false
+        }));
     });
-
-    // 3. Chuyển hướng sang trang Booking
-    // Trang Booking sẽ tự động nhận diện có bài rồi -> nhảy thẳng sang Step 2
     router.push("/booking"); 
   };
 
@@ -175,14 +167,14 @@ export default function TarotDrawPage() {
          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
       </div>
 
-      {/* Logout Button */}
+      {/* Logout Button - Updated to trigger modal */}
       <div className="absolute top-4 right-4 z-50">
         <button 
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm"
+          onClick={handleLogoutClick}
+          className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm shadow-lg font-bold"
         >
           <LogOut className="w-4 h-4" />
-          <span className="text-sm font-medium">Đăng xuất</span>
+          <span className="text-sm">Đăng xuất</span>
         </button>
       </div>
 
@@ -190,7 +182,7 @@ export default function TarotDrawPage() {
         <div className="w-full max-w-7xl">
           <AnimatePresence mode="wait">
 
-            {/* === STEP 1: CHỌN CHỦ ĐỀ === */}
+            {/* STEP 1: CHỌN CHỦ ĐỀ */}
             {step === "topic" && (
               <motion.div 
                 key="topic"
@@ -203,21 +195,15 @@ export default function TarotDrawPage() {
                    </div>
                     <h1 className="text-3xl md:text-4xl font-bold text-white">Hỏi Vũ Trụ Về <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400">Tương Lai</span></h1>
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                   {TOPICS.map(t => (
-                    <button 
-                      key={t.id}
-                      onClick={() => { setSelectedTopic(t.id); setSelectedQuestion(""); }}
-                      className={`relative group p-4 rounded-xl border text-left transition-all overflow-hidden ${selectedTopic === t.id ? 'bg-white/10 border-amber-500/50' : 'bg-black/20 border-white/5 hover:bg-white/5'}`}
-                    >
+                    <button key={t.id} onClick={() => { setSelectedTopic(t.id); setSelectedQuestion(""); }} className={`relative group p-4 rounded-xl border text-left transition-all overflow-hidden ${selectedTopic === t.id ? 'bg-white/10 border-amber-500/50' : 'bg-black/20 border-white/5 hover:bg-white/5'}`}>
                        <div className={`absolute inset-0 bg-gradient-to-br ${t.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
                        <div className={`mb-2 ${selectedTopic === t.id ? 'text-amber-400' : 'text-slate-400'}`}>{t.icon}</div>
                        <div className="font-bold text-white">{t.label}</div>
                     </button>
                   ))}
                 </div>
-
                 <AnimatePresence>
                   {selectedTopic && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} className="space-y-4 overflow-hidden">
@@ -241,110 +227,45 @@ export default function TarotDrawPage() {
               </motion.div>
             )}
 
-            {/* === STEP 2: XÀO BÀI === */}
+            {/* STEP 2: XÀO BÀI */}
             {step === "shuffling" && (
-              <motion.div 
-                key="shuffle" 
-                className="flex flex-col items-center justify-center h-[60vh] relative"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              >
+              <motion.div key="shuffle" className="flex flex-col items-center justify-center h-[60vh] relative" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                  <div className="absolute w-96 h-96 bg-purple-600/10 rounded-full blur-[80px] animate-pulse"></div>
                  <div className="relative w-64 h-64 flex items-center justify-center">
                     {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-                        <motion.div 
-                            key={i}
-                            className="absolute w-20 h-32 md:w-24 md:h-40 rounded-xl shadow-2xl origin-bottom-center"
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ 
-                                rotate: [0, 360], 
-                                scale: [0.8, 1.2, 0.8],
-                                y: [0, -60, 0],
-                                opacity: [0.3, 1, 0.3]
-                            }} 
-                            transition={{ 
-                                repeat: Infinity, duration: 2.5, ease: "linear", delay: i * 0.2
-                            }}
-                        >
+                        <motion.div key={i} className="absolute w-20 h-32 md:w-24 md:h-40 rounded-xl shadow-2xl origin-bottom-center" initial={{ scale: 0, opacity: 0 }} animate={{ rotate: [0, 360], scale: [0.8, 1.2, 0.8], y: [0, -60, 0], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 2.5, ease: "linear", delay: i * 0.2 }}>
                             <CardBackDesign />
                         </motion.div>
                     ))}
                     <div className="absolute w-4 h-4 bg-amber-400 rounded-full shadow-[0_0_50px_rgba(251,191,36,1)] animate-ping z-10"></div>
                  </div>
                  <div className="mt-16 text-center relative z-10">
-                    <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-purple-200 animate-pulse">
-                        Hòa Nhịp Năng Lượng...
-                    </h2>
+                    <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-purple-200 animate-pulse">Hòa Nhịp Năng Lượng...</h2>
                  </div>
               </motion.div>
             )}
 
-            {/* === STEP 3 & 4: CHỌN & LẬT BÀI === */}
+            {/* STEP 3 & 4: CHỌN & LẬT BÀI */}
             {(step === "picking" || step === "revealing") && (
-              <motion.div 
-                key="picking" 
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="flex flex-col items-center min-h-[85vh] justify-center pb-10"
-              >
+              <motion.div key="picking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center min-h-[85vh] justify-center pb-10">
                  <div className="text-center mb-6 sticky top-0 z-20 bg-[#050505]/95 backdrop-blur-md w-full py-4 border-b border-white/5">
-                    <h2 className="text-2xl font-bold text-white mb-1">
-                        {step === "picking" 
-                            ? `Chọn ${3 - selectedIndices.length} lá từ bộ 78 lá` 
-                            : "Vũ trụ đang hiển thị kết quả..."}
-                    </h2>
-                    <p className="text-slate-400 text-sm flex items-center justify-center gap-2">
-                        {step === "picking" ? <><Hand className="w-4 h-4"/> Lướt và chọn theo trực giác</> : "Bao gồm cả Xuôi và Ngược"}
-                    </p>
+                    <h2 className="text-2xl font-bold text-white mb-1">{step === "picking" ? `Chọn ${3 - selectedIndices.length} lá từ bộ 78 lá` : "Vũ trụ đang hiển thị kết quả..."}</h2>
+                    <p className="text-slate-400 text-sm flex items-center justify-center gap-2">{step === "picking" ? <><Hand className="w-4 h-4"/> Lướt và chọn theo trực giác</> : "Bao gồm cả Xuôi và Ngược"}</p>
                  </div>
-
                  <div className="flex flex-wrap justify-center gap-1.5 md:gap-2 max-w-[1400px] px-2" style={{ perspective: "1000px" }}>
                     {shuffledDeck.map((card, idx) => {
                        const isSelected = selectedIndices.includes(idx);
                        const isHidden = step === "revealing" && !isSelected;
-                       
                        return (
-                          <motion.div
-                             key={idx}
-                             layout
-                             initial={{ scale: 0, opacity: 0 }}
-                             animate={{ 
-                                scale: 1, 
-                                opacity: isHidden ? 0.3 : 1, 
-                                zIndex: isSelected ? 50 : 0, 
-                             }}
-                             transition={{ delay: idx * 0.005, duration: 0.3 }}
-                             onClick={() => step === "picking" && handlePickCard(idx)}
-                             className={`
-                                relative w-12 h-20 md:w-16 md:h-28 rounded cursor-pointer transition-all duration-300
-                                ${step === "picking" && !isSelected ? "hover:-translate-y-2 hover:z-10" : ""}
-                             `}
-                          >
-                             <motion.div
-                                className="w-full h-full relative"
-                                style={{ transformStyle: "preserve-3d" }}
-                                animate={{ 
-                                    rotateY: shouldFlipToFace ? 0 : 180, 
-                                }} 
-                                transition={{ duration: 0.8, ease: "easeInOut" }}
-                             >
-                                {/* MẶT TRƯỚC */}
+                          <motion.div key={idx} layout initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: isHidden ? 0.3 : 1, zIndex: isSelected ? 50 : 0 }} transition={{ delay: idx * 0.005, duration: 0.3 }} onClick={() => step === "picking" && handlePickCard(idx)} className={`relative w-12 h-20 md:w-16 md:h-28 rounded cursor-pointer transition-all duration-300 ${step === "picking" && !isSelected ? "hover:-translate-y-2 hover:z-10" : ""}`}>
+                             <motion.div className="w-full h-full relative" style={{ transformStyle: "preserve-3d" }} animate={{ rotateY: shouldFlipToFace ? 0 : 180 }} transition={{ duration: 0.8, ease: "easeInOut" }}>
                                 <div className="absolute inset-0 w-full h-full bg-slate-900 rounded overflow-hidden border border-white/20 shadow-sm flex items-center justify-center" style={{ backfaceVisibility: "hidden" }}>
-                                    <img 
-                                        src={card.img} 
-                                        alt="Face" 
-                                        className={`w-full h-full object-cover transition-transform duration-700 ${card.isReversed ? 'rotate-180' : ''}`} 
-                                    />
-                                    {card.isReversed && step === "revealing" && (
-                                        <div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white text-[6px] md:text-[8px] px-1 rounded font-bold">REV</div>
-                                    )}
+                                    <img src={card.img} alt="Face" className={`w-full h-full object-cover transition-transform duration-700 ${card.isReversed ? 'rotate-180' : ''}`} />
+                                    {card.isReversed && step === "revealing" && (<div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white text-[6px] md:text-[8px] px-1 rounded font-bold">REV</div>)}
                                 </div>
-                                {/* MẶT SAU */}
                                 <div className="absolute inset-0 w-full h-full rounded" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
                                     <CardBackDesign />
-                                    {isSelected && (
-                                        <div className="absolute -top-2 -right-2 w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center text-black font-bold text-[10px] shadow-lg border border-white z-20">
-                                            {selectedIndices.indexOf(idx) + 1}
-                                        </div>
-                                    )}
+                                    {isSelected && (<div className="absolute -top-2 -right-2 w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center text-black font-bold text-[10px] shadow-lg border border-white z-20">{selectedIndices.indexOf(idx) + 1}</div>)}
                                 </div>
                              </motion.div>
                           </motion.div>
@@ -354,30 +275,19 @@ export default function TarotDrawPage() {
               </motion.div>
             )}
 
-            {/* === STEP 5: KẾT QUẢ & CHUYỂN TRANG === */}
+            {/* STEP 5: KẾT QUẢ */}
             {step === "result" && (
-              <motion.div 
-                 key="result"
-                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                 className="space-y-10 max-w-4xl mx-auto pb-10"
-              >
+              <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10 max-w-4xl mx-auto pb-10">
                  <div className="text-center">
                     <h2 className="text-3xl font-bold text-white mb-2">Kết Quả Trải Bài</h2>
                     <p className="text-slate-400">3 lá bài định mệnh từ bộ 78 lá</p>
                  </div>
-
-                 {/* GRID KẾT QUẢ */}
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4 md:px-0">
                     {selectedIndices.map(idx => shuffledDeck[idx]).map((card, idx) => (
-                       <motion.div 
-                          key={idx}
-                          initial={{y: 50, opacity: 0}} animate={{y: 0, opacity: 1}} transition={{delay: idx * 0.2}}
-                          className="bg-[#130823]/80 border border-white/10 rounded-3xl p-6 text-center shadow-xl relative overflow-hidden"
-                       >
+                       <motion.div key={idx} initial={{y: 50, opacity: 0}} animate={{y: 0, opacity: 1}} transition={{delay: idx * 0.2}} className="bg-[#130823]/80 border border-white/10 rounded-3xl p-6 text-center shadow-xl relative overflow-hidden" >
                           <div className={`absolute top-4 right-4 text-xs font-bold px-2 py-1 rounded border ${card.isReversed ? 'bg-red-900/50 border-red-500 text-red-300' : 'bg-green-900/50 border-green-500 text-green-300'}`}>
                              {card.isReversed ? <span className="flex items-center gap-1"><RotateCcw className="w-3 h-3"/> Ngược</span> : "Xuôi"}
                           </div>
-
                           <div className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden mb-5 shadow-2xl bg-[#1e1b2e]">
                              <img src={card.img} alt={card.name} className={`w-full h-full object-cover ${card.isReversed ? 'rotate-180' : ''}`} />
                           </div>
@@ -385,8 +295,6 @@ export default function TarotDrawPage() {
                        </motion.div>
                     ))}
                  </div>
-
-                 {/* NÚT CHUYỂN BOOKING */}
                  <div className="relative mt-8 text-center">
                     <div className="relative z-10 pt-10">
                          <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center border-2 border-amber-500/50 mb-4 shadow-[0_0_40px_rgba(245,158,11,0.3)] animate-bounce mx-auto">
@@ -404,6 +312,13 @@ export default function TarotDrawPage() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* --- ADDED LOGOUT MODAL --- */}
+      <LogoutModal 
+        isOpen={showLogoutModal} 
+        onClose={() => setShowLogoutModal(false)} 
+        onConfirm={handleConfirmLogout} 
+      />
     </div>
   );
 }

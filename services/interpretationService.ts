@@ -13,14 +13,22 @@ const getConfig = () => {
 };
 
 export const InterpretationService = {
-  // 1. API: Submit Interpretation (Reader gửi bài)
-  // URL: POST http://localhost:8080/api/v1/interpretations/submit/{sessionId}
-  submit: async (sessionId: number | string, content: string) => {
-    // Backend đang hứng @RequestBody Map<String, String> payload
-    // Nên chúng ta gửi object JSON đơn giản chứa key "content"
+  // FIXED: Gửi đúng field names như backend expect
+  submit: async (sessionId: number | string, cardInterpretations: Record<string, string>) => {
+    // Backend expect: interpretation1, interpretation2, interpretation3, advice, qrPayment
+    // Frontend đang gửi: card1, card2, card3, summary
+    
     const payload = {
-        content: content
+      interpretation1: cardInterpretations.card1 || "",
+      interpretation2: cardInterpretations.card2 || "",
+      interpretation3: cardInterpretations.card3 || "",
+      advice: cardInterpretations.summary || "",
+      qrPayment: "" // Có thể để trống hoặc thêm URL ảnh QR nếu cần
     };
+    
+    console.log("=== PAYLOAD ĐÚNG FORMAT ===");
+    console.log(JSON.stringify(payload, null, 2));
+    console.log("===========================");
     
     const response = await axios.post(
         `${API_URL}/submit/${sessionId}`, 
@@ -30,7 +38,6 @@ export const InterpretationService = {
     return response.data;
   },
 
-  // 2. API: Xác nhận thanh toán (Nếu cần dùng sau này)
   confirmPayment: async (sessionId: number | string) => {
     const response = await axios.post(
         `${API_URL}/confirm-payment/${sessionId}`, 
@@ -40,13 +47,13 @@ export const InterpretationService = {
     return response.data;
   },
 
-  // 3. API: View Interpretation (Khách xem bài)
-  // URL: GET http://localhost:8080/api/v1/interpretations/customer/view/{sessionId}
   getView: async (sessionId: number | string) => {
     const response = await axios.get(
         `${API_URL}/customer/view/${sessionId}`, 
         getConfig()
     );
+    console.log("=== GET VIEW RESPONSE ===");
+    console.log(response.data);
     return response.data;
   }
 };
