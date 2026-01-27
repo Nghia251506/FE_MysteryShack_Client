@@ -276,34 +276,35 @@ export default function ReaderDashboardProfessional() {
     setIsSubmitting(true);
     
     try {
-        const interpretationMap: Record<string, string> = {};
+        // const interpretationMap: Record<string, string> = {};
 
-        if (activeRequest.cards.length > 0) {
-            activeRequest.cards.forEach((card: any, index: number) => {
-                const textInput = cardInputs[card.id]?.trim() || "";
-                let content = textInput;
-                if (content === "") {
-                    content = `Lá bài ${card.name} ${card.isReversed ? '(Ngược)' : '(Xuôi)'} - Năng lượng của lá bài này đang mang đến thông điệp quan trọng cho querent trong hành trình hiện tại.`;
-                } else if (content.length < 10) {
-                    content = `Lá bài ${card.name}: ${content}`;
-                }
-                interpretationMap[`card${index + 1}`] = content;
-            });
+        // if (activeRequest.cards.length > 0) {
+        //     activeRequest.cards.forEach((card: any, index: number) => {
+        //         const textInput = cardInputs[card.id]?.trim() || "";
+        //         let content = textInput;
+        //         if (content === "") {
+        //             content = `Lá bài ${card.name} ${card.isReversed ? '(Ngược)' : '(Xuôi)'} - Năng lượng của lá bài này đang mang đến thông điệp quan trọng cho querent trong hành trình hiện tại.`;
+        //         } else if (content.length < 10) {
+        //             content = `Lá bài ${card.name}: ${content}`;
+        //         }
+        //         interpretationMap[`card${index + 1}`] = content;
+        //     });
             
-            if (activeRequest.cards.length < 3) {
-                for (let i = activeRequest.cards.length; i < 3; i++) {
-                    interpretationMap[`card${i + 1}`] = "Lá bài này không được rút trong lần xem bài này.";
-                }
-            }
-        } else {
-            interpretationMap["card1"] = "Lá bài 1 - Năng lượng khởi đầu của hành trình.";
-            interpretationMap["card2"] = "Lá bài 2 - Năng lượng trung tâm và cốt lõi.";
-            interpretationMap["card3"] = "Lá bài 3 - Năng lượng kết thúc và định hướng.";
-        }
+        //     if (activeRequest.cards.length < 3) {
+        //         for (let i = activeRequest.cards.length; i < 3; i++) {
+        //             interpretationMap[`card${i + 1}`] = "Lá bài này không được rút trong lần xem bài này.";
+        //         }
+        //     }
+        // } else {
+        //     interpretationMap["card1"] = "Lá bài 1 - Năng lượng khởi đầu của hành trình.";
+        //     interpretationMap["card2"] = "Lá bài 2 - Năng lượng trung tâm và cốt lõi.";
+        //     interpretationMap["card3"] = "Lá bài 3 - Năng lượng kết thúc và định hướng.";
+        // }
         
         // Phần 3: Tổng kết
         // structuredContent += `LỜI KHUYÊN TỔNG KẾT:\n${summary || "Chúc bạn mọi điều tốt lành."}`;
         console.log(`-----------${activeRequest.id}`)
+        console.log(activeRequest)
         // Gọi Service gửi đi
         await InterpretationService.submit(activeRequest.id, {
             interpretation1: cardInputs[activeRequest.cards[0]?.id] || "Nội dung lá 1 trống",
