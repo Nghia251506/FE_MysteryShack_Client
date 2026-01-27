@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ReadingSessionService } from "@/services/readingSessionService";
 import { InterpretationService } from "@/services/interpretationService";
-import { convertFileToBase64 } from "@/utils/fileUtils";
+import { convertUrlToBase64 } from "@/utils/fileUtils";
 import { logout } from "@/store/features/authSlice"; // Import action logout từ authSlice
 import { LogoutModal } from "@/components/LogoutModal"; // Đường dẫn đến component LogoutModal của bạn
 
@@ -145,20 +145,20 @@ export default function ReaderDashboardProfessional() {
     dispatch(logout()); // Gọi action logout để clear redux state
     router.push("/login");
   };
-  const [qrBase64, setQrBase64] = useState<string>("");
+//   const [qrBase64, setQrBase64] = useState<string>("");
 
-    const handleQrUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-        try {
-        const base64 = await convertFileToBase64(file);
-        setQrBase64(base64); // Lưu chuỗi này vào state
-        console.log("QR Base64:", base64);
-        } catch (error) {
-        console.error("Lỗi chuyển đổi ảnh QR:", error);
-        }
-    }
-    };
+//     const handleQrUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+//     const file = event.target.files?.[0];
+//     if (file) {
+//         try {
+//         const base64 = await convertFileToBase64(file);
+//         setQrBase64(base64); // Lưu chuỗi này vào state
+//         console.log("QR Base64:", base64);
+//         } catch (error) {
+//         console.error("Lỗi chuyển đổi ảnh QR:", error);
+//         }
+//     }
+//     };
 
   useEffect(() => {
     fetchData();
@@ -303,8 +303,13 @@ export default function ReaderDashboardProfessional() {
         
         // Phần 3: Tổng kết
         // structuredContent += `LỜI KHUYÊN TỔNG KẾT:\n${summary || "Chúc bạn mọi điều tốt lành."}`;
+        // 1. Lấy URL mã QR hiện tại đang hiển thị trên giao diện
+        const qrUrl = getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`);
+        
+        // 2. Chuyển URL đó thành Base64 để lưu vào Database (cột qr_payment_url của bạn)
+        const qrBase64 = await convertUrlToBase64(qrUrl);
         console.log(`-----------${activeRequest.id}`)
-        console.log(activeRequest)
+        console.log(qrBase64)
         // Gọi Service gửi đi
         await InterpretationService.submit(activeRequest.id, {
             interpretation1: cardInputs[activeRequest.cards[0]?.id] || "Nội dung lá 1 trống",
@@ -422,16 +427,6 @@ export default function ReaderDashboardProfessional() {
                     <div className="pt-8 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div><h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><QrCode className="w-5 h-5 text-green-400"/> Mã QR thanh toán</h3><p className="text-sm text-slate-400 mb-4">Quét mã để xác nhận thanh toán đơn hàng này.</p><div className="p-4 bg-white/5 rounded-2xl border border-slate-700 w-fit"><img src={getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`)} alt="QR Payment" className="w-40 h-40 object-contain rounded-lg"/></div></div>
                         <div className="flex flex-col justify-center space-y-4"><div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700"><div className="flex items-center justify-between mb-2"><span className="text-slate-400 text-sm">Số tiền:</span><span className="text-xl font-bold text-green-400">{activeRequest.amount.toLocaleString('vi-VN')} đ</span></div><div className="flex items-center justify-between"><span className="text-slate-400 text-sm">Trạng thái:</span><span className="text-xs font-bold bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded">Chờ xác nhận</span></div></div><p className="text-xs text-slate-500 italic">* Kiểm tra kỹ thông tin trước khi gửi kết quả.</p></div>
-                    </div>
-                    <div className="mt-4">
-                    <label className="text-sm text-slate-400 mb-2 block">Cập nhật mã QR thanh toán</label>
-                    <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleQrUpload}
-                        className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-purple-900/30 file:text-purple-400 hover:file:bg-purple-900/50"
-                    />
-                    {qrBase64 && <img src={qrBase64} alt="Preview QR" className="w-32 h-32 mt-2 rounded-lg border border-slate-700" />}
                     </div>
                     </div>
                 </motion.div>
