@@ -2,10 +2,11 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image"; // Import Image component
+import Link from "next/link"; // Import Link
 import { 
-  Sparkles, Moon, ShieldCheck, Scale, 
-  Users, Zap, AlertTriangle, ArrowRight,
-  Info, Heart, CheckCircle2
+  Sparkles, ShieldCheck, Scale, 
+  Users, Zap, AlertTriangle, ArrowRight
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -35,18 +36,29 @@ export default function AboutUsPage() {
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
       </div>
 
-      {/* HEADER / NAVIGATION BAR (Đồng nhất với các trang khác) */}
-      <nav className="sticky top-0 z-50 bg-[#050505]/80 backdrop-blur-md border-b border-white/5 px-6 py-4">
+      {/* HEADER / NAVIGATION BAR (ĐÃ THÊM LOGO) */}
+      <nav className="sticky top-0 z-50 bg-[#050505]/80 backdrop-blur-md border-b border-white/5 px-6 py-3">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
-              <div onClick={() => router.push('/')} className="flex items-center gap-2 cursor-pointer group">
-                  <Moon className="w-8 h-8 text-amber-500 transition-transform group-hover:rotate-12" />
-                  <span className="font-bold text-2xl text-white tracking-tighter">
-                    Mystic<span className="text-amber-500">Tarot</span>
+              <Link href="/" className="flex items-center gap-4 cursor-pointer group">
+                  {/* --- LOGO HEADER --- */}
+                  <div className="relative w-[60px] h-[60px] flex items-center justify-center">
+                      <div className="absolute inset-0 bg-amber-500/30 blur-xl rounded-full scale-75 group-hover:scale-105 transition-transform duration-700" />
+                      <Image 
+                        src="/logo.png" 
+                        alt="Mystic Tarot Logo" 
+                        width={60} 
+                        height={60} 
+                        className="relative z-10 transition-transform duration-500 group-hover:rotate-3 rounded-full shadow-lg shadow-amber-500/20"
+                      />
+                  </div>
+                  <span className="font-bold text-2xl text-white tracking-tighter hidden sm:block">
+                    Mystic<span className="text-amber-500"> Tarot</span>
                   </span>
-              </div>
+              </Link>
+              
               <button 
                 onClick={() => router.push('/tarot-draw')}
-                className="px-6 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-full transition-all text-sm shadow-lg"
+                className="px-6 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-full transition-all text-sm shadow-lg backdrop-blur-sm"
               >
                 Bắt đầu ngay
               </button>
@@ -212,13 +224,20 @@ export default function AboutUsPage() {
 
       </main>
 
-      {/* FOOTER */}
+      {/* FOOTER (ĐÃ THÊM LOGO) */}
       <footer className="border-t border-white/5 bg-black/40 py-12 mt-20 relative z-10">
           <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-              <div className="flex items-center gap-2">
-                  <Moon className="w-6 h-6 text-amber-500" />
-                  <span className="font-bold text-white">Mystic Tarot © 2025</span>
-              </div>
+              <Link href="/" className="flex items-center gap-3 group">
+                  {/* --- LOGO FOOTER --- */}
+                  <Image 
+                    src="/logo.png" 
+                    alt="Mystic Tarot Logo" 
+                    width={40} 
+                    height={40} 
+                    className="rounded-full shadow-md shadow-amber-500/10 group-hover:scale-110 transition-transform"
+                  />
+                  <span className="font-bold text-white group-hover:text-amber-400 transition-colors">Mystic Tarot © 2025</span>
+              </Link>
               <div className="flex gap-8 text-sm text-slate-500">
                   <a href="#" className="hover:text-amber-400 transition-colors">Điều khoản</a>
                   <a href="#" className="hover:text-amber-400 transition-colors">Bảo mật</a>

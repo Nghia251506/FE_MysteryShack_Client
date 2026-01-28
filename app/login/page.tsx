@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Moon, Eye, EyeOff, Loader2, Sparkles, User, Lock, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Sparkles, User, Lock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image'; // Import Image
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,7 +17,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Callback URL dùng để lưu vết trang trước đó (VD: đang ở Booking bị bắt login)
+  // Callback URL dùng để lưu vết trang trước đó
   const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   const dispatch = useDispatch<AppDispatch>();
@@ -31,7 +32,6 @@ export default function LoginPage() {
         if (user.role === 'READER') {
             router.push('/readerdashboard');
         } else {
-            // Nếu là User: Ưu tiên quay lại trang cũ (nếu có), không thì vào Profile
             if (callbackUrl && callbackUrl !== '/' && !callbackUrl.includes('login')) {
                 router.push(callbackUrl);
             } else {
@@ -46,22 +46,16 @@ export default function LoginPage() {
     e.preventDefault();
     if (!formData.username || !formData.password) return;
 
-    // Mapping password -> passwordHash để khớp API
     const resultAction = await dispatch(loginUser({ 
       username: formData.username, 
       passwordHash: formData.password 
     }));
 
     if (loginUser.fulfilled.match(resultAction)) {
-      // Lấy thông tin user vừa login xong
       const loggedInUser = resultAction.payload.user;
-
-      // --- LOGIC 2: Điều hướng sau khi bấm nút Đăng Nhập ---
       if (loggedInUser.role === 'READER') {
-          // READER -> Vào Dashboard
           router.push('/readerdashboard');
       } else {
-          // USER -> Vào Profile (hoặc quay lại Booking nếu đang dở dang)
           if (callbackUrl && callbackUrl !== '/' && !callbackUrl.includes('login')) {
               router.push(callbackUrl);
           } else {
@@ -73,17 +67,26 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0510] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Background Effects */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#0a0510] to-[#0a0510]"></div>
       <div className="absolute top-[-10%] left-[-5%] w-96 h-96 bg-purple-600/10 rounded-full blur-3xl opacity-30 animate-pulse"></div>
       <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-amber-600/10 rounded-full blur-3xl opacity-30 animate-pulse delay-1000"></div>
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
 
+      {/* --- LOGO VỀ TRANG CHỦ (Đã sửa dùng Image) --- */}
       <div className="absolute top-8 left-8 z-20">
         <Link href="/" className="group flex items-center gap-3 text-amber-100/80 hover:text-amber-400 transition-all duration-300">
-          <div className="p-2 rounded-lg bg-white/5 border border-white/10 group-hover:border-amber-500/50 backdrop-blur-md transition-colors">
-            <Moon className="w-5 h-5" />
+          <div className="relative w-[50px] h-[50px] flex items-center justify-center">
+              <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full scale-75 group-hover:scale-105 transition-transform duration-700" />
+              <Image 
+                src="/logo.png" 
+                alt="Mystic Tarot Logo" 
+                width={50} 
+                height={50} 
+                className="relative z-10 transition-transform duration-500 group-hover:rotate-6 rounded-full shadow-lg shadow-amber-500/20"
+              />
           </div>
-          <span className="text-lg font-bold tracking-wide">Mystic Tarot</span>
+          <span className="text-xl font-bold tracking-wide hidden sm:block">Mystic Tarot</span>
         </Link>
       </div>
 
@@ -148,23 +151,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/10"></span></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-[#0f0a19] px-2 text-slate-500">Hoặc tiếp tục với</span></div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10 hover:text-white text-slate-300 text-xs h-10">GOOGLE</Button>
-              <Button variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10 hover:text-white text-slate-300 text-xs h-10">FACEBOOK</Button>
-            </div>
-
-            <div className="mt-6 text-center">
-              <p className="text-slate-500 text-sm">
-                Bạn chưa có số tài khoản? <Link href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="text-amber-500 hover:text-amber-400 font-bold transition-colors hover:underline decoration-amber-500/30 underline-offset-4">Đăng ký ngay</Link>
-              </p>
-            </div>
-
-            {/* Social Login */}
+            {/* --- SOCIAL LOGIN (Đã xóa phần lặp, giữ lại phần đẹp) --- */}
             <div className="mt-8">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -192,6 +179,12 @@ export default function LoginPage() {
                   Facebook
                 </Button>
               </div>
+            </div>
+
+            <div className="mt-6 text-center">
+              <p className="text-slate-500 text-sm">
+                Bạn chưa có tài khoản? <Link href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="text-amber-500 hover:text-amber-400 font-bold transition-colors hover:underline decoration-amber-500/30 underline-offset-4">Đăng ký ngay</Link>
+              </p>
             </div>
           </CardContent>
         </Card>

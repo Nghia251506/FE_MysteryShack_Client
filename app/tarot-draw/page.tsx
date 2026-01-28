@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles, ArrowRight, Lock, Eye, Heart, Briefcase, Wallet, 
-  ChevronRight, Hand, RotateCcw, LogOut, LogIn, UserPlus, RefreshCw, Check
+  ChevronRight, Hand, RotateCcw, LogOut, LogIn, UserPlus, RefreshCw, Check, Star, 
+  Moon, Sun, Cloud, Hexagon, Triangle, Circle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -32,6 +33,15 @@ interface LocalTarotCard {
 
 // --- 2. CẤU HÌNH GIAO DIỆN ---
 
+const TOPIC_QUOTES: Record<string, string> = {
+  "tình yêu": "Cái đẹp nhất nằm trong ánh mắt của kẻ si tình.",
+  "sự nghiệp": "Áp lực tạo ra kim cương.",
+  "tài chính": "Hãy để tiền làm việc cho bạn, thay vì chỉ làm việc vì tiền.",
+  "love": "Lắng nghe tiếng vọng của nhân duyên tiền định.",
+  "career": "Vén màn bí mật phía sau những ngã rẽ.",
+  "finance": "Khơi thông dòng chảy năng lượng thịnh vượng.",
+};
+
 const CardBackDesign = () => (
   <div className="w-full h-full bg-[#1a0b2e] relative overflow-hidden rounded-lg shadow-inner flex items-center justify-center border border-slate-900">
     <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
@@ -50,7 +60,46 @@ const getCardImg = (prefix: string, number: number) => {
   return `https://www.sacred-texts.com/tarot/pkt/img/${prefix}${padded}.jpg`;
 };
 
-// --- GUEST MODAL COMPONENT (ĐÃ FIX CALLBACK URL CHO REGISTER) ---
+// --- COMPONENT TRANG TRÍ 2 BÊN (SIDE DECOR) ---
+const SideDecor = () => {
+  return (
+    <>
+      {/* CỘT TRÁI */}
+      <div className="fixed left-6 top-1/4 bottom-1/4 w-12 hidden 2xl:flex flex-col justify-between items-center z-0 pointer-events-none opacity-30">
+        <motion.div animate={{ y: [0, -15, 0], rotate: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}>
+          <Sun className="w-10 h-10 text-amber-500" />
+        </motion.div>
+        <motion.div animate={{ y: [0, 15, 0], rotate: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 7, ease: "easeInOut", delay: 1 }}>
+          <Moon className="w-8 h-8 text-purple-400" />
+        </motion.div>
+        <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 2 }}>
+          <Star className="w-5 h-5 text-white" />
+        </motion.div>
+        <motion.div animate={{ y: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 8, ease: "easeInOut", delay: 0.5 }}>
+          <Cloud className="w-10 h-10 text-slate-500" />
+        </motion.div>
+      </div>
+
+      {/* CỘT PHẢI */}
+      <div className="fixed right-6 top-1/4 bottom-1/4 w-12 hidden 2xl:flex flex-col justify-between items-center z-0 pointer-events-none opacity-30">
+        <motion.div animate={{ rotate: [0, 360] }} transition={{ repeat: Infinity, duration: 20, ease: "linear" }}>
+          <Hexagon className="w-10 h-10 text-amber-600" />
+        </motion.div>
+        <motion.div animate={{ y: [0, -10, 0], rotate: [0, 45, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 1.5 }}>
+          <Sparkles className="w-8 h-8 text-purple-500" />
+        </motion.div>
+        <motion.div animate={{ scale: [1, 0.8, 1], rotate: [0, -180] }} transition={{ repeat: Infinity, duration: 10, ease: "easeInOut", delay: 0.5 }}>
+          <Triangle className="w-6 h-6 text-white" />
+        </motion.div>
+        <motion.div animate={{ opacity: [0.3, 0.8, 0.3] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}>
+          <Circle className="w-3 h-3 text-slate-400 bg-slate-400 rounded-full" />
+        </motion.div>
+      </div>
+    </>
+  );
+};
+
+// --- GUEST MODAL COMPONENT (ĐÃ SỬA: THÊM CALLBACK URL) ---
 const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const router = useRouter();
   if (!isOpen) return null;
@@ -67,19 +116,16 @@ const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         animate={{ scale: 1, y: 0 }} 
         className="max-w-md w-full bg-[#1a1025] border border-amber-500/30 rounded-[2rem] p-8 text-center shadow-2xl relative overflow-hidden"
       >
-        {/* Decor */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
         <div className="mx-auto w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mb-6 border border-amber-500/30">
           <Lock className="w-8 h-8 text-amber-400" />
         </div>
-
         <h3 className="text-2xl font-bold text-white mb-3">Lưu Trữ Kết Quả</h3>
         <p className="text-slate-400 text-sm mb-8 leading-relaxed">
           Bạn đã chọn xong 3 lá bài. Để gửi chúng cho Reader luận giải chi tiết, bạn cần đăng nhập vào hệ thống.
         </p>
-
         <div className="space-y-3">
-          {/* NÚT ĐĂNG NHẬP */}
+          {/* NÚT ĐĂNG NHẬP CÓ CALLBACK URL */}
           <button 
             onClick={() => router.push("/login?callbackUrl=/booking")} 
             className="w-full py-3.5 bg-gradient-to-r from-amber-600 to-purple-600 hover:from-amber-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
@@ -87,7 +133,7 @@ const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             <LogIn className="w-4 h-4" /> Đăng Nhập
           </button>
           
-          {/* NÚT ĐĂNG KÝ (ĐÃ THÊM CALLBACK URL) */}
+          {/* NÚT ĐĂNG KÝ CÓ CALLBACK URL */}
           <button 
             onClick={() => router.push("/register?callbackUrl=/booking")} 
             className="w-full py-3.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all"
@@ -95,7 +141,6 @@ const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             <UserPlus className="w-4 h-4" /> Đăng Ký Mới
           </button>
         </div>
-
         <button 
           onClick={onClose} 
           className="mt-6 text-xs text-slate-500 hover:text-slate-300 underline underline-offset-4"
@@ -181,7 +226,6 @@ export default function TarotDrawPage() {
     }
   };
 
-  // --- LOGIC CHỌN BÀI (TOGGLE) ---
   const handleToggleCard = (index: number) => {
     if (selectedIndices.includes(index)) {
       setSelectedIndices(prev => prev.filter(i => i !== index));
@@ -211,11 +255,8 @@ export default function TarotDrawPage() {
     handleStartDraw(); 
   };
 
-  // --- LOGIC SUBMIT CUỐI CÙNG ---
   const handleSubmitCards = () => {
     const finalCards = selectedIndices.map(idx => shuffledDeck[idx]);
-
-    // Redux Dispatch
     dispatch(resetSession());
     dispatch(setTopicAndQuestion({
       topic: selectedTopic || "",
@@ -223,7 +264,6 @@ export default function TarotDrawPage() {
       questionId: selectedQuestionId || 0,
       topicId: selectedTopicId || 0
     }));
-    
     finalCards.forEach(card => {
       dispatch(addCard({
         id: card.id,
@@ -233,8 +273,6 @@ export default function TarotDrawPage() {
         isReversed: card.isReversed || false
       }));
     });
-
-    // Session Storage cho Guest
     const sessionData = {
         topic: selectedTopic,
         question: selectedQuestion,
@@ -246,12 +284,12 @@ export default function TarotDrawPage() {
         }))
     };
     sessionStorage.setItem("guestTarotSession", JSON.stringify(sessionData));
-
-    // Check Auth
-    if (!user) {
-        setShowGuestModal(true); // Nếu chưa login -> Hiện Modal (có cả Login/Register)
-    } else {
-        router.push("/booking");
+    
+    // Nếu chưa đăng nhập thì hiện Modal (với callbackUrl), nếu rồi thì chuyển trang luôn
+    if (!user) { 
+        setShowGuestModal(true); 
+    } else { 
+        router.push("/booking"); 
     }
   };
 
@@ -263,15 +301,27 @@ export default function TarotDrawPage() {
     return <Sparkles className="w-5 h-5" />;
   };
 
+  const getQuote = (topicName: string) => {
+    const key = Object.keys(TOPIC_QUOTES).find(k => topicName.toLowerCase().includes(k));
+    return key ? TOPIC_QUOTES[key] : "Khám phá thông điệp vũ trụ dành riêng cho bạn.";
+  };
+
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 font-sans overflow-hidden relative selection:bg-amber-500/30">
+      
+      {/* Background & Side Decor Effects */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-purple-900/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-amber-900/10 rounded-full blur-[100px]" />
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+        {/* Đốm sáng ngẫu nhiên */}
+        <div className="absolute top-20 left-20 w-1 h-1 bg-white rounded-full animate-ping opacity-20"></div>
+        <div className="absolute bottom-40 right-20 w-1.5 h-1.5 bg-amber-200 rounded-full animate-pulse opacity-30"></div>
       </div>
 
-      {/* Chỉ hiện Logout nếu đã đăng nhập */}
+      {/* --- ADD SIDE DECOR --- */}
+      <SideDecor />
+
       {user && (
         <div className="absolute top-4 right-4 z-50">
           <button onClick={handleLogoutClick} className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm shadow-lg font-bold">
@@ -286,40 +336,139 @@ export default function TarotDrawPage() {
 
             {/* BƯỚC 1: CHỌN CHỦ ĐỀ */}
             {step === "topic" && (
-              <motion.div key="topic" className="bg-[#130823]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-8 shadow-2xl max-w-4xl mx-auto">
-                <div className="text-center mb-8">
-                  <h1 className="text-3xl md:text-4xl font-bold text-white">Hỏi Vũ Trụ Về <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400">Tương Lai</span></h1>
+              <motion.div 
+                key="topic" 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-[#130823]/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 md:p-10 shadow-2xl mx-auto w-full relative overflow-hidden"
+              >
+                {/* Decor nội bộ */}
+                <div className="absolute top-[-50px] right-[-50px] w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[80px] pointer-events-none"></div>
+                <div className="absolute bottom-[-50px] left-[-50px] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[80px] pointer-events-none"></div>
+
+                {/* HEADER SECTION - THU NHỎ & CÂN ĐỐI */}
+                <div className="text-center mb-10 relative z-10">
+                  <h1 className="text-3xl md:text-5xl font-bold text-white mb-3 leading-tight tracking-tight">
+                    Những điều thầm kín và khúc mắc <br className="hidden md:block" />
+                    mà bạn đang <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400 font-extrabold uppercase drop-shadow-sm">QUAN TÂM</span>
+                  </h1>
+                  <p className="text-slate-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed font-light">
+                    Hãy để các reader chuyên nghiệp của chúng tôi khám phá những điều sâu thẳm bên trong thông qua những thông điệp mà các lá bài tarot nhắn gửi tới bạn.
+                  </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                  {apiTopics.map(t => (
-                    <button key={t.id} onClick={() => { setSelectedTopicId(t.id); setSelectedTopic(t.name); setSelectedQuestion(""); setSelectedQuestionId(null); }} className={`relative group p-4 rounded-xl border text-left transition-all ${selectedTopicId === t.id ? 'bg-white/10 border-amber-500/50' : 'bg-black/20 border-white/5 hover:bg-white/5'}`}>
-                      <div className={`mb-2 ${selectedTopicId === t.id ? 'text-amber-400' : 'text-slate-400'}`}>{getTopicIcon(t.name)}</div>
-                      <div className="font-bold text-white">{t.name}</div>
-                    </button>
-                  ))}
-                </div>
-                <AnimatePresence>
-                  {selectedTopicId && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} className="space-y-4 overflow-hidden">
-                      {loadingQuestions ? <div className="text-center py-4 text-slate-500 animate-pulse">Đang tải câu hỏi...</div> : (
-                        <div className="space-y-2">
-                          {apiQuestions.map((q) => (
-                            <label key={q.id} className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${selectedQuestionId === q.id ? 'bg-purple-500/20 border-purple-500' : 'bg-black/20 border-white/5 hover:border-white/20'}`}>
-                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${selectedQuestionId === q.id ? 'bg-purple-500 border-purple-500 text-white' : 'border-slate-600'}`}>{selectedQuestionId === q.id && <ArrowRight className="w-3 h-3" />}</div>
-                              <input type="radio" className="hidden" checked={selectedQuestionId === q.id} onChange={() => { setSelectedQuestion(q.questionText); setSelectedQuestionId(q.id); }} />
-                              <span className={selectedQuestionId === q.id ? 'text-white font-medium' : 'text-slate-400'}>{q.questionText}</span>
-                            </label>
-                          ))}
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full min-h-[450px]">
+                  
+                  {/* CỘT TRÁI: MENU CHỦ ĐỀ */}
+                  <div className="lg:col-span-5 space-y-3 flex flex-col justify-center">
+                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 px-2 flex items-center gap-2">
+                        <Moon className="w-3 h-3 text-amber-500" /> Chọn Lĩnh Vực
+                    </h3>
+                    
+                    {apiTopics.map(t => (
+                      <button 
+                        key={t.id} 
+                        onClick={() => { setSelectedTopicId(t.id); setSelectedTopic(t.name); setSelectedQuestion(""); setSelectedQuestionId(null); }} 
+                        className={`w-full flex items-center gap-4 p-4 rounded-2xl border text-left transition-all duration-300 group relative overflow-hidden ${selectedTopicId === t.id ? 'bg-gradient-to-r from-purple-900/40 to-amber-900/40 border-amber-500/50 shadow-md scale-[1.01]' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
+                      >
+                        {selectedTopicId === t.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>}
+                        
+                        <div className={`p-2.5 rounded-xl shrink-0 transition-colors ${selectedTopicId === t.id ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 'bg-black/30 text-slate-400 group-hover:text-white'}`}>
+                          {getTopicIcon(t.name)}
                         </div>
-                      )}
-                      <button onClick={handleStartDraw} disabled={!selectedQuestionId} className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-black font-bold text-lg rounded-xl mt-4 hover:shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"><Sparkles className="w-5 h-5" /> Trải Bài Ngay</button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                        <div className="flex-1 min-w-0">
+                          <div className={`font-bold text-base mb-0.5 flex justify-between items-center ${selectedTopicId === t.id ? 'text-amber-400' : 'text-slate-200'}`}>
+                              {t.name}
+                              {selectedTopicId === t.id && <Check className="w-3.5 h-3.5 text-amber-500" />}
+                          </div>
+                          {/* Câu Quote hay hay */}
+                          <p className={`text-xs italic truncate ${selectedTopicId === t.id ? 'text-slate-300' : 'text-slate-500'}`}>
+                              "{getQuote(t.name)}"
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* CỘT PHẢI: DANH SÁCH CÂU HỎI HOẶC HIỆU ỨNG */}
+                  <div className="lg:col-span-7 bg-black/20 rounded-[2rem] border border-white/5 p-6 relative overflow-hidden flex flex-col min-h-[400px]">
+                    
+                    {!selectedTopicId ? (
+                      // --- HIỆU ỨNG LÁ BÀI BAY (DECOR) ---
+                      <div className="h-full flex items-center justify-center opacity-60">
+                        <div className="relative w-40 h-56">
+                            {/* Card Background Bloom */}
+                            <div className="absolute inset-0 bg-amber-500/20 blur-[60px] rounded-full animate-pulse"></div>
+                            
+                            {/* Card 1 - Floating */}
+                            <motion.div 
+                                animate={{ y: [0, -15, 0], rotate: [0, 3, 0] }} 
+                                transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+                                className="absolute inset-0 bg-gradient-to-br from-purple-600/90 to-blue-600/90 rounded-xl shadow-2xl border border-white/10"
+                            ></motion.div>
+                            
+                            {/* Card 2 - Main */}
+                            <motion.div 
+                                animate={{ y: [0, -10, 0], rotate: [0, -3, 0] }} 
+                                transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 0.5 }}
+                                className="absolute inset-0 bg-[#1a0b2e] border border-amber-500/30 rounded-xl flex items-center justify-center translate-x-3 translate-y-3 shadow-[0_0_30px_rgba(0,0,0,0.5)]"
+                            >
+                                <div className="p-4 border border-amber-500/20 rounded-lg">
+                                    <Sparkles className="w-12 h-12 text-amber-400/80 animate-pulse" />
+                                </div>
+                            </motion.div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 px-2 flex items-center gap-2">
+                            <Hand className="w-3 h-3 text-amber-500" /> Chọn Câu Hỏi Cụ Thể
+                        </h3>
+                        
+                        <div className="flex-grow overflow-y-auto custom-scrollbar pr-2 -mr-2">
+                          {loadingQuestions ? (
+                            <div className="h-full flex items-center justify-center space-x-2 text-amber-500">
+                              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce"></div>
+                              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 gap-2.5 pb-20">
+                              {apiQuestions.map((q) => (
+                                <label 
+                                  key={q.id} 
+                                  className={`relative flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 group hover:shadow-lg ${selectedQuestionId === q.id ? 'bg-amber-500/10 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'}`}
+                                >
+                                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${selectedQuestionId === q.id ? 'border-amber-500 bg-amber-500 text-black' : 'border-slate-600 text-transparent group-hover:border-slate-400'}`}>
+                                    {selectedQuestionId === q.id && <div className="w-2 h-2 bg-white rounded-full" />}
+                                  </div>
+                                  <input type="radio" className="hidden" checked={selectedQuestionId === q.id} onChange={() => { setSelectedQuestion(q.questionText); setSelectedQuestionId(q.id); }} />
+                                  <span className={`text-sm font-medium ${selectedQuestionId === q.id ? 'text-white' : 'text-slate-300'}`}>{q.questionText}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* THANH ACTION */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#150a1f] via-[#150a1f]/95 to-transparent pt-10 flex justify-end">
+                          <button 
+                            onClick={handleStartDraw} 
+                            disabled={!selectedQuestionId} 
+                            className="px-8 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold rounded-xl shadow-lg hover:shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm"
+                          >
+                            <Sparkles className="w-4 h-4" /> Bắt Đầu Trải Bài
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </motion.div>
             )}
 
-            {/* BƯỚC 2: XÀO BÀI */}
+            {/* BƯỚC 2: XÀO BÀI (SHUFFLING) */}
             {step === "shuffling" && (
               <motion.div key="shuffle" className="flex flex-col items-center justify-center h-[60vh] relative" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <div className="absolute w-96 h-96 bg-purple-600/10 rounded-full blur-[80px] animate-pulse"></div>
@@ -331,13 +480,16 @@ export default function TarotDrawPage() {
                   ))}
                   <div className="absolute w-4 h-4 bg-amber-400 rounded-full shadow-[0_0_50px_rgba(251,191,36,1)] animate-ping z-10"></div>
                 </div>
+                {/* Đã đổi câu slogan mới cho bước xào bài */}
                 <div className="mt-16 text-center relative z-10">
-                  <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-purple-200 animate-pulse">Hòa Nhịp Năng Lượng...</h2>
+                  <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-purple-200 animate-pulse">
+                    Hãy tập trung và kết nối năng lượng với những lá bài
+                  </h2>
                 </div>
               </motion.div>
             )}
 
-            {/* BƯỚC 3: CHỌN BÀI (PICKING) & LẬT BÀI (REVEALING) */}
+            {/* CÁC BƯỚC CÒN LẠI (PICKING, RESULT) */}
             {(step === "picking" || step === "revealing") && (
               <motion.div key="picking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center min-h-[85vh] justify-center pb-24">
                 <div className="text-center mb-6 sticky top-0 z-20 bg-[#050505]/95 backdrop-blur-md w-full py-4 border-b border-white/5">
@@ -387,7 +539,6 @@ export default function TarotDrawPage() {
                   })}
                 </div>
 
-                {/* THANH XÁC NHẬN CHUYỂN BƯỚC */}
                 {step === "picking" && selectedIndices.length === 3 && (
                     <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="fixed bottom-8 z-30">
                         <button 
@@ -401,7 +552,6 @@ export default function TarotDrawPage() {
               </motion.div>
             )}
 
-            {/* BƯỚC 5: KẾT QUẢ CUỐI CÙNG & SUBMIT */}
             {step === "result" && (
               <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10 max-w-4xl mx-auto pb-10">
                 <div className="text-center">
@@ -423,7 +573,6 @@ export default function TarotDrawPage() {
                   ))}
                 </div>
                 
-                {/* NÚT RÚT LẠI VÀ SUBMIT */}
                 <div className="relative mt-8 text-center flex flex-col md:flex-row gap-4 justify-center items-center relative z-20">
                     <button onClick={handleRedraw} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold rounded-2xl transition-all flex items-center gap-2 hover:scale-105">
                       <RefreshCw className="w-5 h-5" /> Rút lại bài khác
