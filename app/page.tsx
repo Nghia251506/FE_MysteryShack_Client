@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import { 
   Sparkles, Star, ArrowRight, 
   Heart, Briefcase, Wallet, Compass, 
@@ -19,10 +20,17 @@ import { useRouter } from 'next/navigation';
 export default function Home() {
   const [hoveredTopic, setHoveredTopic] = useState<number | null>(null);
   
+  // --- FIX HYDRATION ERROR ---
+  const [mounted, setMounted] = useState(false);
+  
   // --- LOGIC AUTH ---
   const router = useRouter();
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -80,8 +88,8 @@ export default function Home() {
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-25 mix-blend-overlay"></div>
       </div>
 
-      {/* 2. NAVIGATION BAR (HEADER ĐÃ THU NHỎ) */}
-      <header className="sticky top-0 z-50 bg-[#050505]/80 backdrop-blur-xl border-b border-white/5 px-6 py-3">
+      {/* 2. NAVIGATION BAR */}
+      <header className="sticky top-0 z-50 bg-[#050505]/60 backdrop-blur-xl border-b border-white/5 px-6 py-4">
         <nav className="max-w-7xl mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center gap-4 group">
             
@@ -108,44 +116,47 @@ export default function Home() {
             
             <div className="h-4 w-px bg-white/10" />
             
-            {user ? (
-              <div className="flex items-center gap-4">
-                 <div className="text-right">
-                    <p className="text-[10px] text-slate-500 uppercase font-bold">Xin chào</p>
-                    <p className="text-sm font-bold text-amber-500">{user.fullName || user.username}</p>
-                 </div>
-                 
-                 {user.role === 'READER' ? (
-                    <Link href="/readerdashboard">
-                      <button className="p-2 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-amber-400 transition-colors" title="Dashboard">
-                         <LayoutDashboard className="w-5 h-5" />
-                      </button>
-                    </Link>
-                 ) : (
-                    <Link href="/profile">
-                      <button className="p-2 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-amber-400 transition-colors" title="Hồ sơ cá nhân">
-                         <UserIcon className="w-5 h-5" />
-                      </button>
-                    </Link>
-                 )}
+            {/* --- FIX: Chỉ render Auth Logic khi đã Mounted --- */}
+            {mounted && (
+              user ? (
+                <div className="flex items-center gap-4">
+                   <div className="text-right">
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">Xin chào</p>
+                      <p className="text-sm font-bold text-amber-500">{user.fullName || user.username}</p>
+                   </div>
+                   
+                   {user.role === 'READER' ? (
+                      <Link href="/readerdashboard">
+                        <button className="p-2 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-amber-400 transition-colors" title="Dashboard">
+                           <LayoutDashboard className="w-5 h-5" />
+                        </button>
+                      </Link>
+                   ) : (
+                      <Link href="/profile">
+                        <button className="p-2 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-amber-400 transition-colors" title="Hồ sơ cá nhân">
+                           <UserIcon className="w-5 h-5" />
+                        </button>
+                      </Link>
+                   )}
 
-                 <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-red-900/20 border border-red-500/20 text-red-400 hover:bg-red-900/40 rounded-full text-xs font-bold transition-all">
-                    <LogOut className="w-3 h-3" /> Thoát
-                 </button>
-              </div>
-            ) : (
-              <>
-                <Link href="/login">
-                  <button className="px-6 py-2 bg-white/5 border border-white/10 text-slate-200 hover:text-amber-400 hover:bg-white/10 rounded-full text-sm font-bold transition-all">
-                    Đăng Nhập
-                  </button>
-                </Link>
-                <Link href="/register">
-                  <button className="px-6 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold rounded-full text-sm shadow-lg shadow-amber-900/20 hover:scale-105 transition-all">
-                    Bắt đầu ngay
-                  </button>
-                </Link>
-              </>
+                   <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-red-900/20 border border-red-500/20 text-red-400 hover:bg-red-900/40 rounded-full text-xs font-bold transition-all">
+                      <LogOut className="w-3 h-3" /> Thoát
+                   </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <Link href="/login">
+                    <button className="px-6 py-2 bg-white/5 border border-white/10 text-slate-200 hover:text-amber-400 hover:bg-white/10 rounded-full text-sm font-bold transition-all">
+                      Đăng Nhập
+                    </button>
+                  </Link>
+                  <Link href="/register">
+                    <button className="px-6 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold rounded-full text-sm shadow-lg shadow-amber-900/20 hover:scale-105 transition-all">
+                      Bắt đầu ngay
+                    </button>
+                  </Link>
+                </div>
+              )
             )}
           </div>
         </nav>
@@ -154,7 +165,7 @@ export default function Home() {
       <main className="relative z-10">
         
         {/* 3. HERO SECTION */}
-        <section className="max-w-7xl mx-auto px-6 pt-24 pb-32 md:pt-32 md:pb-56 text-center">
+        <section className="max-w-7xl mx-auto px-6 pt-32 pb-32 md:pt-48 md:pb-56 text-center">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -275,38 +286,30 @@ export default function Home() {
             </h2>
             <p className="text-xl text-slate-400 max-w-xl mx-auto font-light">Đã đến lúc tìm thấy câu trả lời cho những trăn trở sâu thẳm nhất trong lòng bạn.</p>
             <div className="pt-8">
-                {!user && (
-                  <Link href="/register">
-                    <button className="px-16 py-6 bg-white text-black font-black text-xl rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:bg-slate-200 hover:scale-105 transition-all">
-                      Đăng Ký Miễn Phí
-                    </button>
-                  </Link>
+                {/* FIX: Chỉ render CTA khi đã Mounted */}
+                {mounted && (
+                  !user ? (
+                    <Link href="/register">
+                      <button className="px-16 py-6 bg-white text-black font-black text-xl rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:bg-slate-200 hover:scale-105 transition-all">
+                        Đăng Ký Miễn Phí
+                      </button>
+                    </Link>
+                  ) : (
+                    <Link href="/tarot-draw">
+                      <button className="px-16 py-6 bg-white text-black font-black text-xl rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:bg-slate-200 hover:scale-105 transition-all">
+                        Rút Bài Ngay
+                      </button>
+                    </Link>
+                  )
                 )}
-                {user && (
-                  <Link href="/tarot-draw">
-                    <button className="px-16 py-6 bg-white text-black font-black text-xl rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:bg-slate-200 hover:scale-105 transition-all">
-                      Rút Bài Ngay
-                    </button>
-                  </Link>
-                )}
-            </div>
-            <div className="flex items-center justify-center gap-6 pt-10">
-                <div className="flex -space-x-3">
-                    {[1,2,3,4].map(i => (
-                        <div key={i} className="w-10 h-10 rounded-full border-2 border-[#050505] bg-slate-800 flex items-center justify-center text-[10px] font-bold">
-                            <UserIcon className="w-5 h-5 text-slate-400" />
-                        </div>
-                    ))}
-                </div>
-                <p className="text-slate-500 text-sm font-medium">Hơn <span className="text-white">2,000+</span> tâm hồn đã được dẫn dắt thành công.</p>
             </div>
           </motion.div>
         </section>
 
       </main>
 
-      {/* 7. FOOTER */}
-      <footer className="border-t border-white/5 bg-[#050505] py-12 relative z-10">
+      {/* 7. MODERN FOOTER */}
+      <footer className="border-t border-white/5 bg-[#050505] py-24 relative z-10">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
             <div className="md:col-span-6 space-y-4">
@@ -329,7 +332,7 @@ export default function Home() {
                 <h4 className="text-white font-bold text-xs uppercase tracking-widest">Nền tảng</h4>
                 <ul className="space-y-2 text-sm text-slate-500">
                     <li><Link href="/about" className="hover:text-amber-400 transition-colors">Về chúng tôi</Link></li>
-                    <li><Link href="/contact" className="hover:text-amber-400 transition-colors">Liên hệ hỗ trợ</Link></li>
+                    <li><Link href="/contact" className="hover:text-amber-400 transition-colors">Liên hệ với chúng tôi</Link></li>
                 </ul>
             </div>
             <div className="md:col-span-3 space-y-3">
@@ -338,6 +341,7 @@ export default function Home() {
                     <li><Link href="/terms" className="hover:text-amber-400 transition-colors">Điều khoản dịch vụ</Link></li>
                     <li><Link href="/privacy" className="hover:text-amber-400 transition-colors">Chính sách bảo mật</Link></li>
                     <li><Link href="/disclaimer" className="hover:text-amber-400 transition-colors">Miễn trừ trách nhiệm</Link></li>
+                    <li><Link href="/elo" className="hover:text-amber-400 transition-colors">Điểm tính nhiệm</Link></li>
                 </ul>
             </div>
           </div>
@@ -346,13 +350,15 @@ export default function Home() {
               <p className="text-slate-600 text-[10px] font-bold tracking-[0.3em] uppercase">
                 © 2026 MYSTIC TAROT. BEYOND THE FUTURE.
               </p>
-              <div className="flex gap-4">
-                  <div className="w-6 h-6 bg-slate-900 rounded-full hover:bg-amber-500/50 transition-colors cursor-pointer border border-white/5" />
-                  <div className="w-6 h-6 bg-slate-900 rounded-full hover:bg-amber-500/50 transition-colors cursor-pointer border border-white/5" />
-              </div>
           </div>
         </div>
       </footer>
     </div>
   );
 }
+
+const User = ({ className }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+);
