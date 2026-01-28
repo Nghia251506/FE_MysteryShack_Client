@@ -1,21 +1,22 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useSelector, useDispatch } from "react-redux"; 
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import {
   Sparkles, Send, User, Calendar,
   CheckCircle2, Bold, Italic, Wand2, LayoutDashboard, History,
   Clock, MessageSquare, Timer, Search, Inbox, Feather, XCircle, LogOut,
-  AlertCircle, QrCode, DollarSign, X, Info, AlertTriangle
+  AlertCircle, QrCode, DollarSign, X, Info, AlertTriangle, List
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link"; 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReadingSessionService } from "@/services/readingSessionService";
 import { InterpretationService } from "@/services/interpretationService";
-import { logout } from "@/store/features/authSlice"; 
-import { LogoutModal } from "@/components/LogoutModal"; 
+import { logout } from "@/store/features/authSlice";
+import { LogoutModal } from "@/components/LogoutModal";
 import { RootState } from "@/store/store";
+import { convertFileToBase64 } from "@/utils/fileUtils";
 
 // --- 1. TOAST NOTIFICATION SYSTEM ---
 type ToastType = 'success' | 'error' | 'info';
@@ -133,6 +134,7 @@ const RequestCard = ({ req, onAccept, onReject }: { req: any, onAccept: any, onR
 
         let diffInSeconds = calculateTime();
 
+        // Nếu đã hết hạn ngay từ đầu -> gọi reject luôn
         if (diffInSeconds <= 0 && !isExpired) {
             setDisplayTime("00:00");
             setIsExpired(true);
@@ -161,7 +163,7 @@ const RequestCard = ({ req, onAccept, onReject }: { req: any, onAccept: any, onR
     }, [req.rawCreatedAt, req.id, onReject, isExpired]);
 
     return (
-        <div className="bg-[#130823]/60 backdrop-blur-md border border-slate-800 rounded-[2rem] overflow-hidden hover:border-slate-600 transition-all shadow-xl group relative">
+        <div className="bg-[#130823]/60 backdrop-blur-md border border-slate-800 rounded-[2rem] p-8 mb-6 relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 left-0 right-0 h-1 bg-slate-800">
                 <motion.div 
                     initial={{ width: "100%" }} 
@@ -170,35 +172,40 @@ const RequestCard = ({ req, onAccept, onReject }: { req: any, onAccept: any, onR
                     className={`h-full ${displayTime === "00:00" ? 'bg-red-500' : 'bg-green-500'}`} 
                 />
             </div>
-            <div className="p-8">
-                <div className="flex flex-col lg:flex-row gap-8">
-                    <div className="flex gap-2 shrink-0">
-                        {req.cards.length > 0 ? req.cards.map((c: any, i: number) => (
-                            <div key={i} className="relative w-16 h-28 md:w-20 md:h-32 rounded-lg border border-slate-700 overflow-hidden shadow-lg transform group-hover:rotate-0 transition-transform duration-500" style={{ rotate: `${(i - 1) * 5}deg`, marginLeft: i > 0 ? '-1rem' : '0' }}>
-                                <img src={c.img} alt={c.name} className="w-full h-full object-cover" />
-                                {c.isReversed && <div className="absolute top-1 right-1 bg-red-600 text-white text-[8px] px-1 rounded font-bold">REV</div>}
-                            </div>
-                        )) : (
-                            <div className="w-32 h-28 flex flex-col items-center justify-center bg-slate-900/50 rounded-lg border border-slate-700 border-dashed text-slate-500"><AlertCircle className="w-6 h-6 mb-1 text-slate-600"/><span className="text-[10px]">Chưa có dữ liệu bài</span></div>
-                        )}
-                    </div>
-                    <div className="flex-grow space-y-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-mono font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase tracking-widest">#{req.id}</span>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${req.status === 'MATCHED' ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-700 text-slate-300'}`}>{req.status === 'MATCHED' ? 'ĐÃ KHỚP' : 'MỚI'}</span>
-                                <span className="text-slate-500 text-xs flex items-center gap-1"><Clock className="w-3 h-3"/> {req.timestamp}</span>
-                            </div>
-                            <div className={`flex items-center gap-2 font-mono font-bold text-sm px-3 py-1 rounded-full border ${displayTime === "00:00" ? 'text-red-500 border-red-500/30 bg-red-500/10 animate-pulse' : 'text-green-400 border-green-500/30 bg-green-500/10'}`}><Timer className="w-4 h-4"/> {displayTime}</div>
+            <div className="flex flex-col lg:flex-row gap-8 text-white">
+                <div className="flex gap-2 shrink-0 min-w-[120px]">
+                    {req.cards.length > 0 ? req.cards.map((c: any, i: number) => (
+                        <div key={i} className="relative w-16 h-28 rounded-lg border border-slate-700 overflow-hidden" style={{ rotate: `${(i - 1) * 5}deg`, marginLeft: i > 0 ? '-1rem' : '0' }}>
+                            <img src={c.img} alt={c.name} className="w-full h-full object-cover" />
+                            {c.isReversed && <div className="absolute top-1 right-1 bg-red-600 text-white text-[8px] px-1 rounded font-bold">REV</div>}
                         </div>
-                        <div><h3 className="text-xl font-bold text-white group-hover:text-amber-400 transition-colors">{req.topic}</h3><div className="mt-2 p-3 bg-slate-950/50 rounded-xl border border-slate-800/50"><p className="text-sm text-slate-300 italic flex gap-2"><MessageSquare className="w-4 h-4 text-purple-500 shrink-0" /> "{req.question}"</p></div></div>
-                        <div className="flex flex-wrap gap-4 text-xs text-slate-400 pt-2"><span className="flex items-center gap-1.5 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-800"><User className="w-3.5 h-3.5 text-purple-400"/> {req.querentName}</span><span className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${req.birthDate === "Chưa cung cấp" ? 'bg-red-900/20 border-red-900/30 text-red-400' : 'bg-slate-900/50 border-slate-800'}`}><Calendar className="w-3.5 h-3.5 text-blue-400"/> {req.birthDate}</span></div>
+                    )) : (
+                        <div className="w-16 h-28 bg-slate-800/50 rounded-lg border border-dashed border-slate-600 flex items-center justify-center text-[10px] text-slate-500">No Cards</div>
+                    )}
+                </div>
+                <div className="flex-grow space-y-4">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-mono font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase tracking-widest">#{req.id}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${req.status === 'MATCHED' ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-700 text-slate-300'}`}>{req.status === 'MATCHED' ? 'ĐÃ KHỚP' : 'MỚI'}</span>
+                            <span className="text-slate-500 text-xs flex items-center gap-1"><Clock className="w-3 h-3"/> {req.timestamp}</span>
+                        </div>
+                        <div className={`flex items-center gap-2 font-mono font-bold text-sm px-3 py-1 rounded-full border ${displayTime === "00:00" ? 'text-red-500 border-red-500/30 bg-red-500/10 animate-pulse' : 'text-green-400 border-green-500/30 bg-green-500/10'}`}><Timer className="w-4 h-4"/> {displayTime}</div>
                     </div>
-                    <div className="flex lg:flex-col justify-end gap-3 shrink-0">
-                        {/* NÚT TỪ CHỐI -> GỌI MODAL (truyền false cho isAuto) */}
-                        <button onClick={() => onReject(req.id, false)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors text-sm font-medium"><XCircle className="w-4 h-4" /> Từ chối</button>
-                        <button onClick={() => onAccept(req)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white transition-all text-sm font-bold shadow-lg shadow-amber-900/40 hover:-translate-y-0.5"><CheckCircle2 className="w-4 h-4" /> Chấp nhận</button>
+                    <div>
+                        <h3 className="text-xl font-bold text-white uppercase tracking-wider">{req.topic}</h3>
+                        <div className="mt-2 p-3 bg-slate-950/40 rounded-xl border border-slate-800/50">
+                            <p className="text-sm text-slate-300 italic">"{req.question}"</p>
+                        </div>
                     </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <span className="flex items-center gap-1.5 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-800"><User className="w-3.5 h-3.5 text-purple-400"/> {req.querentName}</span>
+                        <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${req.birthDate === "Chưa cung cấp" ? 'bg-red-900/20 border-red-900/30 text-red-400' : 'bg-slate-900/50 border-slate-800'}`}><Calendar className="w-3.5 h-3.5 text-blue-400"/> {req.birthDate}</span>
+                    </div>
+                </div>
+                <div className="flex lg:flex-col justify-end gap-3 shrink-0">
+                    <button onClick={() => onReject(req.id, false)} className="px-6 py-2 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all text-sm font-medium"><XCircle className="w-4 h-4 inline mr-1"/> Từ chối</button>
+                    <button onClick={() => onAccept(req)} className="px-6 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm shadow-lg shadow-amber-900/20"><CheckCircle2 className="w-4 h-4 inline mr-1"/> Chấp nhận</button>
                 </div>
             </div>
         </div>
@@ -211,6 +218,7 @@ export default function ReaderDashboardProfessional() {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
 
+  // -- TOAST STATE --
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
   const addToast = (type: ToastType, message: string) => {
       const id = Date.now();
@@ -240,6 +248,7 @@ export default function ReaderDashboardProfessional() {
   const [searchTerm, setSearchTerm] = useState("");
   const [ignoredIds, setIgnoredIds] = useState<number[]>([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [qrBase64, setQrBase64] = useState<string>("");
 
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -249,6 +258,18 @@ export default function ReaderDashboardProfessional() {
     localStorage.removeItem("currentUser");
     dispatch(logout()); 
     router.push("/login");
+  };
+
+  const handleQrUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        try {
+            const base64 = await convertFileToBase64(file);
+            setQrBase64(base64); 
+        } catch (error) {
+            addToast('error', "Lỗi tải ảnh QR");
+        }
+    }
   };
 
   useEffect(() => {
@@ -391,10 +412,7 @@ export default function ReaderDashboardProfessional() {
       const id = rejectModal.id;
       if (!id) return;
 
-      // Đóng modal
       setRejectModal({ isOpen: false, id: null });
-
-      // Update UI ngay
       setIgnoredIds(prev => [...prev, id]); 
       setPendingRequests(prev => prev.filter(req => req.id !== id));
       
@@ -421,7 +439,7 @@ export default function ReaderDashboardProfessional() {
         const interp3 = card3Content.trim() !== "" ? card3Content : "Lá bài 3 - Năng lượng kết thúc.";
         
         const adviceText = summary.trim() !== "" ? summary : "Tarot khuyên querent nên lắng nghe trực giác nội tâm.";
-        const qrLink = getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`);
+        const qrLink = qrBase64 || getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`);
 
         const payload = {
             interpretation1: interp1,
@@ -517,7 +535,20 @@ export default function ReaderDashboardProfessional() {
                         activeRequest.cards.map((card: any, index: number) => (<div key={card.id} className="flex flex-col md:flex-row gap-8"><div className="w-full md:w-40 shrink-0 flex flex-col items-center"><img src={card.img} className="w-40 h-64 object-cover rounded-xl border-4 border-slate-800" alt={card.name} /><h3 className="text-white font-bold mt-2 text-center">{card.name} {card.isReversed && <span className="text-red-400 text-sm block">(Ngược)</span>}</h3></div><div className="flex-grow flex flex-col"><EditorToolbar /><textarea value={cardInputs[card.id] || ""} onChange={(e) => setCardInputs({...cardInputs, [card.id]: e.target.value})} className="w-full h-48 bg-[#0a0410] border border-slate-800 p-4 rounded-b-xl outline-none text-white focus:border-amber-500/50 transition-colors" placeholder={`Nhập luận giải chi tiết cho lá ${card.name} ${card.isReversed ? '(Ngược)' : ''}...`} /></div></div>))
                     )}
                     <div className="pt-8 border-t border-slate-800"><h3 className="text-xl font-bold text-amber-500 mb-4 flex items-center gap-2"><Sparkles/> Lời khuyên tổng kết</h3><EditorToolbar /><textarea value={summary} onChange={(e) => setSummary(e.target.value)} className="w-full h-32 bg-[#0a0410] border border-slate-800 p-4 rounded-b-xl outline-none text-white focus:border-amber-500/50 transition-colors" placeholder="Tóm tắt thông điệp và lời khuyên cho khách hàng..." /></div>
-                    <div className="pt-8 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-8"><div><h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><QrCode className="w-5 h-5 text-green-400"/> Mã QR thanh toán</h3><p className="text-sm text-slate-400 mb-4">Quét mã để xác nhận thanh toán đơn hàng này.</p><div className="p-4 bg-white/5 rounded-2xl border border-slate-700 w-fit"><img src={getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`)} alt="QR Payment" className="w-40 h-40 object-contain rounded-lg"/></div></div><div className="flex flex-col justify-center space-y-4"><div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700"><div className="flex items-center justify-between mb-2"><span className="text-slate-400 text-sm">Số tiền:</span><span className="text-xl font-bold text-green-400">{activeRequest.amount.toLocaleString('vi-VN')} đ</span></div><div className="flex items-center justify-between"><span className="text-slate-400 text-sm">Trạng thái:</span><span className="text-xs font-bold bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded">Chờ xác nhận</span></div></div><p className="text-xs text-slate-500 italic">* Kiểm tra kỹ thông tin trước khi gửi kết quả.</p></div></div>
+                    <div className="pt-8 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div><h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><QrCode className="w-5 h-5 text-green-400"/> Mã QR thanh toán</h3>
+                        <p className="text-sm text-slate-400 mb-4">Quét mã để xác nhận thanh toán đơn hàng này.</p>
+                        <div className="p-4 bg-white/5 rounded-2xl border border-slate-700 w-fit">
+                            <img src={getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`)} alt="QR Payment" className="w-40 h-40 object-contain rounded-lg"/>
+                        </div>
+                        <div className="mt-4">
+                            <label className="text-sm text-slate-400 mb-2 block">Cập nhật mã QR thanh toán</label>
+                            <input type="file" accept="image/*" onChange={handleQrUpload} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-purple-900/30 file:text-purple-400 hover:file:bg-purple-900/50"/>
+                            {qrBase64 && <img src={qrBase64} alt="Preview QR" className="w-32 h-32 mt-2 rounded-lg border border-slate-700"/>}
+                        </div>
+                        </div>
+                        <div className="flex flex-col justify-center space-y-4"><div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700"><div className="flex items-center justify-between mb-2"><span className="text-slate-400 text-sm">Số tiền:</span><span className="text-xl font-bold text-green-400">{activeRequest.amount.toLocaleString('vi-VN')} đ</span></div><div className="flex items-center justify-between"><span className="text-slate-400 text-sm">Trạng thái:</span><span className="text-xs font-bold bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded">Chờ xác nhận</span></div></div><p className="text-xs text-slate-500 italic">* Kiểm tra kỹ thông tin trước khi gửi kết quả.</p></div>
+                    </div>
                     </div>
                 </motion.div>
                 )}

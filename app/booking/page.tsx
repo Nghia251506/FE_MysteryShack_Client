@@ -1,25 +1,33 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; 
-import axios from "axios"; 
+import { useRouter } from "next/navigation";
+import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
-import { setTopicAndQuestion, addCard, resetSession } from "@/store/slices/tarotSlice";
+// Đảm bảo đường dẫn import đúng với project của bạn
+import { setTopicAndQuestion } from "@/store/slices/tarotSlice"; 
 import { RootState } from "@/store/store";
-import { 
+import { UserService } from '@/services/userService';
+import { setMatchedReader } from '@/store/slices/userSlice';
+
+import {
   User, Calendar, Sparkles, Zap, Heart, Briefcase, Wallet, Search,
-  ArrowRight, Star, CheckCircle2, Home, XCircle, AlertTriangle
+  ArrowRight, Star, CheckCircle2, Home, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- HELPER FUNCTION ---
 const formatDateForInput = (dateVal: any) => {
-    if (!dateVal) return "";
-    try {
-        const date = new Date(dateVal);
-        if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
-    } catch (e) { return ""; }
-    return "";
+  if (!dateVal) return "";
+  if (Array.isArray(dateVal)) {
+    const [y, m, d] = dateVal;
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+  try {
+    const date = new Date(dateVal);
+    if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+  } catch (e) { return ""; }
+  return "";
 };
 
 const TOPICS = [
@@ -28,13 +36,19 @@ const TOPICS = [
   { id: "finance", icon: <Wallet className="w-6 h-6" />, label: "Tài Chính", color: "from-emerald-500 to-green-600", bg: "bg-emerald-500/10 border-emerald-500/20" }
 ];
 
-const QUESTIONS: Record<string, string[]> = {
-  love: ["Người ấy nghĩ gì về tôi?", "Tương lai mối quan hệ này?", "Khi nào tôi có người yêu?"],
-  career: ["Tôi có nên nhảy việc lúc này?", "Cơ hội thăng tiến sắp tới?", "Tôi hợp với nghề nào?"],
-  finance: ["Tình hình tài chính tháng tới?", "Cơ hội đầu tư sinh lời?", "Vận may tiền bạc sắp tới?"]
+const QUESTION_DB_MAP: Record<string, number> = {
+  "Người ấy nghĩ gì về tôi?": 1, "Tương lai mối quan hệ này?": 1, "Khi nào tôi có người yêu?": 1, "Người cũ có quay lại không?": 1,
+  "Tôi có nên nhảy việc lúc này?": 1, "Cơ hội thăng tiến sắp tới?": 1, "Tôi hợp với nghề nào?": 1, "Đồng nghiệp nghĩ gì về tôi?": 1,
+  "Tình hình tài chính tháng tới?": 1, "Cơ hội đầu tư sinh lời?": 1, "Vận may tiền bạc sắp tới?": 1, "Tôi có nên mua tài sản lớn?": 1
 };
 
-// --- COMPONENT: MODAL THÔNG BÁO HIỆN ĐẠI ---
+const QUESTIONS: Record<string, string[]> = {
+  love: ["Người ấy nghĩ gì về tôi?", "Tương lai mối quan hệ này?", "Khi nào tôi có người yêu?", "Người cũ có quay lại không?"],
+  career: ["Tôi có nên nhảy việc lúc này?", "Cơ hội thăng tiến sắp tới?", "Tôi hợp với nghề nào?", "Đồng nghiệp nghĩ gì về tôi?"],
+  finance: ["Tình hình tài chính tháng tới?", "Cơ hội đầu tư sinh lời?", "Vận may tiền bạc sắp tới?", "Tôi có nên mua tài sản lớn?"]
+};
+
+// --- COMPONENT: MODAL THÔNG BÁO ---
 const NotificationModal = ({ isOpen, type, message, onClose, onConfirm, confirmText }: any) => {
     if (!isOpen) return null;
     
@@ -61,105 +75,54 @@ const NotificationModal = ({ isOpen, type, message, onClose, onConfirm, confirmT
 };
 
 export default function BookingRequestPage() {
-  const router = useRouter(); 
+  const router = useRouter();
   const dispatch = useDispatch();
   
-  // Lấy data từ Redux
+  // Redux
   const { drawnCards, topic, question } = useSelector((state: any) => state.tarot);
   const { user, token } = useSelector((state: RootState) => state.auth);
+  
+  const { matchedReader } = useSelector((state: any) => state.user);
+  const { topicId, questionId } = useSelector((state: any) => state.tarot);
 
   const session = { drawnCards, topic, question };
-  const [step, setStep] = useState<1|2|3|4>(1); 
+
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [scanStatus, setScanStatus] = useState("Đang kết nối vệ tinh tâm linh...");
   const [progress, setProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showProfile, setShowProfile] = useState(false); 
+  const [showProfile, setShowProfile] = useState(false);
   
-  // --- STATE MODAL & READER ---
+  // State for Notification Modal
   const [modalConfig, setModalConfig] = useState({ isOpen: false, type: 'info', message: '', onConfirm: null as any });
-  const [formData, setFormData] = useState({ name: "", dob: "", topic: "", question: "" });
-  
-  // Reader mặc định (Fallback khi API lỗi hoặc chưa có reader nào)
-  const defaultReader = {
-      id: 99,
-      fullName: "Grand Master Giang",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      rating: "5.0",
-      match: "98%"
-  };
-  const [matchedReader, setMatchedReader] = useState(defaultReader);
 
-  // 1. FETCH READER TỰ ĐỘNG (LOGIC MỚI)
-  useEffect(() => {
-    const fetchReaders = async () => {
-        if (!token) return;
-        try {
-            // Cố gắng lấy danh sách Reader từ API
-            const res = await axios.get('http://localhost:8080/api/v1/users', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            
-            // Xử lý dữ liệu trả về (tùy cấu trúc backend)
-            const users = Array.isArray(res.data) ? res.data : (res.data.content || []);
-            const readers = users.filter((u: any) => u.role === "READER");
-            
-            if (readers.length > 0) {
-                // Chọn ngẫu nhiên 1 reader
-                const randomReader = readers[Math.floor(Math.random() * readers.length)];
-                setMatchedReader({
-                    id: randomReader.id,
-                    fullName: randomReader.fullName || randomReader.username,
-                    avatar: randomReader.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomReader.username}`,
-                    rating: "5.0", // Mock rating nếu BE chưa có
-                    match: "99%"   // Mock match rate
-                });
-            }
-        } catch (error) {
-            // Log màu vàng để bạn biết là đang dùng Fallback
-            console.warn("Chưa kết nối được API Users từ Server, đang sử dụng Reader mặc định (Grand Master Giang).");
-            // Không làm gì cả, giữ nguyên defaultReader
-        }
-    };
-    fetchReaders();
-  }, [token]);
+  const [formData, setFormData] = useState({
+    name: "",
+    dob: "",
+    topic: "",
+    question: ""
+  });
 
-  // 2. KHÔI PHỤC SESSION GUEST
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const guestDataStr = sessionStorage.getItem("guestTarotSession");
-        if (session.drawnCards.length === 0 && guestDataStr) {
-            try {
-                const guestData = JSON.parse(guestDataStr);
-                dispatch(resetSession());
-                dispatch(setTopicAndQuestion({ topic: guestData.topic, question: guestData.question }));
-                guestData.cards.forEach((c: any) => dispatch(addCard(c)));
-                setFormData(prev => ({ ...prev, topic: guestData.topic, question: guestData.question }));
-                setStep(2);
-            } catch (e) { console.error("Lỗi parse session", e); }
-        }
-    }
-  }, [dispatch, session.drawnCards.length]);
-
-  // 3. TỰ ĐỘNG ĐIỀN THÔNG TIN TỪ USER
+  // --- 1. INITIALIZATION ---
   useEffect(() => {
     if (user) {
-        setFormData(prev => ({
-            ...prev,
-            name: user.fullName || prev.name,
-            dob: formatDateForInput(user.birthDate) || prev.dob
-        }));
+      setFormData(prev => ({
+        ...prev,
+        name: user.fullName || prev.name,
+        dob: formatDateForInput(user.birthDate) || prev.dob
+      }));
     }
   }, [user]);
 
-  // 4. Logic chuyển bước UI
+  // Handle Step Logic based on Redux data
   useEffect(() => {
     if (step === 1 && session.drawnCards.length > 0) {
       setFormData(prev => ({ ...prev, topic: session.topic || prev.topic, question: session.question || prev.question }));
-      setStep(2); 
+      setStep(2);
     }
   }, [session.drawnCards.length, session.topic, session.question, step]);
 
-  // Hàm hiển thị thông báo thay cho alert()
+  // --- 2. HANDLERS ---
   const showAlert = (message: string) => {
       setModalConfig({
           isOpen: true,
@@ -170,93 +133,115 @@ export default function BookingRequestPage() {
   };
 
   const handleNextStep = () => {
-    if (step === 1 && (!formData.topic || !formData.question)) return showAlert("Vui lòng chọn chủ đề và câu hỏi để tiếp tục.");
-    if (step === 2 && !formData.name) return showAlert("Vui lòng nhập họ tên để Reader có thể kết nối.");
-    
-    if (step === 2) { 
-        dispatch(setTopicAndQuestion({ topic: formData.topic, question: formData.question })); 
-        setStep(3); 
-    } 
+    if (step === 1 && (!formData.topic || !formData.question)) return showAlert("Vui lòng chọn chủ đề và câu hỏi.");
+    if (step === 2 && !formData.name) return showAlert("Vui lòng nhập họ tên.");
+    if (step === 2) {
+      handleMatchReader();
+    }
     else if (step < 4) setStep(prev => (prev + 1) as 1 | 2 | 3 | 4);
   };
 
-  // 5. Hiệu ứng tìm Reader
-  useEffect(() => {
-    if (step === 3) {
-      const stages = ["Đang phân tích...", "Kết nối vũ trụ...", "Tìm kiếm Reader...", "Đã tìm thấy!"];
-      let currentStage = 0;
-      const interval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) { clearInterval(interval); setTimeout(() => setStep(4), 800); return 100; }
-          if (prev > 25 && currentStage === 0) { setScanStatus(stages[1]); currentStage++; }
-          if (prev > 50 && currentStage === 1) { setScanStatus(stages[2]); currentStage++; }
-          if (prev > 85 && currentStage === 2) { setScanStatus(stages[3]); currentStage++; }
-          return prev + 1;
-        });
-      }, 30);
-      return () => clearInterval(interval);
-    }
-  }, [step]);
+  const handleMatchReader = async () => {
+    setStep(3);
+    setProgress(0);
+    setScanStatus("Đang kết nối vệ tinh tâm linh...");
 
-  // 6. Gửi Booking (Sử dụng ID Reader thật + Popup Thành công)
+    const timer = setInterval(() => {
+      setProgress(prev => (prev >= 90 ? 90 : prev + 2));
+    }, 50);
+
+    try {
+      const reader = await UserService.getRandomTopReader(matchedReader?.id);
+      setTimeout(() => {
+        clearInterval(timer);
+        setProgress(100);
+        dispatch(setMatchedReader(reader));
+        setStep(4);
+      }, 1500);
+    } catch (err) {
+      console.error("Match Reader Error:", err);
+      setScanStatus("Không tìm thấy Reader, vui lòng thử lại.");
+      clearInterval(timer);
+    }
+  };
+
+  // --- 3. CREATE BOOKING (CÓ AUTO REDIRECT) ---
   const handleCreateBooking = async () => {
-    if (!user) return showAlert("Vui lòng đăng nhập để gửi câu hỏi.");
-    if (!formData.name) return showAlert("Vui lòng nhập họ tên.");
+    if (!user || !token) {
+      if (confirm("Phiên đăng nhập hết hạn. Đi đến trang đăng nhập?")) router.push("/login");
+      return;
+    }
 
     setIsSubmitting(true);
-    
+
+    const topicIdMap: Record<string, number> = { "love": 1, "career": 2, "finance": 3 };
+    const currentTopicId = topicIdMap[formData.topic] || 1;
+    const questionIdToSend = QUESTION_DB_MAP[formData.question] || 1;
+
     const cardsPayload = session.drawnCards.map((c: any, index: number) => ({
-        id: Number(c.id || 0), cardId: Number(c.id || 0), nameVi: c.name || "Unknown", imageUrl: c.img || "", cardNumber: index + 1, isReversed: c.isReversed || false
+      cardId: Number(c.id || c.dbId || 0),
+      nameVi: c.name || c.nameVi,
+      imageUrl: c.imageUrl,
+      cardNumber: index + 1,
+      reversed: c.reversed || false
     }));
 
     const payload = {
-        customer: user.id, customerId: user.id,
-        // Dùng ID của Reader đã match (hoặc mặc định 99)
-        reader: matchedReader.id, readerId: matchedReader.id,
-        question: 1, topicId: 1, selectedCards: cardsPayload, status: "PENDING", isPaid: false, active: true, amount: 50000, 
-        note: `KH: ${formData.name} - Hỏi: ${formData.question}`,
-        createdAt: new Date().toISOString()
+      customerId: user.id,
+      readerId: matchedReader.id,
+      question: questionId || questionIdToSend, // Use ID from Redux if available
+      topic: topicId || currentTopicId,
+      selectedCards: cardsPayload,
+      status: "PENDING",
+      amount: 50000,
+      note: `KH: ${formData.name} - Hỏi: ${formData.question}`,
+      createdAt: new Date().toISOString()
     };
 
     try {
-        await axios.post('http://localhost:8080/api/v1/sessions', payload, { 
-            headers: { 'Authorization': `Bearer ${token}` } 
-        });
-        
-        // Hiện Modal Thành Công & Chuyển trang
-        setModalConfig({
-            isOpen: true,
-            type: 'success',
-            message: 'Yêu cầu của bạn đã được gửi thành công!',
-            onConfirm: () => router.push("/")
-        });
+      await axios.post(
+        'http://localhost:8080/api/v1/sessions',
+        payload,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+
+      // --- XỬ LÝ THÀNH CÔNG ---
+      // 1. Hiện Modal thông báo
+      setModalConfig({
+          isOpen: true,
+          type: 'success',
+          message: 'Yêu cầu của bạn đã được gửi thành công! Đang chuyển hướng đến hồ sơ...',
+          // Nút bấm vẫn cho phép redirect ngay lập tức
+          onConfirm: () => router.push("/profile"), 
+          confirmText: "Đến trang Hồ sơ ngay"
+      });
+
+      // 2. Tự động chuyển hướng sau 1.5s
+      setTimeout(() => {
+          router.push("/profile");
+      }, 1500);
 
     } catch (error: any) {
-        console.error("Lỗi:", error);
-        // Fallback: Giả lập thành công (cho phép test luồng kể cả khi API session lỗi)
-        setModalConfig({
-            isOpen: true,
-            type: 'success',
-            message: 'Yêu cầu đã được ghi nhận (Chế độ Test).',
-            onConfirm: () => router.push("/")
-        });
+      console.error("Booking Error:", error);
+      const msg = error.response?.data?.message || "Lỗi kết nối server";
+      showAlert(`Gửi thất bại: ${msg}`);
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 font-sans overflow-hidden relative selection:bg-amber-500/30 flex items-center justify-center p-4">
       <div className="fixed inset-0 pointer-events-none">
-         <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-purple-900/20 rounded-full blur-[120px]" />
-         <div className="absolute bottom-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-amber-900/10 rounded-full blur-[100px]" />
-         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+        <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-purple-900/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-amber-900/10 rounded-full blur-[100px]" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
       </div>
 
       <div className="w-full max-w-6xl relative z-10">
         <AnimatePresence mode="wait">
           
-          {/* STEP 1: CHỌN CHỦ ĐỀ */}
+          {/* STEP 1 */}
           {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               <div className="lg:col-span-4 flex flex-col justify-center space-y-4">
@@ -293,7 +278,7 @@ export default function BookingRequestPage() {
             </motion.div>
           )}
 
-          {/* STEP 2: NHẬP THÔNG TIN */}
+          {/* STEP 2 */}
           {step === 2 && (
              <motion.div key="step2" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className={`mx-auto ${session.drawnCards.length > 0 ? 'grid grid-cols-1 lg:grid-cols-12 gap-8' : 'max-w-2xl'}`}>
                 {session.drawnCards.length > 0 && (
@@ -302,7 +287,10 @@ export default function BookingRequestPage() {
                           <h3 className="text-white font-bold mb-4">Trải bài đã chọn</h3>
                           <div className="grid grid-cols-3 gap-2">
                              {session.drawnCards.map((c: any, i: number) => (
-                               <div key={i} className="aspect-[2/3] bg-black/50 rounded border border-white/10 overflow-hidden"><img src={c.img} className="w-full h-full object-cover" alt="card"/></div>
+                               <div key={i} className="aspect-[2/3] bg-black/50 rounded border border-white/10 overflow-hidden relative">
+                                  <img src={c.img || c.imageUrl} className={`w-full h-full object-cover ${c.reversed ? 'rotate-180' : ''}`} alt="card"/>
+                                  {c.reversed && <div className="absolute top-1 right-1 text-[8px] bg-red-600 text-white px-1 rounded">REV</div>}
+                               </div>
                              ))}
                           </div>
                       </div>
@@ -310,75 +298,48 @@ export default function BookingRequestPage() {
                 )}
                 <div className={`${session.drawnCards.length > 0 ? 'lg:col-span-7 order-1 lg:order-2' : 'w-full'}`}>
                     <div className="bg-[#130823]/80 border border-white/10 rounded-[2.5rem] p-8 relative">
-                       <button onClick={() => setStep(1)} className="text-xs text-slate-500 mb-6 font-bold">← Quay lại</button>
+                       <button onClick={() => setStep(1)} className="text-xs text-slate-500 mb-6 font-bold hover:text-white transition-colors">← Quay lại</button>
                        <h2 className="text-3xl font-bold text-white mb-6">Thông tin của bạn</h2>
                        <div className="space-y-6">
-                          <div>
-                              <label className="text-xs font-bold text-slate-400 uppercase">Họ và tên</label>
-                              <div className="relative group mt-2">
-                                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                                  <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none focus:border-amber-500 transition-colors" placeholder="VD: Nguyễn Văn A"/>
-                              </div>
-                          </div>
-                          <div>
-                              <label className="text-xs font-bold text-slate-400 uppercase">Ngày sinh</label>
-                              <div className="relative group mt-2">
-                                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                                  <input type="date" value={formData.dob} onChange={e => setFormData({...formData, dob: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none focus:border-amber-500 transition-colors" />
-                              </div>
-                          </div>
+                          <div><label className="text-xs font-bold text-slate-400 uppercase">Họ và tên</label><div className="relative group mt-2"><User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" /><input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none"/></div></div>
+                          <div><label className="text-xs font-bold text-slate-400 uppercase">Ngày sinh</label><div className="relative group mt-2"><Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" /><input type="date" value={formData.dob} onChange={e => setFormData({...formData, dob: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none"/></div></div>
                        </div>
                        <div className="mt-8">
-                           <button onClick={handleNextStep} className="w-full py-4 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] transition-all">
-                                <Sparkles className="w-5 h-5" /> Tìm Reader Ngay
-                           </button>
+                           <button onClick={handleNextStep} className="w-full py-4 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2"><Sparkles className="w-5 h-5" /> Tìm Reader Ngay</button>
                        </div>
                     </div>
                 </div>
              </motion.div>
           )}
 
-          {/* STEP 3: SCANNING */}
+          {/* STEP 3 */}
           {step === 3 && (
              <motion.div key="step3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-[60vh]">
                 <div className="relative w-64 h-64 flex items-center justify-center mb-10">
                     <div className="absolute inset-0 border border-amber-500/20 rounded-full"></div>
                     <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0_deg,transparent_270deg,rgba(245,158,11,0.3)_360deg)] animate-[spin_3s_linear_infinite]"></div>
-                    <div className="relative z-10 w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.5)] animate-pulse">
-                        <Zap className="w-8 h-8 text-amber-400" />
-                    </div>
+                    <div className="relative z-10 w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.5)] animate-pulse"><Zap className="w-8 h-8 text-amber-400" /></div>
                 </div>
                 <h2 className="text-2xl font-bold text-amber-200 animate-pulse text-center mb-2">{scanStatus}</h2>
-                <div className="w-64 h-1.5 bg-slate-800 rounded-full mt-4 overflow-hidden border border-slate-700">
-                    <motion.div className="h-full bg-gradient-to-r from-amber-500 to-purple-500" style={{ width: `${progress}%` }} />
-                </div>
+                <div className="w-64 h-1.5 bg-slate-800 rounded-full mt-4 overflow-hidden border border-slate-700"><motion.div className="h-full bg-gradient-to-r from-amber-500 to-purple-500" style={{ width: `${progress}%` }} /></div>
              </motion.div>
           )}
 
-          {/* STEP 4: GIAO DIỆN CHUẨN CŨ (Đã kết nối Data thật) */}
+          {/* STEP 4 */}
           {step === 4 && (
              <motion.div key="step4" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl mx-auto bg-[#1a0f2e]/90 border border-amber-500/30 rounded-[2.5rem] p-8 text-center shadow-2xl">
-                  {/* Avatar Reader */}
                   <div className="w-32 h-32 mx-auto rounded-full p-1 bg-gradient-to-br from-amber-400 via-purple-500 to-amber-400 mb-6 relative">
-                      <img src={matchedReader.avatar} className="w-full h-full rounded-full border-4 border-[#130823] object-cover" alt="Reader" />
+                      <img src={matchedReader?.profilePicture || "/default-avatar.png"} className="w-full h-full rounded-full border-4 border-[#130823] object-cover" alt="Reader" />
                   </div>
-                  
-                  {/* Tên Reader */}
-                  <h2 className="text-4xl font-bold text-white mb-2">{matchedReader.fullName}</h2>
-                  
-                  {/* Rating */}
+                  <h2 className="text-4xl font-bold text-white mb-2">{matchedReader?.fullName}</h2>
                   <div className="flex justify-center gap-3 mb-6">
-                      <div className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold flex items-center gap-1"><Star className="w-3 h-3 fill-current"/> {matchedReader.rating}</div>
-                      <div className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold">{matchedReader.match} Tương thích</div>
+                      <div className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold flex items-center gap-1"><Star className="w-3 h-3 fill-current"/> {matchedReader?.rating}</div>
+                      <div className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold">{matchedReader?.matchScore || 98}% Tương thích</div>
                   </div>
-                  
-                  {/* Câu hỏi */}
                   <div className="bg-slate-900/50 rounded-xl p-6 mb-8 text-left max-w-xl mx-auto border border-slate-700/50">
                       <p className="text-xs text-slate-500 uppercase font-bold mb-2">Câu hỏi:</p>
                       <p className="text-white italic text-lg">"{session.question}"</p>
                   </div>
-                  
-                  {/* 3 NÚT BẤM (GIỮ NGUYÊN) */}
                   <div className="flex flex-col sm:flex-row justify-center gap-4">
                      <button onClick={() => setShowProfile(true)} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-2xl font-medium transition-all">Xem hồ sơ</button>
                      <button onClick={() => { setStep(3); setProgress(0); }} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-2xl font-medium transition-all flex items-center justify-center gap-2"><Search className="w-4 h-4" /> Đổi Reader</button>
@@ -397,7 +358,7 @@ export default function BookingRequestPage() {
                <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="relative w-full max-w-2xl bg-[#130823] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
                  <div className="h-32 bg-gradient-to-r from-purple-900 to-amber-900 relative"><button onClick={() => setShowProfile(false)} className="absolute top-6 right-6 w-10 h-10 bg-black/20 hover:bg-black/40 rounded-full flex items-center justify-center text-white transition-colors">✕</button></div>
                  <div className="px-8 pb-8 -mt-12 relative">
-                    <div className="flex flex-col md:flex-row gap-6 items-end mb-8"><img src={matchedReader.avatar} className="w-32 h-32 rounded-3xl border-4 border-[#130823] shadow-xl object-cover" alt="Avatar" /><div className="flex-1 pb-2"><h3 className="text-3xl font-bold text-white">{matchedReader.fullName}</h3></div></div>
+                    <div className="flex flex-col md:flex-row gap-6 items-end mb-8"><img src={matchedReader?.profilePicture || "/default-avatar.png"} className="w-32 h-32 rounded-3xl border-4 border-[#130823] shadow-xl object-cover" alt="Avatar" /><div className="flex-1 pb-2"><h3 className="text-3xl font-bold text-white">{matchedReader?.fullName}</h3></div></div>
                     <button onClick={() => { setShowProfile(false); handleCreateBooking(); }} className="w-full mt-4 py-4 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold rounded-xl shadow-lg">Kết nối ngay</button>
                  </div>
                </motion.div>
@@ -405,14 +366,21 @@ export default function BookingRequestPage() {
           )}
         </AnimatePresence>
 
-        {/* --- POP-UP THÔNG BÁO MỚI (CHUNG CHO SUCCESS VÀ ERROR) --- */}
+        {/* --- NOTIFICATION MODAL --- */}
         <AnimatePresence>
             <NotificationModal 
                 isOpen={modalConfig.isOpen} 
                 type={modalConfig.type} 
                 message={modalConfig.message} 
-                onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+                onClose={() => {
+                    setModalConfig({ ...modalConfig, isOpen: false });
+                    // Chỉ redirect nếu đó là thông báo success và người dùng bấm Đóng (nếu chưa bấm confirm)
+                    if (modalConfig.type === 'success') {
+                       // Không cần làm gì vì đã có auto redirect hoặc nút confirm
+                    }
+                }}
                 onConfirm={modalConfig.onConfirm}
+                confirmText={modalConfig.type === 'success' ? "Đến Hồ Sơ Ngay" : "Đóng"}
             />
         </AnimatePresence>
       </div>
