@@ -168,7 +168,7 @@ export default function Home() {
             <h1 className="text-6xl md:text-[90px] font-extrabold text-white leading-[1.1] tracking-tighter">
               Hành Trình Khám Phá <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-purple-400">
-                Bản Ngã & Những Điều Sâu Thẳm
+                Nội Tâm & Những Điều Sâu Thẳm
               </span>
             </h1>
 

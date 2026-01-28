@@ -1,7 +1,7 @@
 {
-  "/not-found": "app/not-found.js",
   "/page": "app/page.js",
-  "/readerdashboard/page": "app/readerdashboard/page.js",
+  "/booking/page": "app/booking/page.js",
+  "/contact/page": "app/contact/page.js",
   "/login/page": "app/login/page.js",
-  "/readerdashboard/profile/page": "app/readerdashboard/profile/page.js"
+  "/profile/page": "app/profile/page.js"
 }
