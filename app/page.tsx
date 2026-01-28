@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Sparkles, Moon, Star, Eye, ArrowRight, Zap, 
   Heart, Briefcase, Wallet, Compass, 
-  ShieldCheck, ChevronRight, Orbit, LogOut, LayoutDashboard
+  ShieldCheck, ChevronRight, Orbit, LogOut, LayoutDashboard, User as UserIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -107,11 +107,17 @@ export default function Home() {
                     <p className="text-sm font-bold text-amber-500">{user.fullName || user.username}</p>
                  </div>
                  
-                 {/* Nếu là Reader thì hiện nút Dashboard */}
-                 {user.role === 'READER' && (
+                 {/* Nếu là Reader thì hiện nút Dashboard, User thì hiện nút Profile */}
+                 {user.role === 'READER' ? (
                     <Link href="/readerdashboard">
                       <button className="p-2 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-amber-400 transition-colors" title="Dashboard">
                          <LayoutDashboard className="w-5 h-5" />
+                      </button>
+                    </Link>
+                 ) : (
+                    <Link href="/profile">
+                      <button className="p-2 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:text-amber-400 transition-colors" title="Hồ sơ cá nhân">
+                         <UserIcon className="w-5 h-5" />
                       </button>
                     </Link>
                  )}

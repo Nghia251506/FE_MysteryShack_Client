@@ -1,15 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux"; 
 import {
   Sparkles, Send, User, Calendar,
   CheckCircle2, Bold, Italic, Wand2, LayoutDashboard, History,
   Clock, MessageSquare, Timer, Search, Inbox, Feather, XCircle, LogOut,
-  AlertCircle, QrCode
+  AlertCircle, QrCode, DollarSign, X, Info, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-// Thêm Link từ next/link
 import Link from "next/link"; 
 import { useRouter } from "next/navigation";
 import { ReadingSessionService } from "@/services/readingSessionService";
@@ -18,12 +17,46 @@ import { logout } from "@/store/features/authSlice";
 import { LogoutModal } from "@/components/LogoutModal"; 
 import { RootState } from "@/store/store";
 
-// --- 1. HELPERS & CARD LOGIC ---
+// --- 1. TOAST NOTIFICATION SYSTEM ---
+type ToastType = 'success' | 'error' | 'info';
+interface ToastMsg { id: number; type: ToastType; message: string; }
+
+const ToastContainer = ({ toasts, removeToast }: { toasts: ToastMsg[], removeToast: (id: number) => void }) => {
+    return (
+        <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+            <AnimatePresence>
+                {toasts.map((toast) => (
+                    <motion.div
+                        key={toast.id}
+                        initial={{ opacity: 0, x: 50, scale: 0.9 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: 20, scale: 0.9 }}
+                        className="pointer-events-auto min-w-[300px] max-w-sm bg-[#1a1025] border border-white/10 rounded-xl shadow-2xl p-4 flex items-start gap-3 backdrop-blur-md"
+                    >
+                        <div className={`mt-0.5 p-1 rounded-full ${
+                            toast.type === 'success' ? 'bg-green-500/20 text-green-400' :
+                            toast.type === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+                        }`}>
+                            {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4"/> : toast.type === 'error' ? <AlertCircle className="w-4 h-4"/> : <Info className="w-4 h-4"/>}
+                        </div>
+                        <div className="flex-1">
+                            <h4 className={`text-sm font-bold ${toast.type === 'success' ? 'text-green-400' : toast.type === 'error' ? 'text-red-400' : 'text-blue-400'}`}>
+                                {toast.type === 'success' ? 'Thành Công' : toast.type === 'error' ? 'Lỗi' : 'Thông báo'}
+                            </h4>
+                            <p className="text-slate-300 text-xs mt-1">{toast.message}</p>
+                        </div>
+                        <button onClick={() => removeToast(toast.id)} className="text-slate-500 hover:text-white transition-colors"><X className="w-4 h-4"/></button>
+                    </motion.div>
+                ))}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+// --- 2. HELPERS ---
 const getCardDetail = (id: number) => {
   const safeId = Number(id);
-  const getImg = (prefix: string, num: number) => 
-    `https://www.sacred-texts.com/tarot/pkt/img/${prefix}${num.toString().padStart(2, '0')}.jpg`;
-
+  const getImg = (prefix: string, num: number) => `https://www.sacred-texts.com/tarot/pkt/img/${prefix}${num.toString().padStart(2, '0')}.jpg`;
   if (safeId <= 22) {
     const majors = ["The Fool", "The Magician", "The High Priestess", "The Empress", "The Emperor", "The Hierophant", "The Lovers", "The Chariot", "Strength", "The Hermit", "Wheel of Fortune", "Justice", "The Hanged Man", "Death", "Temperance", "The Devil", "The Tower", "The Star", "The Moon", "The Sun", "Judgement", "The World"];
     return { name: majors[safeId - 1] || `Major #${safeId}`, img: getImg("ar", safeId - 1) };
@@ -31,7 +64,6 @@ const getCardDetail = (id: number) => {
   const suits = [{ name: "Wands", code: "wa" }, { name: "Cups", code: "cu" }, { name: "Swords", code: "sw" }, { name: "Pentacles", code: "pe" }];
   const minorIndex = safeId - 23; const suitIndex = Math.floor(minorIndex / 14); const rankIndex = minorIndex % 14;
   const ranks = ["Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Page", "Knight", "Queen", "King"];
-  
   if (suitIndex < 4) return { name: `${ranks[rankIndex]} of ${suits[suitIndex].name}`, img: getImg(suits[suitIndex].code, rankIndex + 1) };
   return { name: `Card #${safeId}`, img: "https://placehold.co/150x250?text=?" };
 };
@@ -47,32 +79,96 @@ const EditorToolbar = () => (
   </div>
 );
 
+// --- 3. MODALS ---
+
+// Modal Xác Nhận Thanh Toán
+const PaymentConfirmationModal = ({ isOpen, onClose, onConfirm, amount, loading }: any) => {
+    if (!isOpen) return null;
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="max-w-sm w-full bg-[#1a1025] border border-green-500/30 rounded-[2rem] p-8 text-center shadow-2xl relative">
+                <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-6 border-2 bg-green-500/10 border-green-500/50 text-green-400"><DollarSign className="w-10 h-10" /></div>
+                <h3 className="text-2xl font-bold text-white mb-2">Xác nhận tiền về</h3>
+                <p className="text-slate-400 text-sm mb-6">Bạn xác nhận đã nhận được khoản thanh toán <span className="text-green-400 font-bold">{amount?.toLocaleString('vi-VN')} đ</span>?</p>
+                <div className="flex gap-3">
+                    <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all">Hủy</button>
+                    <button onClick={onConfirm} disabled={loading} className="flex-1 py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold transition-all shadow-lg shadow-green-900/20 disabled:opacity-70">{loading ? 'Đang xử lý...' : 'Đã nhận tiền'}</button>
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+};
+
+// Modal Xác Nhận Từ Chối (NEW)
+const RejectConfirmationModal = ({ isOpen, onClose, onConfirm }: any) => {
+    if (!isOpen) return null;
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="max-w-sm w-full bg-[#1a1025] border border-red-500/30 rounded-[2rem] p-8 text-center shadow-2xl relative">
+                <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-6 border-2 bg-red-500/10 border-red-500/50 text-red-400"><AlertTriangle className="w-10 h-10" /></div>
+                <h3 className="text-2xl font-bold text-white mb-2">Từ chối yêu cầu?</h3>
+                <p className="text-slate-400 text-sm mb-6">Bạn có chắc chắn muốn từ chối yêu cầu này? Yêu cầu sẽ được chuyển cho Reader khác.</p>
+                <div className="flex gap-3">
+                    <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all">Quay lại</button>
+                    <button onClick={onConfirm} className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-all shadow-lg shadow-red-900/20">Từ chối</button>
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+};
+
 // --- REQUEST CARD ---
 const RequestCard = ({ req, onAccept, onReject }: { req: any, onAccept: any, onReject: any }) => {
-    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+    const [displayTime, setDisplayTime] = useState<string>("--:--");
+    const [isExpired, setIsExpired] = useState(false);
 
     useEffect(() => {
-        const calculateTimeLeft = () => {
+        const calculateTime = () => {
+            if (!req.rawCreatedAt) return 0;
+            const createdTime = new Date(req.rawCreatedAt).getTime();
+            const expireTime = createdTime + (5 * 60 * 1000); // 5 phút
             const now = Date.now();
-            const diff = Math.floor((req.expiryTimestamp - now) / 1000);
-            return diff > 0 ? diff : 0;
+            return Math.floor((expireTime - now) / 1000);
         };
-        setTimeLeft(calculateTimeLeft());
-        const timer = setInterval(() => {
-            const remaining = calculateTimeLeft();
-            setTimeLeft(remaining);
-            if (remaining <= 0) { clearInterval(timer); onReject(req.id, true); }
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [req.expiryTimestamp, req.id, onReject]);
 
-    const formatTimer = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
-    if (timeLeft === null) return null;
+        let diffInSeconds = calculateTime();
+
+        if (diffInSeconds <= 0 && !isExpired) {
+            setDisplayTime("00:00");
+            setIsExpired(true);
+            onReject(req.id, true); // Auto reject khi vừa load
+            return;
+        }
+
+        const interval = setInterval(() => {
+            diffInSeconds = calculateTime();
+
+            if (diffInSeconds <= 0) {
+                setDisplayTime("00:00");
+                if (!isExpired) {
+                    setIsExpired(true);
+                    onReject(req.id, true); // Auto reject khi đếm về 0
+                }
+                clearInterval(interval);
+            } else {
+                const minutes = Math.floor(diffInSeconds / 60);
+                const seconds = diffInSeconds % 60;
+                setDisplayTime(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [req.rawCreatedAt, req.id, onReject, isExpired]);
 
     return (
         <div className="bg-[#130823]/60 backdrop-blur-md border border-slate-800 rounded-[2rem] overflow-hidden hover:border-slate-600 transition-all shadow-xl group relative">
             <div className="absolute top-0 left-0 right-0 h-1 bg-slate-800">
-                <motion.div initial={{ width: "100%" }} animate={{ width: `${(timeLeft / 300) * 100}%` }} transition={{ duration: 1, ease: "linear" }} className={`h-full ${timeLeft < 60 ? 'bg-red-500' : 'bg-green-500'}`} />
+                <motion.div 
+                    initial={{ width: "100%" }} 
+                    animate={{ width: displayTime === "00:00" ? "0%" : `${(Math.max(0, (new Date(req.rawCreatedAt).getTime() + 300000 - Date.now()) / 3000))}%` }} 
+                    transition={{ duration: 1, ease: "linear" }} 
+                    className={`h-full ${displayTime === "00:00" ? 'bg-red-500' : 'bg-green-500'}`} 
+                />
             </div>
             <div className="p-8">
                 <div className="flex flex-col lg:flex-row gap-8">
@@ -93,12 +189,16 @@ const RequestCard = ({ req, onAccept, onReject }: { req: any, onAccept: any, onR
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${req.status === 'MATCHED' ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-700 text-slate-300'}`}>{req.status === 'MATCHED' ? 'ĐÃ KHỚP' : 'MỚI'}</span>
                                 <span className="text-slate-500 text-xs flex items-center gap-1"><Clock className="w-3 h-3"/> {req.timestamp}</span>
                             </div>
-                            <div className={`flex items-center gap-2 font-mono font-bold text-sm px-3 py-1 rounded-full border ${timeLeft < 60 ? 'text-red-500 border-red-500/30 bg-red-500/10 animate-pulse' : 'text-green-400 border-green-500/30 bg-green-500/10'}`}><Timer className="w-4 h-4"/> {formatTimer(timeLeft)}</div>
+                            <div className={`flex items-center gap-2 font-mono font-bold text-sm px-3 py-1 rounded-full border ${displayTime === "00:00" ? 'text-red-500 border-red-500/30 bg-red-500/10 animate-pulse' : 'text-green-400 border-green-500/30 bg-green-500/10'}`}><Timer className="w-4 h-4"/> {displayTime}</div>
                         </div>
                         <div><h3 className="text-xl font-bold text-white group-hover:text-amber-400 transition-colors">{req.topic}</h3><div className="mt-2 p-3 bg-slate-950/50 rounded-xl border border-slate-800/50"><p className="text-sm text-slate-300 italic flex gap-2"><MessageSquare className="w-4 h-4 text-purple-500 shrink-0" /> "{req.question}"</p></div></div>
                         <div className="flex flex-wrap gap-4 text-xs text-slate-400 pt-2"><span className="flex items-center gap-1.5 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-800"><User className="w-3.5 h-3.5 text-purple-400"/> {req.querentName}</span><span className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${req.birthDate === "Chưa cung cấp" ? 'bg-red-900/20 border-red-900/30 text-red-400' : 'bg-slate-900/50 border-slate-800'}`}><Calendar className="w-3.5 h-3.5 text-blue-400"/> {req.birthDate}</span></div>
                     </div>
-                    <div className="flex lg:flex-col justify-end gap-3 shrink-0"><button onClick={() => onReject(req.id, false)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors text-sm font-medium"><XCircle className="w-4 h-4" /> Từ chối</button><button onClick={() => onAccept(req)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white transition-all text-sm font-bold shadow-lg shadow-amber-900/40 hover:-translate-y-0.5"><CheckCircle2 className="w-4 h-4" /> Chấp nhận</button></div>
+                    <div className="flex lg:flex-col justify-end gap-3 shrink-0">
+                        {/* NÚT TỪ CHỐI -> GỌI MODAL (truyền false cho isAuto) */}
+                        <button onClick={() => onReject(req.id, false)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors text-sm font-medium"><XCircle className="w-4 h-4" /> Từ chối</button>
+                        <button onClick={() => onAccept(req)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white transition-all text-sm font-bold shadow-lg shadow-amber-900/40 hover:-translate-y-0.5"><CheckCircle2 className="w-4 h-4" /> Chấp nhận</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -111,6 +211,14 @@ export default function ReaderDashboardProfessional() {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
 
+  const [toasts, setToasts] = useState<ToastMsg[]>([]);
+  const addToast = (type: ToastType, message: string) => {
+      const id = Date.now();
+      setToasts(prev => [...prev, { id, type, message }]);
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000); 
+  };
+  const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
+
   const [isMounted, setIsMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'requests' | 'workspace' | 'history'>('requests');
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
@@ -120,7 +228,14 @@ export default function ReaderDashboardProfessional() {
   const [summary, setSummary] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  
+  // Modal States
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  
+  // State Modal Từ Chối (Mới)
+  const [rejectModal, setRejectModal] = useState<{isOpen: boolean, id: number | null}>({isOpen: false, id: null});
+
   const [timeLeft, setTimeLeft] = useState(3600); 
   const [searchTerm, setSearchTerm] = useState("");
   const [ignoredIds, setIgnoredIds] = useState<number[]>([]);
@@ -142,10 +257,23 @@ export default function ReaderDashboardProfessional() {
     return () => clearInterval(interval);
   }, [ignoredIds, user]); 
 
+  // Timer Workspace
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (activeTab === 'workspace' && activeRequest && !isSent) {
-      timer = setInterval(() => { setTimeLeft((prev) => (prev <= 0 ? 0 : prev - 1)); }, 1000);
+      const calculateWorkspaceTime = () => {
+          const startTime = new Date(activeRequest.rawCreatedAt).getTime();
+          const limitTime = startTime + (60 * 60 * 1000); 
+          const now = Date.now();
+          return Math.max(0, Math.floor((limitTime - now) / 1000));
+      };
+      
+      setTimeLeft(calculateWorkspaceTime());
+      timer = setInterval(() => {
+          const remaining = calculateWorkspaceTime();
+          setTimeLeft(remaining);
+          if (remaining <= 0) clearInterval(timer);
+      }, 1000);
     }
     return () => clearInterval(timer);
   }, [activeTab, activeRequest, isSent]);
@@ -176,10 +304,22 @@ export default function ReaderDashboardProfessional() {
   };
 
   const transformData = (item: any) => {
+      let rawCreatedAt = item.createdAt || item.created_at || item.timestamp;
+
+      if (!rawCreatedAt && typeof window !== 'undefined') {
+          const key = `session_created_at_${item.id}`;
+          const stored = localStorage.getItem(key);
+          if (stored) {
+              rawCreatedAt = stored;
+          } else {
+              rawCreatedAt = new Date().toISOString();
+              localStorage.setItem(key, rawCreatedAt);
+          }
+      }
+
       let cards: any[] = [];
       try {
           let raw = item.selectedCards;
-          if (typeof raw === 'string') try { raw = JSON.parse(raw); } catch {}
           if (typeof raw === 'string') try { raw = JSON.parse(raw); } catch {}
           if(Array.isArray(raw) && raw.length > 0) {
               cards = raw.map((c: any, index: number) => {
@@ -201,26 +341,70 @@ export default function ReaderDashboardProfessional() {
       let questionContent = item.question?.content || item.question?.questionText || item.questionName || "Không có câu hỏi";
       if (item.note && (querentName === "Khách ẩn danh" || querentName === "customer")) { if (item.note.includes("KH:")) querentName = item.note.split("KH:")[1].split("-")[0].trim(); }
 
-      const createdTime = item.createdAt ? new Date(item.createdAt).getTime() : Date.now();
-      const expiryTimestamp = createdTime + (5 * 60 * 1000); 
-
       return {
-          id: item.id, querentName, topic: "Tổng quan", question: questionContent,
-          birthDate: birthDateDisplay, timestamp: item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : "Vừa xong",
-          cards, rawNote: item.note, status: item.status, amount: item.amount || 50000,
-          expiryTimestamp
+          id: item.id, 
+          querentName, 
+          topic: "Tổng quan", 
+          question: questionContent,
+          birthDate: birthDateDisplay, 
+          timestamp: new Date(rawCreatedAt).toLocaleString('vi-VN'),
+          cards, 
+          rawNote: item.note, 
+          status: item.status, 
+          amount: item.amount || 50000,
+          rawCreatedAt
       };
   };
 
   const handleAcceptRequest = async (request: any) => {
-    try { await ReadingSessionService.accept(request.id); setActiveRequest(request); setTimeLeft(3600); setIsSent(false); setCardInputs({}); setSummary(""); setActiveTab('workspace'); } catch (e: any) { alert(e.message); }
+    try { 
+        await ReadingSessionService.accept(request.id); 
+        setActiveRequest(request); 
+        setIsSent(false); 
+        setCardInputs({}); 
+        setSummary(""); 
+        setActiveTab('workspace'); 
+        addToast('success', 'Đã nhận yêu cầu! Bắt đầu luận giải.');
+    } catch (e: any) { 
+        addToast('error', e.message || "Lỗi khi nhận yêu cầu"); 
+    }
   };
 
+  // --- SỬA LOGIC REJECT (KÍCH HOẠT MODAL KHI MANUAL) ---
   const handleRejectRequest = async (id: any, isAuto: boolean = false) => {
-      if (!isAuto && !confirm("Bạn có chắc chắn muốn từ chối yêu cầu này không?")) return;
+      if (isAuto) {
+          // Tự động từ chối (hết giờ) -> Không hiện Modal, chỉ Toast Info
+          setIgnoredIds(prev => [...prev, id]); 
+          setPendingRequests(prev => prev.filter(req => req.id !== id));
+          try { 
+              await ReadingSessionService.reject(id); 
+              addToast('info', `Yêu cầu #${id} đã hết hạn và tự động từ chối.`);
+          } catch (e: any) { console.error(e); }
+      } else {
+          // Thủ công -> Mở Modal Xác Nhận
+          setRejectModal({ isOpen: true, id: id });
+      }
+  };
+
+  // --- HÀM THỰC THI REJECT SAU KHI BẤM XÁC NHẬN TRONG MODAL ---
+  const handleConfirmReject = async () => {
+      const id = rejectModal.id;
+      if (!id) return;
+
+      // Đóng modal
+      setRejectModal({ isOpen: false, id: null });
+
+      // Update UI ngay
       setIgnoredIds(prev => [...prev, id]); 
       setPendingRequests(prev => prev.filter(req => req.id !== id));
-      try { await ReadingSessionService.reject(id); } catch (e: any) { alert("Lỗi khi từ chối"); setIgnoredIds(prev => prev.filter(i => i !== id)); }
+      
+      try { 
+          await ReadingSessionService.reject(id); 
+          addToast('success', 'Đã từ chối yêu cầu.');
+      } catch (e: any) { 
+          addToast('error', "Lỗi khi từ chối yêu cầu");
+          setIgnoredIds(prev => prev.filter(i => i !== id)); 
+      }
   };
 
   const handleSubmit = async () => {
@@ -253,19 +437,32 @@ export default function ReaderDashboardProfessional() {
             setIsSubmitting(false);
             setIsSent(true);
             fetchData();
+            addToast('success', 'Đã gửi bài giải thành công!');
         }, 1500);
 
     } catch (e: any) {
         const serverMessage = e.response?.data?.message || e.response?.data?.error || "Lỗi không xác định";
-        alert(`Gửi thất bại: ${serverMessage}`);
+        addToast('error', `Gửi thất bại: ${serverMessage}`);
         setIsSubmitting(false);
     }
   };
 
   const handleConfirmPayment = async () => {
-    if (!activeRequest || !confirm(`Xác nhận đã nhận thanh toán ${activeRequest.amount.toLocaleString('vi-VN')}đ?`)) return;
+    if (!activeRequest) return;
     setConfirmingPayment(true);
-    try { await InterpretationService.confirmPayment(activeRequest.id); alert("✅ Đã xác nhận thanh toán thành công!"); await fetchData(); setActiveRequest(null); setIsSent(false); setActiveTab('requests'); } catch (e: any) { alert(`❌ Xác nhận thất bại: ${e.message}`); } finally { setConfirmingPayment(false); }
+    try { 
+        await InterpretationService.confirmPayment(activeRequest.id); 
+        setShowPaymentModal(false); 
+        await fetchData(); 
+        setActiveRequest(null); 
+        setIsSent(false); 
+        setActiveTab('requests'); 
+        addToast('success', 'Đã xác nhận thanh toán thành công!');
+    } catch (e: any) { 
+        addToast('error', `Xác nhận thất bại: ${e.message}`); 
+    } finally { 
+        setConfirmingPayment(false); 
+    }
   };
 
   const formatTime = (s: number) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
@@ -275,8 +472,10 @@ export default function ReaderDashboardProfessional() {
 
   return (
     <div className="min-h-screen bg-[#0a0410] text-slate-200 font-sans flex overflow-hidden">
+        {/* TOAST CONTAINER */}
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
+
         <aside className="w-64 bg-[#0f0518] border-r border-slate-800 hidden lg:flex flex-col h-screen sticky top-0 z-50">
-            {/* LOGO LINK VỀ TRANG CHỦ */}
             <div className="p-6">
                 <Link href="/" className="flex items-center gap-3 cursor-pointer group">
                     <div className="p-2 bg-amber-500/20 rounded-lg border border-amber-500/30 group-hover:bg-amber-500/30 transition-colors">
@@ -331,7 +530,7 @@ export default function ReaderDashboardProfessional() {
                 )}
 
                 {isSent && (
-                <motion.div key="success" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="space-y-8"><div className="bg-[#130823]/80 backdrop-blur-xl border border-green-500/30 rounded-3xl p-12 text-center"><CheckCircle2 className="w-24 h-24 text-green-400 mx-auto mb-6 animate-pulse" /><h2 className="text-4xl font-bold text-white mb-4">Đã Gửi Bài Giải!</h2><p className="text-slate-400 mb-2">Kết quả đã được gửi đến khách hàng.</p></div><div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 backdrop-blur-md border-2 border-green-500/30 rounded-[2rem] p-8 shadow-2xl text-center"><h3 className="text-2xl font-bold text-white mb-6 uppercase tracking-widest">Xác nhận thanh toán</h3><button onClick={handleConfirmPayment} disabled={confirmingPayment} className="px-10 py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 mx-auto">{confirmingPayment ? "Đang xử lý..." : <><CheckCircle2 className="w-5 h-5" /> Xác Nhận Đã Nhận Tiền</>}</button></div></motion.div>
+                <motion.div key="success" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="space-y-8"><div className="bg-[#130823]/80 backdrop-blur-xl border border-green-500/30 rounded-3xl p-12 text-center"><CheckCircle2 className="w-24 h-24 text-green-400 mx-auto mb-6 animate-pulse" /><h2 className="text-4xl font-bold text-white mb-4">Đã Gửi Bài Giải!</h2><p className="text-slate-400 mb-2">Kết quả đã được gửi đến khách hàng.</p></div><div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 backdrop-blur-md border-2 border-green-500/30 rounded-[2rem] p-8 shadow-2xl text-center"><h3 className="text-2xl font-bold text-white mb-6 uppercase tracking-widest">Xác nhận thanh toán</h3><button onClick={() => setShowPaymentModal(true)} disabled={confirmingPayment} className="px-10 py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 mx-auto">{confirmingPayment ? "Đang xử lý..." : <><CheckCircle2 className="w-5 h-5" /> Xác Nhận Đã Nhận Tiền</>}</button></div></motion.div>
                 )}
             </AnimatePresence>
             </div>
@@ -340,6 +539,22 @@ export default function ReaderDashboardProfessional() {
         {activeTab === 'workspace' && activeRequest && !isSent && (
             <div className="fixed bottom-6 left-0 md:left-64 right-0 z-40 px-4 flex justify-center"><div className="bg-[#0f0518]/90 border border-slate-700 p-2 pl-6 rounded-2xl flex items-center gap-5 shadow-2xl backdrop-blur-md"><span className="text-white text-sm">{activeRequest.cards.length > 0 ? `Đã nhập ${Object.keys(cardInputs).length}/${activeRequest.cards.length} lá` : "Vui lòng nhập lời khuyên"}</span><button onClick={handleSubmit} disabled={isSubmitting} className="bg-gradient-to-r from-amber-600 to-purple-600 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-2 hover:shadow-lg transition-all disabled:opacity-50">{isSubmitting ? "Đang gửi..." : "Gửi Kết Quả"} <Send className="w-4 h-4"/></button></div></div>
         )}
+
+        {/* Modal xác nhận thanh toán */}
+        <PaymentConfirmationModal 
+            isOpen={showPaymentModal} 
+            onClose={() => setShowPaymentModal(false)} 
+            onConfirm={handleConfirmPayment} 
+            amount={activeRequest?.amount || 50000}
+            loading={confirmingPayment}
+        />
+
+        {/* Modal xác nhận từ chối */}
+        <RejectConfirmationModal 
+            isOpen={rejectModal.isOpen} 
+            onClose={() => setRejectModal({isOpen: false, id: null})} 
+            onConfirm={handleConfirmReject} 
+        />
 
         <LogoutModal isOpen={showLogoutModal} onClose={() => setShowLogoutModal(false)} onConfirm={handleConfirmLogout} />
     </div>
