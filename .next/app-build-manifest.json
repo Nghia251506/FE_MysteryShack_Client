@@ -1,20 +1,15 @@
 {
   "pages": {
-    "/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/layout.css",
-      "static/chunks/app/layout.js"
-    ],
     "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
-    "/tarot-draw/page": [
+    "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/tarot-draw/page.js"
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
     ],
     "/booking/page": [
       "static/chunks/webpack.js",
@@ -31,6 +26,16 @@
       "static/chunks/main-app.js",
       "static/chunks/app/profile/page.js"
     ],
+    "/history/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/history/page.js"
+    ],
+    "/tarot-draw/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/tarot-draw/page.js"
+    ],
     "/readerdashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -40,16 +45,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/booking/result/page.js"
-    ],
-    "/register/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/register/page.js"
-    ],
-    "/not-found": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/not-found.js"
     ]
   }
 }

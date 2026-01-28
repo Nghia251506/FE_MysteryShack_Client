@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  Sparkles, MessageSquare, ArrowLeft, Download,
-  Share2, Star, Loader2, AlertCircle, ShieldCheck, RefreshCw
+  Sparkles, MessageSquare, ArrowLeft, Star, Loader2, 
+  ShieldCheck, RefreshCw, WifiOff
 } from "lucide-react";
 import { InterpretationService } from "@/services/interpretationService";
 
@@ -24,8 +24,10 @@ export default function InterpretationResultPage() {
       if (!isSilent) setLoading(true);
       const result = await InterpretationService.getView(sessionId);
       setData(result);
+      setError(null); // Xóa lỗi nếu fetch thành công
     } catch (err: any) {
-      setError(err.response?.data?.message || "Không thể tải kết quả.");
+      // Nếu là fetch ngầm thì không hiện lỗi to tát, chỉ set state error để thông báo nhỏ
+      setError(err.response?.data?.message || "Tín hiệu vũ trụ đang bị ngắt quãng...");
     } finally {
       setLoading(false);
     }
@@ -35,19 +37,19 @@ export default function InterpretationResultPage() {
     fetchResult();
   }, [sessionId]);
 
-  // Tự động kiểm tra mỗi 15 giây nếu Reader chưa gửi luận giải
+  // Tự động kiểm tra mỗi 15 giây nếu chưa có luận giải HOẶC đang có lỗi
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (data && !data.interpretation1) {
+    if (!data?.interpretation1 || error) {
       interval = setInterval(() => {
-        fetchResult(true); // check ngầm không hiện loading
+        fetchResult(true);
       }, 15000);
     }
     return () => clearInterval(interval);
-  }, [data]);
+  }, [data, error]);
 
-  // 1. Loading khi mới vào trang
-  if (loading) return (
+  // 1. Loading khi mới vào trang lần đầu
+  if (loading && !data) return (
     <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center">
       <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
       <p className="text-purple-300 font-serif italic animate-pulse text-center">
@@ -56,8 +58,8 @@ export default function InterpretationResultPage() {
     </div>
   );
 
-  // 2. Màn hình chờ nếu Reader chưa gửi luận giải (Dựa trên field interpretation1)
-  if (data && !data.interpretation1) return (
+  // 2. MÀN HÌNH CHỜ (Gộp cả case Đang chờ Reader và case Lỗi kết nối)
+  if (!data?.interpretation1) return (
     <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-6 text-center">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -67,64 +69,36 @@ export default function InterpretationResultPage() {
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-pulse" />
 
         <div className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-purple-500/20">
-          <Sparkles className="w-10 h-10 text-purple-400 animate-pulse" />
+          {
+            <Sparkles className="w-10 h-10 text-purple-400 animate-pulse" />
+          }
         </div>
 
-        <h2 className="text-2xl font-bold text-white mb-4">Đang đợi kết nối...</h2>
-        <p className="text-slate-400 leading-relaxed mb-8">
-          Hệ thống đã nhận được câu hỏi. <br />
-          <span className="text-purple-300 font-medium">Bạn vui lòng chờ cho đến khi reader của chúng tôi gửi luận giải.</span>
-          <br />
-          <span className="text-[10px] uppercase tracking-widest text-slate-500 mt-4 block">Tự động cập nhật sau mỗi 15s</span>
-        </p>
+        <h2 className="text-2xl font-bold text-white mb-4">
+          Đang đợi kết nối...
+        </h2>
+        
+        <div className="text-slate-400 leading-relaxed mb-8 space-y-2">
+          {
+            <p>
+              Hệ thống đã nhận được câu hỏi. <br />
+              <span className="text-purple-300 font-medium">Bạn vui lòng chờ cho đến khi reader gửi luận giải.</span>
+            </p>
+          }
+          <span className="text-[10px] uppercase tracking-widest text-slate-500 mt-4 block">
+             Cập nhật tự động sau mỗi 15s
+          </span>
+        </div>
 
         <div className="flex flex-col gap-3">
           <button
             onClick={() => fetchResult()}
             className="flex items-center justify-center gap-2 py-4 bg-white/5 border border-white/10 rounded-2xl text-white hover:bg-white/10 transition-all font-bold"
           >
-            <RefreshCw className="w-4 h-4" /> Làm mới ngay
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> 
+            {loading ? "Đang tải..." : "Làm mới ngay"}
           </button>
           <button onClick={() => router.push('/')} className="text-xs text-slate-500 hover:text-white transition-all uppercase font-bold tracking-widest">
-            Quay lại trang chủ
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  );
-
-  // 3. Màn hình lỗi
-  if (error || !data) return (
-    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
-      {/* Hiệu ứng ánh sáng huyền ảo phía sau */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] bg-rose-900/10 rounded-full blur-[120px] pointer-events-none" />
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-sm w-full bg-[#1a0b0b] border border-rose-500/20 rounded-[3rem] p-10 relative z-10 shadow-[0_0_50px_rgba(244,63,94,0.1)]"
-      >
-        <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/20">
-          <AlertCircle className="w-10 h-10 text-rose-500/50" />
-        </div>
-
-        <h2 className="text-xl font-bold text-white mb-3">Tín hiệu bị nhiễu</h2>
-        <p className="text-slate-400 text-sm leading-relaxed mb-8">
-          Vũ trụ đang tạm thời từ chối kết nối thông tin. <br />
-          <span className="text-rose-300/70">{error || "Dữ liệu chưa được khai mở"}</span>
-        </p>
-
-        <div className="flex flex-col gap-3">
-          <button
-            onClick={() => { setError(null); fetchResult(); }}
-            className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-white hover:bg-rose-500/20 hover:border-rose-500/30 transition-all font-bold text-sm flex items-center justify-center gap-2"
-          >
-            <RefreshCw className="w-4 h-4" /> Thử kết nối lại
-          </button>
-          <button
-            onClick={() => router.push('/')}
-            className="text-[10px] text-slate-500 hover:text-white transition-all uppercase font-black tracking-[0.2em] mt-2"
-          >
             Quay lại trang chủ
           </button>
         </div>

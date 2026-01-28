@@ -31,7 +31,6 @@ interface LocalTarotCard {
 }
 
 // --- 2. CẤU HÌNH GIAO DIỆN ---
-
 const CardBackDesign = () => (
   <div className="w-full h-full bg-[#1a0b2e] relative overflow-hidden rounded-lg shadow-inner flex items-center justify-center border border-slate-900">
     <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
@@ -50,7 +49,7 @@ const getCardImg = (prefix: string, number: number) => {
   return `https://www.sacred-texts.com/tarot/pkt/img/${prefix}${padded}.jpg`;
 };
 
-// --- GUEST MODAL COMPONENT (ĐÃ FIX CALLBACK URL CHO REGISTER) ---
+// --- GUEST MODAL COMPONENT ---
 const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const router = useRouter();
   if (!isOpen) return null;
@@ -67,7 +66,6 @@ const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         animate={{ scale: 1, y: 0 }} 
         className="max-w-md w-full bg-[#1a1025] border border-amber-500/30 rounded-[2rem] p-8 text-center shadow-2xl relative overflow-hidden"
       >
-        {/* Decor */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
         <div className="mx-auto w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mb-6 border border-amber-500/30">
           <Lock className="w-8 h-8 text-amber-400" />
@@ -79,7 +77,6 @@ const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         </p>
 
         <div className="space-y-3">
-          {/* NÚT ĐĂNG NHẬP */}
           <button 
             onClick={() => router.push("/login?callbackUrl=/booking")} 
             className="w-full py-3.5 bg-gradient-to-r from-amber-600 to-purple-600 hover:from-amber-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
@@ -87,7 +84,6 @@ const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             <LogIn className="w-4 h-4" /> Đăng Nhập
           </button>
           
-          {/* NÚT ĐĂNG KÝ (ĐÃ THÊM CALLBACK URL) */}
           <button 
             onClick={() => router.push("/register?callbackUrl=/booking")} 
             className="w-full py-3.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all"
@@ -113,6 +109,9 @@ export default function TarotDrawPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
 
+  // Fix Hydration: State to check if component is mounted
+  const [isMounted, setIsMounted] = useState(false);
+
   const [step, setStep] = useState<"topic" | "shuffling" | "picking" | "revealing" | "result">("topic");
   const [selectedTopic, setSelectedTopic] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState("");
@@ -130,9 +129,14 @@ export default function TarotDrawPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
 
-  useEffect(() => { dispatch(resetSession()); }, [dispatch]);
+  // Set isMounted to true on client side
+  useEffect(() => {
+    setIsMounted(true);
+    dispatch(resetSession());
+  }, [dispatch]);
 
   useEffect(() => {
+    if (!isMounted) return;
     const fetchTopics = async () => {
       try {
         const data = await TopicService.getAllTopics();
@@ -140,9 +144,10 @@ export default function TarotDrawPage() {
       } catch (error) { console.error(error); }
     };
     fetchTopics();
-  }, []);
+  }, [isMounted]);
 
   useEffect(() => {
+    if (!isMounted) return;
     const fetchQuestions = async () => {
       if (selectedTopicId) {
         setLoadingQuestions(true);
@@ -153,7 +158,7 @@ export default function TarotDrawPage() {
       }
     };
     fetchQuestions();
-  }, [selectedTopicId]);
+  }, [selectedTopicId, isMounted]);
 
   const handleLogoutClick = () => setShowLogoutModal(true);
   const handleConfirmLogout = () => { dispatch(logout()); router.push('/login'); };
@@ -181,7 +186,6 @@ export default function TarotDrawPage() {
     }
   };
 
-  // --- LOGIC CHỌN BÀI (TOGGLE) ---
   const handleToggleCard = (index: number) => {
     if (selectedIndices.includes(index)) {
       setSelectedIndices(prev => prev.filter(i => i !== index));
@@ -211,11 +215,8 @@ export default function TarotDrawPage() {
     handleStartDraw(); 
   };
 
-  // --- LOGIC SUBMIT CUỐI CÙNG ---
   const handleSubmitCards = () => {
     const finalCards = selectedIndices.map(idx => shuffledDeck[idx]);
-
-    // Redux Dispatch
     dispatch(resetSession());
     dispatch(setTopicAndQuestion({
       topic: selectedTopic || "",
@@ -234,7 +235,6 @@ export default function TarotDrawPage() {
       }));
     });
 
-    // Session Storage cho Guest
     const sessionData = {
         topic: selectedTopic,
         question: selectedQuestion,
@@ -247,9 +247,8 @@ export default function TarotDrawPage() {
     };
     sessionStorage.setItem("guestTarotSession", JSON.stringify(sessionData));
 
-    // Check Auth
     if (!user) {
-        setShowGuestModal(true); // Nếu chưa login -> Hiện Modal (có cả Login/Register)
+        setShowGuestModal(true);
     } else {
         router.push("/booking");
     }
@@ -263,6 +262,11 @@ export default function TarotDrawPage() {
     return <Sparkles className="w-5 h-5" />;
   };
 
+  // Pre-render check to avoid Hydration Error
+  if (!isMounted) {
+    return <div className="min-h-screen bg-[#050505]" />; 
+  }
+
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 font-sans overflow-hidden relative selection:bg-amber-500/30">
       <div className="fixed inset-0 pointer-events-none">
@@ -271,7 +275,6 @@ export default function TarotDrawPage() {
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
       </div>
 
-      {/* Chỉ hiện Logout nếu đã đăng nhập */}
       {user && (
         <div className="absolute top-4 right-4 z-50">
           <button onClick={handleLogoutClick} className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm shadow-lg font-bold">
@@ -284,7 +287,6 @@ export default function TarotDrawPage() {
         <div className="w-full max-w-7xl">
           <AnimatePresence mode="wait">
 
-            {/* BƯỚC 1: CHỌN CHỦ ĐỀ */}
             {step === "topic" && (
               <motion.div key="topic" className="bg-[#130823]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-8 shadow-2xl max-w-4xl mx-auto">
                 <div className="text-center mb-8">
@@ -319,7 +321,6 @@ export default function TarotDrawPage() {
               </motion.div>
             )}
 
-            {/* BƯỚC 2: XÀO BÀI */}
             {step === "shuffling" && (
               <motion.div key="shuffle" className="flex flex-col items-center justify-center h-[60vh] relative" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <div className="absolute w-96 h-96 bg-purple-600/10 rounded-full blur-[80px] animate-pulse"></div>
@@ -337,7 +338,6 @@ export default function TarotDrawPage() {
               </motion.div>
             )}
 
-            {/* BƯỚC 3: CHỌN BÀI (PICKING) & LẬT BÀI (REVEALING) */}
             {(step === "picking" || step === "revealing") && (
               <motion.div key="picking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center min-h-[85vh] justify-center pb-24">
                 <div className="text-center mb-6 sticky top-0 z-20 bg-[#050505]/95 backdrop-blur-md w-full py-4 border-b border-white/5">
@@ -387,7 +387,6 @@ export default function TarotDrawPage() {
                   })}
                 </div>
 
-                {/* THANH XÁC NHẬN CHUYỂN BƯỚC */}
                 {step === "picking" && selectedIndices.length === 3 && (
                     <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="fixed bottom-8 z-30">
                         <button 
@@ -401,7 +400,6 @@ export default function TarotDrawPage() {
               </motion.div>
             )}
 
-            {/* BƯỚC 5: KẾT QUẢ CUỐI CÙNG & SUBMIT */}
             {step === "result" && (
               <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10 max-w-4xl mx-auto pb-10">
                 <div className="text-center">
@@ -423,7 +421,6 @@ export default function TarotDrawPage() {
                   ))}
                 </div>
                 
-                {/* NÚT RÚT LẠI VÀ SUBMIT */}
                 <div className="relative mt-8 text-center flex flex-col md:flex-row gap-4 justify-center items-center relative z-20">
                     <button onClick={handleRedraw} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold rounded-2xl transition-all flex items-center gap-2 hover:scale-105">
                       <RefreshCw className="w-5 h-5" /> Rút lại bài khác
