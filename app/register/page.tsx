@@ -46,10 +46,10 @@ export default function RegisterPage() {
 
     try {
       // 1. Gọi Action đăng ký
-      const resultAction = await dispatch(registerUser({
+      const resultAction = dispatch(registerUser({
         username: formData.username,
         // QUAN TRỌNG: Phải dùng key là 'passwordHash' để khớp với AuthSlice và Type
-        passwordHash: formData.password, 
+        passwordHash: formData.password,
         email: formData.email,
         fullName: formData.fullName,
         birthDate: formData.birthDate,

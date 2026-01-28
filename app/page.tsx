@@ -89,7 +89,7 @@ export default function Home() {
                 <Moon className="w-8 h-8 text-amber-500 relative transition-transform group-hover:rotate-12" />
             </div>
             <span className="font-bold text-2xl text-white tracking-tighter">
-              Mystic<span className="text-amber-500">Tarot</span>
+              MysteryShack<span className="text-amber-500">Tarot</span>
             </span>
           </Link>
           

@@ -11,15 +11,49 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
+<<<<<<< HEAD
+=======
+    "/profile/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/profile/page.js"
+    ],
+>>>>>>> 94bdea413ae6da34901eff8e943f101c29478d30
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/login/page.js"
     ],
+<<<<<<< HEAD
+=======
+    "/tarot-draw/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/tarot-draw/page.js"
+    ],
+    "/booking/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/booking/page.js"
+    ],
+    "/booking/result/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/booking/result/page.js"
+    ],
+>>>>>>> 94bdea413ae6da34901eff8e943f101c29478d30
     "/readerdashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/readerdashboard/page.js"
+<<<<<<< HEAD
+=======
+    ],
+    "/readerdashboard/workspace/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/readerdashboard/workspace/[id]/page.js"
+>>>>>>> 94bdea413ae6da34901eff8e943f101c29478d30
     ]
   }
 }

@@ -1,5 +1,11 @@
 {
-  "/page": "app/page.js",
   "/readerdashboard/page": "app/readerdashboard/page.js",
+<<<<<<< HEAD
   "/login/page": "app/login/page.js"
+=======
+  "/booking/page": "app/booking/page.js",
+  "/login/page": "app/login/page.js",
+  "/booking/result/page": "app/booking/result/page.js",
+  "/readerdashboard/workspace/[id]/page": "app/readerdashboard/workspace/[id]/page.js"
+>>>>>>> 94bdea413ae6da34901eff8e943f101c29478d30
 }

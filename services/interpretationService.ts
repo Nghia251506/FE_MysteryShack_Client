@@ -38,6 +38,8 @@ export const InterpretationService = {
         `${API_URL}/customer/view/${sessionId}`, 
         getConfig()
     );
+    console.log("=== GET VIEW RESPONSE ===");
+    console.log(response.data);
     return response.data;
   }
 };

@@ -1,19 +1,24 @@
+
+export interface ReadingSessionDTO {
+    userId: number;
+}
 // types/readingSession.ts
 
 export interface CreateReadingSessionDTO {
     customerId: number;
     readerId: number;
-    questionId: number;
-    topicId: number;
-    selectedCards: { id: number; isReversed: boolean }[]; 
     note: string;
     birthDate?: string;
     amount: number;
     status: string;
+
 }
 
 export interface ReadingSession {
-    id: number;
+    querentName: string;
+    topic: string;
+    id(id: any, arg1: boolean): unknown;
+
     status: string;
     
     // --- CÁC TRƯỜNG PHẲNG (Flat fields) ---
@@ -21,8 +26,8 @@ export interface ReadingSession {
     fullName?: string;       
     questionName?: string;   
     birthDate?: string | number[]; // Có thể là null, chuỗi, hoặc mảng ngày
-    note?: string;
     createdAt?: string;
+    matchedAt?: Date;
 
     // --- CÁC TRƯỜNG LỒNG NHAU (Nested Objects) ---
     // Giữ lại để dự phòng nếu backend trả về object đầy đủ
@@ -39,3 +44,4 @@ export interface ReadingSession {
     // Selected Cards
     selectedCards: any; 
 }
+
