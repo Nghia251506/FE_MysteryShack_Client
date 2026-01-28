@@ -4,27 +4,19 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
-import { setTopicAndQuestion } from "@/store/slices/tarotSlice";
+// Đảm bảo đường dẫn import đúng với project của bạn
+import { setTopicAndQuestion } from "@/store/slices/tarotSlice"; 
+import { RootState } from "@/store/store";
+import { UserService } from '@/services/userService';
+import { setMatchedReader } from '@/store/slices/userSlice';
 
 import {
   User, Calendar, Sparkles, Zap, Heart, Briefcase, Wallet, Search,
-  ArrowRight, Star, ShieldCheck, Radar, CheckCircle2, Home,
-  RefreshCw
+  ArrowRight, Star, CheckCircle2, Home, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { RootState } from "@/store/store";
-import { UserService } from '@/services/userService';
-import { setLoading, setMatchedReader } from '@/store/slices/userSlice';
 
-// --- HELPERS ---
-const getCardFallback = (id: number) => {
-  const safeId = Number(id);
-  return {
-    name: `Lá bài #${safeId}`,
-    img: `https://www.sacred-texts.com/tarot/pkt/img/ar${String(safeId).padStart(2, '0')}.jpg`
-  };
-};
-
+// --- HELPER FUNCTION ---
 const formatDateForInput = (dateVal: any) => {
   if (!dateVal) return "";
   if (Array.isArray(dateVal)) {
@@ -56,77 +48,62 @@ const QUESTIONS: Record<string, string[]> = {
   finance: ["Tình hình tài chính tháng tới?", "Cơ hội đầu tư sinh lời?", "Vận may tiền bạc sắp tới?", "Tôi có nên mua tài sản lớn?"]
 };
 
-const MATCHED_READER = {
-  id: "reader-99", dbId: 99, name: "Grand Master Giang",
-  avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-  rating: 5.0, reviews: "2.5k+", tags: ["Tarot", "Chiêm Tinh", "Reiki"],
-  matchScore: 98, status: "Vừa online 1 phút trước",
-  bio: "Chuyên gia chữa lành với 7 năm kinh nghiệm. Dẫn lối bạn bằng ánh sáng của sự thật."
-};
+// --- COMPONENT: MODAL THÔNG BÁO ---
+const NotificationModal = ({ isOpen, type, message, onClose, onConfirm, confirmText }: any) => {
+    if (!isOpen) return null;
+    
+    const isSuccess = type === 'success';
+    const Icon = isSuccess ? CheckCircle2 : AlertTriangle;
+    const colorClass = isSuccess ? "text-green-500" : "text-amber-500";
+    const bgClass = isSuccess ? "bg-green-500/10 border-green-500/50" : "bg-amber-500/10 border-amber-500/50";
+    const buttonClass = isSuccess ? "bg-green-600 hover:bg-green-500" : "bg-amber-600 hover:bg-amber-500";
 
-const REVIEWS = [
-  { id: 1, user: "Minh Anh", comment: "Reader giải bài rất tận tâm.", stars: 5 },
-  { id: 2, user: "Hoàng Nam", comment: "Năng lượng rất tích cực!", stars: 5 },
-  { id: 3, user: "Thùy Chi", comment: "Rất đúng với hoàn cảnh của mình.", stars: 4 }
-];
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="max-w-sm w-full bg-[#1a1025] border border-white/10 rounded-[2rem] p-8 text-center shadow-2xl relative">
+                <div className={`mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-6 border-2 ${bgClass} ${colorClass}`}>
+                    <Icon className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">{isSuccess ? "Thành Công!" : "Thông Báo"}</h3>
+                <p className="text-slate-400 text-sm mb-8">{message}</p>
+                <button onClick={onConfirm || onClose} className={`w-full py-3.5 ${buttonClass} text-white font-bold rounded-xl transition-all shadow-lg hover:scale-[1.02]`}>
+                    {confirmText || "Đóng"}
+                </button>
+            </motion.div>
+        </motion.div>
+    );
+};
 
 export default function BookingRequestPage() {
   const router = useRouter();
-  const dispatch = useDispatch<any>();
+  const dispatch = useDispatch();
+  
+  // Redux
   const { drawnCards, topic, question } = useSelector((state: any) => state.tarot);
-  const { user, token } = useSelector((state: any) => state.auth);
-
-  const session = { drawnCards, topic, question, userName: user?.fullName, birthDate: user?.birthDate };
+  const { user, token } = useSelector((state: RootState) => state.auth);
+  
   const { matchedReader } = useSelector((state: any) => state.user);
+  const { topicId, questionId } = useSelector((state: any) => state.tarot);
 
+  const session = { drawnCards, topic, question };
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [scanStatus, setScanStatus] = useState("Đang kết nối vệ tinh tâm linh...");
   const [progress, setProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false); // Pop-up thành công
-  const { topicId, questionId } = useSelector((state: any) => state.tarot);
-
-  const handleMatchReader = async () => {
-    setStep(3); // Chuyển sang màn hình scanning
-    setProgress(0);
-    setScanStatus("Đang kết nối vệ tinh tâm linh...");
-
-    // Bắt đầu chạy progress giả lập cho đẹp
-    const timer = setInterval(() => {
-      setProgress(prev => (prev >= 90 ? 90 : prev + 2));
-    }, 50);
-
-    try {
-      // GỌI API THỰC TẾ: Loại trừ reader cũ nếu có
-      const reader = await UserService.getRandomTopReader(matchedReader?.id);
-
-      // Giả lập một chút độ trễ để người dùng thấy hiệu ứng scan
-      setTimeout(() => {
-        clearInterval(timer);
-        setProgress(100);
-        dispatch(setMatchedReader(reader)); // Lưu vào Redux
-        setStep(4);
-      }, 1500);
-
-    } catch (err) {
-      console.error("Lỗi match reader:", err);
-      setScanStatus("Không tìm thấy Reader, vui lòng thử lại.");
-      clearInterval(timer);
-    }
-  };
+  
+  // State for Notification Modal
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, type: 'info', message: '', onConfirm: null as any });
 
   const [formData, setFormData] = useState({
     name: "",
     dob: "",
-    topic: 0,
-    question: 0
+    topic: "",
+    question: ""
   });
 
-  const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => setIsMounted(true), []);
-
+  // --- 1. INITIALIZATION ---
   useEffect(() => {
     if (user) {
       setFormData(prev => ({
@@ -137,7 +114,7 @@ export default function BookingRequestPage() {
     }
   }, [user]);
 
-  // 4. Logic chuyển bước UI
+  // Handle Step Logic based on Redux data
   useEffect(() => {
     if (step === 1 && session.drawnCards.length > 0) {
       setFormData(prev => ({ ...prev, topic: session.topic || prev.topic, question: session.question || prev.question }));
@@ -145,7 +122,7 @@ export default function BookingRequestPage() {
     }
   }, [session.drawnCards.length, session.topic, session.question, step]);
 
-  // Hàm hiển thị thông báo thay cho alert()
+  // --- 2. HANDLERS ---
   const showAlert = (message: string) => {
       setModalConfig({
           isOpen: true,
@@ -156,33 +133,39 @@ export default function BookingRequestPage() {
   };
 
   const handleNextStep = () => {
-    if (step === 1 && (!formData.topic || !formData.question)) return alert("Vui lòng chọn chủ đề và câu hỏi");
-    if (step === 2 && (!formData.name || !formData.dob)) return alert("Vui lòng nhập họ tên và ngày sinh");
+    if (step === 1 && (!formData.topic || !formData.question)) return showAlert("Vui lòng chọn chủ đề và câu hỏi.");
+    if (step === 2 && !formData.name) return showAlert("Vui lòng nhập họ tên.");
     if (step === 2) {
-      setStep(3);
+      handleMatchReader();
     }
     else if (step < 4) setStep(prev => (prev + 1) as 1 | 2 | 3 | 4);
   };
 
-  // 5. Hiệu ứng tìm Reader
-  useEffect(() => {
-    if (step === 3) {
-      const stages = ["Đang phân tích...", "Kết nối vũ trụ...", "Tìm kiếm Reader...", "Đã tìm thấy!"];
-      let currentStage = 0;
-      const interval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) { clearInterval(interval); setTimeout(() => setStep(4), 800); return 100; }
-          if (prev > 25 && currentStage === 0) { setScanStatus(stages[1]); currentStage++; }
-          if (prev > 50 && currentStage === 1) { setScanStatus(stages[2]); currentStage++; }
-          if (prev > 85 && currentStage === 2) { setScanStatus(stages[3]); currentStage++; }
-          return prev + 1;
-        });
-      }, 30);
-      return () => clearInterval(interval);
-    }
-  }, [step]);
+  const handleMatchReader = async () => {
+    setStep(3);
+    setProgress(0);
+    setScanStatus("Đang kết nối vệ tinh tâm linh...");
 
-  // 6. Gửi Booking (Sử dụng ID Reader thật + Popup Thành công)
+    const timer = setInterval(() => {
+      setProgress(prev => (prev >= 90 ? 90 : prev + 2));
+    }, 50);
+
+    try {
+      const reader = await UserService.getRandomTopReader(matchedReader?.id);
+      setTimeout(() => {
+        clearInterval(timer);
+        setProgress(100);
+        dispatch(setMatchedReader(reader));
+        setStep(4);
+      }, 1500);
+    } catch (err) {
+      console.error("Match Reader Error:", err);
+      setScanStatus("Không tìm thấy Reader, vui lòng thử lại.");
+      clearInterval(timer);
+    }
+  };
+
+  // --- 3. CREATE BOOKING (CÓ AUTO REDIRECT) ---
   const handleCreateBooking = async () => {
     if (!user || !token) {
       if (confirm("Phiên đăng nhập hết hạn. Đi đến trang đăng nhập?")) router.push("/login");
@@ -191,7 +174,6 @@ export default function BookingRequestPage() {
 
     setIsSubmitting(true);
 
-    // Chuẩn bị payload (giữ nguyên logic cũ của bạn)
     const topicIdMap: Record<string, number> = { "love": 1, "career": 2, "finance": 3 };
     const currentTopicId = topicIdMap[formData.topic] || 1;
     const questionIdToSend = QUESTION_DB_MAP[formData.question] || 1;
@@ -207,8 +189,8 @@ export default function BookingRequestPage() {
     const payload = {
       customerId: user.id,
       readerId: matchedReader.id,
-      question: questionId,
-      topic: currentTopicId,
+      question: questionId || questionIdToSend, // Use ID from Redux if available
+      topic: topicId || currentTopicId,
       selectedCards: cardsPayload,
       status: "PENDING",
       amount: 50000,
@@ -217,21 +199,32 @@ export default function BookingRequestPage() {
     };
 
     try {
-      const response = await axios.post(
+      await axios.post(
         'http://localhost:8080/api/v1/sessions',
         payload,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
 
-      // LẤY ID TỪ BACKEND VÀ REDIRECT
-      const newSessionId = response.data.id;
-      if (newSessionId) {
-        router.push(`/booking/result?sessionId=${newSessionId}`);
-      } else {
-        setShowSuccessModal(true);
-      }
+      // --- XỬ LÝ THÀNH CÔNG ---
+      // 1. Hiện Modal thông báo
+      setModalConfig({
+          isOpen: true,
+          type: 'success',
+          message: 'Yêu cầu của bạn đã được gửi thành công! Đang chuyển hướng đến hồ sơ...',
+          // Nút bấm vẫn cho phép redirect ngay lập tức
+          onConfirm: () => router.push("/profile"), 
+          confirmText: "Đến trang Hồ sơ ngay"
+      });
+
+      // 2. Tự động chuyển hướng sau 1.5s
+      setTimeout(() => {
+          router.push("/profile");
+      }, 1500);
+
     } catch (error: any) {
-      alert(`Thất bại: ${error.response?.data?.message || "Lỗi kết nối server"}`);
+      console.error("Booking Error:", error);
+      const msg = error.response?.data?.message || "Lỗi kết nối server";
+      showAlert(`Gửi thất bại: ${msg}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -240,7 +233,7 @@ export default function BookingRequestPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 font-sans overflow-hidden relative selection:bg-amber-500/30 flex items-center justify-center p-4">
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-purple-900/20 rounded-full blur-[120px] animate-pulse-slow" />
+        <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-purple-900/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-amber-900/10 rounded-full blur-[100px]" />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
       </div>
@@ -248,7 +241,7 @@ export default function BookingRequestPage() {
       <div className="w-full max-w-6xl relative z-10">
         <AnimatePresence mode="wait">
           
-          {/* STEP 1: CHỌN CHỦ ĐỀ */}
+          {/* STEP 1 */}
           {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               <div className="lg:col-span-4 flex flex-col justify-center space-y-4">
@@ -256,155 +249,105 @@ export default function BookingRequestPage() {
                 <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">Bạn đang <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400">trăn trở</span> về điều gì?</h1>
               </div>
               <div className="lg:col-span-8 space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {TOPICS.map(t => (
-                    <button key={t.id} onClick={() => setFormData(prev => ({ ...prev, topic: topicId, question: questionId }))} className={`relative group p-5 rounded-2xl border text-left transition-all duration-300 overflow-hidden ${formData.topic === topicId ? `bg-gradient-to-b ${t.color} border-transparent shadow-lg transform -translate-y-1` : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
-                      {formData.topic !== topicId && <div className={`absolute inset-0 bg-gradient-to-br ${t.color} opacity-0 group-hover:opacity-10 transition-opacity`} />}
-                      <div className={`mb-3 p-3 rounded-xl w-fit ${formData.topic === topicId ? 'bg-black/20 text-white' : `${t.bg} text-slate-300`}`}>{t.icon}</div>
-                      <h3 className={`font-bold text-lg mb-1 ${formData.topic === topicId ? 'text-white' : 'text-slate-200'}`}>{t.label}</h3>
-                      <p className={`text-xs ${formData.topic === topicId ? 'text-white/80' : 'text-slate-500'}`}>{t.desc}</p>
-                    </button>
-                  ))}
-                </div>
-                <AnimatePresence>
-                  {formData.topic && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-[#130823]/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl overflow-hidden">
-                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Câu hỏi cụ thể</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {QUESTIONS[formData.topic]?.map((q, i) => (
-                          <label key={i} className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${formData.question === questionId ? 'bg-purple-600/20 border-purple-500' : 'bg-black/20 border-white/5 hover:bg-white/5'}`}>
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${formData.question === questionId ? 'border-purple-500' : 'border-slate-600'}`}>{formData.question === questionId && <div className="w-2.5 h-2.5 bg-purple-500 rounded-full" />}</div>
-                            <input type="radio" className="hidden" checked={formData.question === questionId} onChange={() => setFormData(prev => ({ ...prev, question: questionId }))} />
-                            <span className={`text-sm ${formData.question === questionId ? 'text-white font-medium' : 'text-slate-400'}`}>{q}</span>
-                          </label>
-                        ))}
-                      </div>
-                      <div className="mt-6 flex justify-end">
-                        <button
-                          onClick={handleNextStep}
-                          disabled={!formData.question}
-                          className="px-8 py-3 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(147,51,234,0.3)] hover:shadow-[0_0_25px_rgba(147,51,234,0.5)] hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50 disabled:hover:scale-100"
-                        >
-                          Tiếp theo <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 2: NHẬP THÔNG TIN */}
-          {step === 2 && (
-            <motion.div key="step2" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className={`mx-auto ${session.drawnCards.length > 0 ? 'grid grid-cols-1 lg:grid-cols-12 gap-8' : 'max-w-2xl'}`}>
-              {session.drawnCards.length > 0 && (
-                <div className="lg:col-span-5 flex flex-col justify-center order-2 lg:order-1">
-                  <div className="bg-[#1a1025]/60 p-6 rounded-[2rem] border border-white/10">
-                    <h3 className="text-white font-bold mb-4 italic">Trải bài đã chọn</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                      {session.drawnCards.map((c: any, i: number) => (
-                        <div key={i} className="space-y-2 group">
-                          <div className="aspect-[2/3.2] bg-black/50 rounded-xl border border-white/10 overflow-hidden relative shadow-lg">
-                            <img
-                              // Đảm bảo c.img hoặc c.image_url khớp với dữ liệu từ Redux
-                              src={c.img || c.imageUrl}
-                              className={`w-full h-full object-cover transition-transform duration-500 
-                      ${c.isReversed ? 'rotate-180' : ''}`} // Xử lý ngược bài ở đây
-                              alt="card"
-                            />
-                            {/* Overlay nhận biết bài ngược */}
-                            {c.reversed && (
-                              <div className="absolute top-1 right-1 bg-rose-500/80 rounded-full p-1">
-                                <RefreshCw className="w-3 h-3 text-white" />
-                              </div>
-                            )}
-                          </div>
-                          <p className="text-[8px] text-center text-slate-500 uppercase font-bold truncate">
-                            {c.name}
-                          </p>
+                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {TOPICS.map(t => (
+                       <button key={t.id} onClick={() => setFormData(prev => ({ ...prev, topic: t.id, question: "" }))} className={`relative group p-5 rounded-2xl border text-left transition-all duration-300 overflow-hidden ${formData.topic === t.id ? `bg-gradient-to-b ${t.color} border-transparent shadow-lg transform -translate-y-1` : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+                          <div className={`mb-3 p-3 rounded-xl w-fit ${formData.topic === t.id ? 'bg-black/20 text-white' : `${t.bg} text-slate-300`}`}>{t.icon}</div>
+                          <h3 className={`font-bold text-lg mb-1 ${formData.topic === t.id ? 'text-white' : 'text-slate-200'}`}>{t.label}</h3>
+                       </button>
+                    ))}
+                 </div>
+                 <AnimatePresence>
+                   {formData.topic && (
+                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="bg-[#130823]/60 border border-white/10 rounded-2xl p-6 backdrop-blur-xl overflow-hidden">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                           {QUESTIONS[formData.topic]?.map((q, i) => (
+                              <label key={i} className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${formData.question === q ? 'bg-purple-600/20 border-purple-500' : 'bg-black/20 border-white/5 hover:bg-white/5'}`}>
+                                 <input type="radio" className="hidden" checked={formData.question === q} onChange={() => setFormData(prev => ({...prev, question: q}))} />
+                                 <span className={`text-sm ${formData.question === q ? 'text-white font-medium' : 'text-slate-400'}`}>{q}</span>
+                              </label>
+                           ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div className={`${session.drawnCards.length > 0 ? 'lg:col-span-7 order-1 lg:order-2' : 'w-full'}`}>
-                <div className="bg-[#130823]/80 border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden">
-                  <button onClick={() => setStep(1)} className="text-xs text-slate-500 mb-6 font-bold">← Quay lại</button>
-                  <h2 className="text-3xl font-bold text-white mb-6">Thông tin của bạn</h2>
-                  <div className="space-y-6">
-                    <div>
-                      <label className="text-xs font-bold text-slate-400 uppercase">Họ và tên</label>
-                      <div className="relative group mt-2">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                        <input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none focus:border-amber-500 transition-colors" placeholder="VD: Nguyễn Văn A" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-slate-400 uppercase">Ngày sinh</label>
-                      <div className="relative group mt-2">
-                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                        <input type="date" value={formData.dob} onChange={e => setFormData({ ...formData, dob: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none focus:border-amber-500 transition-colors" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-8">
-                    <button
-                      onClick={handleMatchReader}
-                      className="w-full py-4 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:scale-[1.02] transition-all"
-                    >
-                      <Sparkles className="w-5 h-5" /> Tìm Reader Ngay
-                    </button>
-                  </div>
-                </div>
+                        <div className="mt-6 flex justify-end">
+                            <button onClick={handleNextStep} disabled={!formData.question} className="px-8 py-3 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold rounded-xl hover:scale-105 transition-all">Tiếp theo <ArrowRight className="w-4 h-4 ml-2" /></button>
+                        </div>
+                     </motion.div>
+                   )}
+                 </AnimatePresence>
               </div>
             </motion.div>
           )}
 
-          {/* STEP 3: SCANNING */}
+          {/* STEP 2 */}
+          {step === 2 && (
+             <motion.div key="step2" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className={`mx-auto ${session.drawnCards.length > 0 ? 'grid grid-cols-1 lg:grid-cols-12 gap-8' : 'max-w-2xl'}`}>
+                {session.drawnCards.length > 0 && (
+                   <div className="lg:col-span-5 order-2 lg:order-1">
+                      <div className="bg-[#1a1025]/60 p-6 rounded-[2rem] border border-white/10">
+                          <h3 className="text-white font-bold mb-4">Trải bài đã chọn</h3>
+                          <div className="grid grid-cols-3 gap-2">
+                             {session.drawnCards.map((c: any, i: number) => (
+                               <div key={i} className="aspect-[2/3] bg-black/50 rounded border border-white/10 overflow-hidden relative">
+                                  <img src={c.img || c.imageUrl} className={`w-full h-full object-cover ${c.reversed ? 'rotate-180' : ''}`} alt="card"/>
+                                  {c.reversed && <div className="absolute top-1 right-1 text-[8px] bg-red-600 text-white px-1 rounded">REV</div>}
+                               </div>
+                             ))}
+                          </div>
+                      </div>
+                   </div>
+                )}
+                <div className={`${session.drawnCards.length > 0 ? 'lg:col-span-7 order-1 lg:order-2' : 'w-full'}`}>
+                    <div className="bg-[#130823]/80 border border-white/10 rounded-[2.5rem] p-8 relative">
+                       <button onClick={() => setStep(1)} className="text-xs text-slate-500 mb-6 font-bold hover:text-white transition-colors">← Quay lại</button>
+                       <h2 className="text-3xl font-bold text-white mb-6">Thông tin của bạn</h2>
+                       <div className="space-y-6">
+                          <div><label className="text-xs font-bold text-slate-400 uppercase">Họ và tên</label><div className="relative group mt-2"><User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" /><input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none"/></div></div>
+                          <div><label className="text-xs font-bold text-slate-400 uppercase">Ngày sinh</label><div className="relative group mt-2"><Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" /><input type="date" value={formData.dob} onChange={e => setFormData({...formData, dob: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none"/></div></div>
+                       </div>
+                       <div className="mt-8">
+                           <button onClick={handleNextStep} className="w-full py-4 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2"><Sparkles className="w-5 h-5" /> Tìm Reader Ngay</button>
+                       </div>
+                    </div>
+                </div>
+             </motion.div>
+          )}
+
+          {/* STEP 3 */}
           {step === 3 && (
-            <motion.div key="step3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-[60vh]">
-              <div className="relative w-64 h-64 flex items-center justify-center mb-10">
-                <div className="absolute inset-0 border border-amber-500/20 rounded-full"></div>
-                <div className="absolute inset-4 border border-amber-500/10 rounded-full"></div>
-                <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0_deg,transparent_270deg,rgba(245,158,11,0.3)_360deg)] animate-[spin_3s_linear_infinite]"></div>
-                <div className="relative z-10 w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.5)] animate-pulse">
-                  <Zap className="w-8 h-8 text-amber-400" />
+             <motion.div key="step3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-[60vh]">
+                <div className="relative w-64 h-64 flex items-center justify-center mb-10">
+                    <div className="absolute inset-0 border border-amber-500/20 rounded-full"></div>
+                    <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0_deg,transparent_270deg,rgba(245,158,11,0.3)_360deg)] animate-[spin_3s_linear_infinite]"></div>
+                    <div className="relative z-10 w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.5)] animate-pulse"><Zap className="w-8 h-8 text-amber-400" /></div>
                 </div>
-                <div className="absolute inset-0 rounded-full border border-amber-500/30 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
-              </div>
-              <h2 className="text-2xl font-bold text-amber-200 animate-pulse text-center mb-2">{scanStatus}</h2>
-              <div className="w-64 h-1.5 bg-slate-800 rounded-full mt-4 overflow-hidden border border-slate-700">
-                <motion.div className="h-full bg-gradient-to-r from-amber-500 to-purple-500" style={{ width: `${progress}%` }} />
-              </div>
-            </motion.div>
+                <h2 className="text-2xl font-bold text-amber-200 animate-pulse text-center mb-2">{scanStatus}</h2>
+                <div className="w-64 h-1.5 bg-slate-800 rounded-full mt-4 overflow-hidden border border-slate-700"><motion.div className="h-full bg-gradient-to-r from-amber-500 to-purple-500" style={{ width: `${progress}%` }} /></div>
+             </motion.div>
           )}
 
-          {/* STEP 4: GIAO DIỆN CHUẨN CŨ (Đã kết nối Data thật) */}
+          {/* STEP 4 */}
           {step === 4 && (
-            <motion.div key="step4" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl mx-auto bg-[#1a0f2e]/90 border border-amber-500/30 rounded-[2.5rem] p-8 text-center shadow-[0_0_100px_rgba(168,85,247,0.15)]">
-              <div className="w-32 h-32 mx-auto rounded-full p-1 bg-gradient-to-br from-amber-400 via-purple-500 to-amber-400 mb-6 relative">
-                <img src={matchedReader?.profilePicture || "/default-avatar.png"} className="w-full h-full rounded-full border-4 border-[#130823] object-cover" alt="Reader" />
-                <div className="absolute bottom-2 right-2 bg-green-500 border-4 border-[#130823] w-7 h-7 rounded-full flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                </div>
-              </div>
-              <h2 className="text-4xl font-bold text-white mb-2">{matchedReader?.fullName}</h2>
-              <div className="flex justify-center gap-3 mb-6">
-                <div className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold flex items-center gap-1"><Star className="w-3 h-3 fill-current" /> {matchedReader?.rating || "5.0"}</div>
-                <div className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold">{95 + (matchedReader?.eloScore % 5)}% Tương thích</div>
-              </div>
-              <div className="bg-slate-900/50 rounded-xl p-6 mb-8 text-left max-w-xl mx-auto border border-slate-700/50">
-                <p className="text-xs text-slate-500 uppercase font-bold mb-2">Câu hỏi:</p>
-                <p className="text-white italic text-lg">"{session.question}"</p>
-              </div>
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <button onClick={() => setShowProfile(true)} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-2xl font-medium transition-all backdrop-blur-sm">Xem hồ sơ</button>
-                <button onClick={() => { setStep(3); setProgress(0); }} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/30 text-slate-300 hover:text-amber-400 rounded-2xl font-medium transition-all flex items-center justify-center gap-2"><Search className="w-4 h-4" /> Đổi Reader</button>
-                <button onClick={handleCreateBooking} disabled={isSubmitting} className="px-10 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] hover:-translate-y-1 transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:transform-none">{isSubmitting ? "Đang gửi..." : "Gửi câu hỏi"} <ArrowRight className="w-5 h-5" /></button>
-              </div>
-            </motion.div>
+             <motion.div key="step4" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl mx-auto bg-[#1a0f2e]/90 border border-amber-500/30 rounded-[2.5rem] p-8 text-center shadow-2xl">
+                  <div className="w-32 h-32 mx-auto rounded-full p-1 bg-gradient-to-br from-amber-400 via-purple-500 to-amber-400 mb-6 relative">
+                      <img src={matchedReader?.profilePicture || "/default-avatar.png"} className="w-full h-full rounded-full border-4 border-[#130823] object-cover" alt="Reader" />
+                  </div>
+                  <h2 className="text-4xl font-bold text-white mb-2">{matchedReader?.fullName}</h2>
+                  <div className="flex justify-center gap-3 mb-6">
+                      <div className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold flex items-center gap-1"><Star className="w-3 h-3 fill-current"/> {matchedReader?.rating}</div>
+                      <div className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold">{matchedReader?.matchScore || 98}% Tương thích</div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl p-6 mb-8 text-left max-w-xl mx-auto border border-slate-700/50">
+                      <p className="text-xs text-slate-500 uppercase font-bold mb-2">Câu hỏi:</p>
+                      <p className="text-white italic text-lg">"{session.question}"</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row justify-center gap-4">
+                     <button onClick={() => setShowProfile(true)} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-2xl font-medium transition-all">Xem hồ sơ</button>
+                     <button onClick={() => { setStep(3); setProgress(0); }} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-2xl font-medium transition-all flex items-center justify-center gap-2"><Search className="w-4 h-4" /> Đổi Reader</button>
+                     <button onClick={handleCreateBooking} disabled={isSubmitting} className="px-10 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-2xl shadow-lg hover:-translate-y-1 transition-all flex items-center justify-center gap-3 disabled:opacity-70">
+                        {isSubmitting ? "Đang gửi..." : "Gửi câu hỏi"} <ArrowRight className="w-5 h-5" />
+                     </button>
+                  </div>
+             </motion.div>
           )}
         </AnimatePresence>
 
@@ -412,77 +355,35 @@ export default function BookingRequestPage() {
         <AnimatePresence>
           {showProfile && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="relative w-full max-w-2xl bg-[#130823] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
-                <div className="h-32 bg-gradient-to-r from-purple-900 to-amber-900 relative"><button onClick={() => setShowProfile(false)} className="absolute top-6 right-6 w-10 h-10 bg-black/20 hover:bg-black/40 rounded-full flex items-center justify-center text-white transition-colors">✕</button></div>
-                <div className="px-8 pb-8 -mt-12 relative">
-                  <div className="flex flex-col md:flex-row gap-6 items-end mb-8"><img src={MATCHED_READER.avatar} className="w-32 h-32 rounded-3xl border-4 border-[#130823] shadow-xl object-cover" alt="Avatar" /><div className="flex-1 pb-2"><h3 className="text-3xl font-bold text-white">{MATCHED_READER.name}</h3><div className="flex gap-2 mt-2">{MATCHED_READER.tags.map(tag => (<span key={tag} className="text-[10px] uppercase tracking-wider bg-white/5 border border-white/10 px-2 py-1 rounded text-slate-400">{tag}</span>))}</div></div></div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center"><p className="text-amber-400 font-bold text-xl">{MATCHED_READER.rating}</p><p className="text-[10px] text-slate-500 uppercase">Sao đánh giá</p></div>
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center"><p className="text-purple-400 font-bold text-xl">{MATCHED_READER.reviews}</p><p className="text-[10px] text-slate-500 uppercase">Lượt xem</p></div>
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center"><p className="text-green-400 font-bold text-xl">Online</p><p className="text-[10px] text-slate-500 uppercase">Trạng thái</p></div>
-                  </div>
-                  <div className="space-y-4"><h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Star className="w-4 h-4 text-amber-500 fill-amber-500" /> Đánh giá từ khách hàng</h4><div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">{REVIEWS.map(rev => (<div key={rev.id} className="bg-white/5 p-4 rounded-xl border border-white/5"><div className="flex justify-between items-center mb-1"><span className="text-sm font-bold text-slate-200">{rev.user}</span><div className="flex gap-0.5">{[...Array(rev.stars)].map((_, i) => (<Star key={i} className="w-3 h-3 text-amber-500 fill-amber-500" />))}</div></div><p className="text-sm text-slate-400 italic">"{rev.comment}"</p></div>))}</div></div>
-                  <button onClick={() => { setShowProfile(false); handleCreateBooking(); }} className="w-full mt-8 py-4 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:opacity-90 transition-opacity">Kết nối ngay với {MATCHED_READER.name}</button>
-                </div>
-              </motion.div>
+               <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="relative w-full max-w-2xl bg-[#130823] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                 <div className="h-32 bg-gradient-to-r from-purple-900 to-amber-900 relative"><button onClick={() => setShowProfile(false)} className="absolute top-6 right-6 w-10 h-10 bg-black/20 hover:bg-black/40 rounded-full flex items-center justify-center text-white transition-colors">✕</button></div>
+                 <div className="px-8 pb-8 -mt-12 relative">
+                    <div className="flex flex-col md:flex-row gap-6 items-end mb-8"><img src={matchedReader?.profilePicture || "/default-avatar.png"} className="w-32 h-32 rounded-3xl border-4 border-[#130823] shadow-xl object-cover" alt="Avatar" /><div className="flex-1 pb-2"><h3 className="text-3xl font-bold text-white">{matchedReader?.fullName}</h3></div></div>
+                    <button onClick={() => { setShowProfile(false); handleCreateBooking(); }} className="w-full mt-4 py-4 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold rounded-xl shadow-lg">Kết nối ngay</button>
+                 </div>
+               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* --- POP-UP THÔNG BÁO MỚI (CHUNG CHO SUCCESS VÀ ERROR) --- */}
+        {/* --- NOTIFICATION MODAL --- */}
         <AnimatePresence>
-          {showSuccessModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.8, y: 50, opacity: 0 }}
-                animate={{ scale: 1, y: 0, opacity: 1 }}
-                exit={{ scale: 0.8, y: 50, opacity: 0 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="relative max-w-sm w-full bg-gradient-to-b from-[#1a1025] to-[#0a0510] border border-amber-500/30 rounded-[2.5rem] p-10 text-center shadow-[0_0_50px_rgba(245,158,11,0.2)]"
-              >
-                {/* Icon Circle */}
-                <div className="mx-auto w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-700 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(16,185,129,0.4)]">
-                  <CheckCircle2 className="w-10 h-10 text-white" />
-                </div>
-
-                <h3 className="text-2xl font-bold text-white mb-2">Thành Công!</h3>
-                <p className="text-slate-400 text-sm leading-relaxed mb-8">
-                  Yêu cầu của bạn đã được gửi đến vũ trụ. Reader sẽ sớm phản hồi câu hỏi của bạn.
-                </p>
-
-                <div className="space-y-3">
-                  <button
-                    onClick={() => router.push("/profile")}
-                    className="w-full py-4 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 transition-all"
-                  >
-                    Xem lịch sử <ArrowRight className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    onClick={() => router.push("/")}
-                    className="w-full py-4 bg-white/5 border border-white/10 text-slate-300 hover:text-white rounded-2xl font-medium transition-all flex items-center justify-center gap-2"
-                  >
-                    <Home className="w-4 h-4" /> Về trang chủ
-                  </button>
-                </div>
-
-                {/* Decorative Elements */}
-                <div className="absolute top-4 left-4 opacity-10"><Sparkles className="w-6 h-6 text-amber-500" /></div>
-                <div className="absolute bottom-4 right-4 opacity-10"><Sparkles className="w-6 h-6 text-purple-500" /></div>
-              </motion.div>
-            </motion.div>
-          )}
+            <NotificationModal 
+                isOpen={modalConfig.isOpen} 
+                type={modalConfig.type} 
+                message={modalConfig.message} 
+                onClose={() => {
+                    setModalConfig({ ...modalConfig, isOpen: false });
+                    // Chỉ redirect nếu đó là thông báo success và người dùng bấm Đóng (nếu chưa bấm confirm)
+                    if (modalConfig.type === 'success') {
+                       // Không cần làm gì vì đã có auto redirect hoặc nút confirm
+                    }
+                }}
+                onConfirm={modalConfig.onConfirm}
+                confirmText={modalConfig.type === 'success' ? "Đến Hồ Sơ Ngay" : "Đóng"}
+            />
         </AnimatePresence>
       </div>
     </div>
   );
-}
-
-function setModalConfig(arg0: { isOpen: boolean; type: string; message: string; onConfirm: () => any; }) {
-  throw new Error("Function not implemented.");
 }

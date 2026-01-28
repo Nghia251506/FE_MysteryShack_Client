@@ -5,14 +5,31 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Moon, Eye, EyeOff, Loader2, Sparkles, User, Mail, Lock, AlertCircle, UserCircle, Calendar } from 'lucide-react';
+import { Moon, Eye, EyeOff, Loader2, Sparkles, User, Mail, Lock, AlertCircle, UserCircle, Calendar, CheckCircle2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion'; // Thêm thư viện animation
 
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { registerUser, loginSuccess } from '@/store/features/authSlice'; 
+
+// --- COMPONENT TOAST NHỎ ---
+const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0, y: -20, x: 20 }}
+    animate={{ opacity: 1, y: 0, x: 0 }}
+    exit={{ opacity: 0, y: -20, x: 20 }}
+    className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl backdrop-blur-md border border-white/10 ${
+      type === 'success' ? 'bg-green-900/90 text-green-100' : 'bg-red-900/90 text-red-100'
+    }`}
+  >
+    {type === 'success' ? <CheckCircle2 className="w-5 h-5 text-green-400" /> : <AlertCircle className="w-5 h-5 text-red-400" />}
+    <span className="text-sm font-medium">{message}</span>
+    <button onClick={onClose} className="ml-2 p-1 hover:bg-white/10 rounded-full transition-colors"><X className="w-4 h-4" /></button>
+  </motion.div>
+);
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,11 +37,14 @@ export default function RegisterPage() {
   const callbackUrl = searchParams.get("callbackUrl") || "/profile";
 
   const dispatch = useDispatch<AppDispatch>();
-  const { loading, error: reduxError } = useSelector((state: RootState) => state.auth);
+  const { loading } = useSelector((state: RootState) => state.auth);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationError, setValidationError] = useState('');
+  
+  // State quản lý Toast
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
   const [formData, setFormData] = useState({
     username: '', 
@@ -36,6 +56,13 @@ export default function RegisterPage() {
     agreeToTerms: false,
   });
 
+  // Hàm hiển thị Toast
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    // Tự tắt sau 3s
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError('');
@@ -45,10 +72,8 @@ export default function RegisterPage() {
     if (!formData.agreeToTerms) return setValidationError('Vui lòng đồng ý với điều khoản sử dụng.');
 
     try {
-      // 1. Gọi Action đăng ký
-      const resultAction = dispatch(registerUser({
+      const resultAction = await dispatch(registerUser({
         username: formData.username,
-        // QUAN TRỌNG: Phải dùng key là 'passwordHash' để khớp với AuthSlice và Type
         passwordHash: formData.password,
         email: formData.email,
         fullName: formData.fullName,
@@ -56,40 +81,52 @@ export default function RegisterPage() {
         role: "CUSTOMER"
       }));
 
-      // 2. Kiểm tra kết quả
       if (registerUser.fulfilled.match(resultAction)) {
-        
-        // Lấy dữ liệu THẬT từ payload trả về (AuthSlice đã tự login và trả về Token thật)
         const realAuthData = resultAction.payload;
 
         if (realAuthData && realAuthData.token) {
-             // Dispatch loginSuccess để lưu vào Redux & LocalStorage
              dispatch(loginSuccess({ 
                  user: realAuthData.user, 
                  token: realAuthData.token 
              }));
              
-             alert('Đăng ký tài khoản thành công!');
-             router.push(callbackUrl);
+             // --- THAY ALERT BẰNG TOAST ---
+             showToast('Đăng ký thành công! Đang chuyển hướng...', 'success');
+             
+             // Đợi 1.5s để người dùng đọc thông báo rồi mới chuyển trang
+             setTimeout(() => {
+                 router.push(callbackUrl);
+             }, 1500);
+
         } else {
-             // Fallback nếu API trả về thiếu token
-             alert("Đăng ký thành công. Vui lòng đăng nhập lại.");
-             router.push("/login");
+             showToast("Đăng ký thành công. Vui lòng đăng nhập lại.", 'success');
+             setTimeout(() => router.push("/login"), 1500);
         }
-      } 
+      } else {
+        // Xử lý lỗi từ Redux trả về (nếu có)
+        const errorMsg = typeof resultAction.payload === 'string' ? resultAction.payload : "Đăng ký thất bại.";
+        setValidationError(errorMsg);
+        showToast(errorMsg, 'error');
+      }
     } catch (err) {
       console.error("Lỗi:", err);
-      setValidationError('Đã xảy ra lỗi hệ thống. Vui lòng thử lại.');
+      const msg = 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại.';
+      setValidationError(msg);
+      showToast(msg, 'error');
     }
   };
 
-  const displayError = validationError || (typeof reduxError === 'string' ? reduxError : null);
-
   return (
     <div className="min-h-screen bg-[#0a0510] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+      
+      {/* --- HIỂN THỊ TOAST --- */}
+      <AnimatePresence>
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      </AnimatePresence>
+
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#0a0510] to-[#0a0510]"></div>
       
-      {/* BACKGROUND ELEMENTS (Giữ nguyên) */}
+      {/* BACKGROUND ELEMENTS */}
       <div className="absolute top-[-10%] left-[-5%] w-96 h-96 bg-amber-600/10 rounded-full blur-3xl opacity-30 animate-pulse"></div>
       <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-purple-600/10 rounded-full blur-3xl opacity-30 animate-pulse delay-1000"></div>
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
@@ -118,9 +155,9 @@ export default function RegisterPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               
-              {displayError && (
+              {validationError && (
                 <div className="p-3 rounded-lg bg-red-950/30 border border-red-900/50 flex items-center gap-2 text-red-200 text-xs animate-in fade-in slide-in-from-top-1 break-words">
-                  <AlertCircle className="w-4 h-4 shrink-0" /><span>{displayError}</span>
+                  <AlertCircle className="w-4 h-4 shrink-0" /><span>{validationError}</span>
                 </div>
               )}
 

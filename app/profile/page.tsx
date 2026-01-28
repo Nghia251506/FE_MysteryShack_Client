@@ -5,21 +5,17 @@ import { useRouter } from "next/navigation";
 import { 
   User, Calendar, Mail, LogOut, Sparkles, 
   Clock, CheckCircle2, XCircle, ChevronRight, 
-  Loader2, Moon
+  Loader2, History, ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/store/store";
 import { logout } from "@/store/features/authSlice";
-import { LogoutModal } from "@/components/LogoutModal"; // Đảm bảo bạn đã tạo file này trong components
+import { LogoutModal } from "@/components/LogoutModal";
+import { ReadingSessionService } from "@/services/readingSessionService";
 
-// --- MOCK DATA ---
-const MOCK_SESSIONS = [
-  { id: 101, topic: "Tình Yêu", question: "Người ấy nghĩ gì về tôi?", reader: "Grand Master Giang", date: "2024-01-26T14:30:00", status: "COMPLETED", price: "500.000đ", result: "Lá bài The Lovers..." },
-  { id: 102, topic: "Sự Nghiệp", question: "Có nên nhảy việc lúc này?", reader: "Tarot Reader Linh", date: "2024-01-27T09:00:00", status: "PENDING", price: "300.000đ", result: null },
-];
-
+// --- HELPER: ZODIAC ---
 const getZodiac = (dateString: string | undefined) => {
     if(!dateString) return "Bí ẩn";
     const date = new Date(dateString);
@@ -44,58 +40,70 @@ export default function UserProfilePage() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
-  
+   
   const [isMounted, setIsMounted] = useState(false);
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [recentSessions, setRecentSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'ALL' | 'COMPLETED' | 'PENDING'>('ALL');
-  const [selectedSession, setSelectedSession] = useState<any>(null);
-
-  // State cho Logout Modal
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  // --- FETCH DATA THẬT ---
   useEffect(() => {
-    setTimeout(() => {
-        setSessions(MOCK_SESSIONS);
-        setLoading(false);
-    }, 1000);
-  }, []);
+    if (user) {
+        fetchRecentSessions();
+    }
+  }, [user]);
 
-  // Mở Modal thay vì dùng confirm()
-  const handleLogoutClick = () => {
-    setShowLogoutModal(true);
+  const fetchRecentSessions = async () => {
+      try {
+          const response: any = await ReadingSessionService.getAll();
+          const dataList = Array.isArray(response) ? response : (response.content || []);
+          
+          // Lọc session của User hiện tại & Lấy 3 cái mới nhất
+          const mySessions = dataList
+              .filter((s: any) => 
+                  Number(s.customerId) === Number(user?.id) || 
+                  Number(s.customer?.id) === Number(user?.id)
+              )
+              .sort((a: any, b: any) => {
+                  const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                  const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                  return dateB - dateA;
+              })
+              .slice(0, 3); // Chỉ lấy 3 cái hiển thị ở Profile
+
+          setRecentSessions(mySessions);
+      } catch (error) {
+          console.error("Lỗi lấy dữ liệu profile:", error);
+      } finally {
+          setLoading(false);
+      }
   };
 
-  // Logic thực hiện đăng xuất thật sự
+  const handleLogoutClick = () => setShowLogoutModal(true);
+  
   const handleConfirmLogout = () => {
     dispatch(logout());
     router.push("/login");
   };
 
   if (!isMounted) return null;
-
-  if (!user) {
-      router.push("/login");
-      return null;
-  }
+  if (!user) { router.push("/login"); return null; }
 
   const getStatusBadge = (status: string) => {
       switch(status) {
-          case 'COMPLETED': return <span className="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-xs font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Hoàn thành</span>;
-          case 'PENDING': return <span className="px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-xs font-bold flex items-center gap-1"><Clock className="w-3 h-3"/> Đang chờ</span>;
-          default: return <span className="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-xs font-bold flex items-center gap-1"><XCircle className="w-3 h-3"/> Đã hủy</span>;
+          case 'COMPLETED': return <span className="px-2.5 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Xong</span>;
+          case 'PENDING': 
+          case 'MATCHED': return <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><Clock className="w-3 h-3"/> Đợi</span>;
+          case 'REJECTED': return <span className="px-2.5 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><XCircle className="w-3 h-3"/> Hủy</span>;
+          default: return <span className="px-2.5 py-0.5 bg-slate-700 text-slate-300 border border-slate-600 rounded-full text-[10px] font-bold">{status}</span>;
       }
   };
 
-  const filteredSessions = activeTab === 'ALL' ? sessions : sessions.filter(s => s.status === activeTab);
-
-  const displayDob = user.birthDate 
-    ? new Date(user.birthDate).toLocaleDateString('vi-VN') 
-    : "Chưa cập nhật";
+  const displayDob = user.birthDate ? new Date(user.birthDate).toLocaleDateString('vi-VN') : "Chưa cập nhật";
 
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 font-sans relative selection:bg-amber-500/30">
@@ -110,12 +118,12 @@ export default function UserProfilePage() {
         {/* Navbar */}
         <nav className="sticky top-0 z-50 bg-[#050505]/80 backdrop-blur-md border-b border-white/5 px-6 py-4">
             <div className="max-w-6xl mx-auto flex justify-between items-center">
-                <div onClick={() => router.push('/')} className="flex items-center gap-2 cursor-pointer">
+                <div onClick={() => router.push('/')} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
                     <Sparkles className="w-6 h-6 text-amber-500" />
                     <span className="font-bold text-xl text-white">MysteryShack<span className="text-amber-500">Tarot</span></span>
                 </div>
-                <button onClick={() => router.push('/tarot-draw')} className="px-5 py-2 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:opacity-90 transition-all text-sm">
-                    + Đặt câu hỏi mới
+                <button onClick={() => router.push('/tarot-draw')} className="px-5 py-2 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-amber-500/20 hover:scale-105 transition-all text-sm flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" /> Đặt câu hỏi mới
                 </button>
             </div>
         </nav>
@@ -125,7 +133,7 @@ export default function UserProfilePage() {
                 
                 {/* --- CỘT TRÁI: THÔNG TIN USER --- */}
                 <div className="lg:col-span-4 space-y-6">
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[#130823]/60 border border-white/10 rounded-[2.5rem] p-8 text-center relative overflow-hidden backdrop-blur-xl">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[#130823]/60 border border-white/10 rounded-[2.5rem] p-8 text-center relative overflow-hidden backdrop-blur-xl shadow-2xl">
                         <div className="relative">
                             <div className="w-28 h-28 mx-auto rounded-full p-1 bg-gradient-to-br from-amber-400 to-purple-600 mb-4">
                                 <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.fullName}`} className="w-full h-full rounded-full border-4 border-[#130823] bg-white object-cover" alt="Avatar" />
@@ -137,121 +145,93 @@ export default function UserProfilePage() {
                         </div>
 
                         <div className="mt-8 space-y-4 text-left">
-                            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+                            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
                                 <Mail className="w-5 h-5 text-slate-400" />
                                 <div className="overflow-hidden">
-                                    <p className="text-xs text-slate-500 uppercase">Email</p>
+                                    <p className="text-xs text-slate-500 uppercase font-bold">Email</p>
                                     <p className="text-sm text-slate-200 truncate">{user.email}</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+                            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
                                 <Calendar className="w-5 h-5 text-slate-400" />
                                 <div>
-                                    <p className="text-xs text-slate-500 uppercase">Ngày sinh</p>
+                                    <p className="text-xs text-slate-500 uppercase font-bold">Ngày sinh</p>
                                     <p className="text-sm text-slate-200 font-medium">{displayDob}</p>
                                 </div>
                             </div>
                         </div>
 
-                        <button onClick={handleLogoutClick} className="w-full mt-8 py-3 flex items-center justify-center gap-2 text-red-400 hover:bg-red-500/10 rounded-xl border border-red-500/20 transition-colors font-bold">
+                        <button onClick={handleLogoutClick} className="w-full mt-8 py-3 flex items-center justify-center gap-2 text-red-400 hover:bg-red-500/10 rounded-xl border border-red-500/20 transition-colors font-bold text-sm">
                             <LogOut className="w-4 h-4" /> Đăng xuất
                         </button>
                     </motion.div>
                 </div>
                 
-                {/* --- CỘT PHẢI: LỊCH SỬ XEM BÓI --- */}
+                {/* --- CỘT PHẢI: HOẠT ĐỘNG GẦN ĐÂY --- */}
                 <div className="lg:col-span-8">
                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                        <h2 className="text-3xl font-bold text-white">Lịch sử <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400">Tâm Linh</span></h2>
-                        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
-                            {['ALL', 'PENDING', 'COMPLETED'].map((tab) => (
-                                <button key={tab} onClick={() => setActiveTab(tab as any)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
-                                    {tab === 'ALL' ? 'Tất cả' : (tab === 'PENDING' ? 'Đang chờ' : 'Hoàn thành')}
-                                </button>
-                            ))}
+                        <div>
+                            <h2 className="text-3xl font-bold text-white">Tổng quan <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400">Năng Lượng</span></h2>
+                            <p className="text-slate-400 text-sm mt-1">Các phiên trải bài gần đây nhất của bạn.</p>
                         </div>
+                        
+                        {/* NÚT LINK SANG TRANG HISTORY */}
+                        <button onClick={() => router.push('/history')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-bold transition-all group">
+                            <History className="w-4 h-4 text-amber-500" /> Xem toàn bộ lịch sử <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform"/>
+                        </button>
                     </div>
 
                     <div className="space-y-4">
                         {loading ? (
-                            <div className="text-center py-20 text-slate-500"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-2"/>Đang tải dữ liệu vũ trụ...</div>
-                        ) : filteredSessions.length === 0 ? (
-                            <div className="text-center py-20 bg-white/5 rounded-2xl border border-white/10 border-dashed">
+                            <div className="text-center py-20 text-slate-500"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-2"/>Đang đồng bộ dữ liệu...</div>
+                        ) : recentSessions.length === 0 ? (
+                            <div className="text-center py-16 bg-[#130823]/40 rounded-3xl border border-slate-800 border-dashed">
                                 <Sparkles className="w-12 h-12 text-slate-600 mx-auto mb-3 opacity-50" />
-                                <p className="text-slate-400">Chưa có phiên xem bài nào.</p>
-                                <button onClick={() => router.push('/tarot-draw')} className="mt-4 text-amber-500 hover:underline">Đặt câu hỏi ngay</button>
+                                <p className="text-slate-400 mb-4">Bạn chưa thực hiện phiên xem bài nào.</p>
+                                <button onClick={() => router.push('/tarot-draw')} className="px-6 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg transition-all text-sm">Bắt đầu ngay</button>
                             </div>
                         ) : (
-                            <AnimatePresence>
-                                {filteredSessions.map((session, index) => (
-                                    <motion.div key={session.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="bg-[#1a1025]/80 border border-white/10 rounded-2xl p-6 hover:border-amber-500/30 transition-all group relative overflow-hidden">
-                                        <div className="flex flex-col md:flex-row justify-between gap-6 relative z-10">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    {getStatusBadge(session.status)}
-                                                    <span className="text-xs text-slate-500 flex items-center gap-1"><Calendar className="w-3 h-3"/> {new Date(session.date).toLocaleDateString('vi-VN')}</span>
-                                                </div>
-                                                <h3 className="text-xl font-bold text-white mb-1 group-hover:text-amber-400 transition-colors">{session.topic}</h3>
-                                                <p className="text-slate-400 italic text-sm mb-3">"{session.question}"</p>
-                                                <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                    <User className="w-3 h-3" /> Reader: <span className="text-slate-300 font-medium">{session.reader}</span>
-                                                </div>
+                            <>
+                                {recentSessions.map((session, index) => (
+                                    <motion.div 
+                                        key={session.id} 
+                                        initial={{ opacity: 0, x: 20 }} 
+                                        animate={{ opacity: 1, x: 0 }} 
+                                        transition={{ delay: index * 0.1 }}
+                                        onClick={() => router.push('/history')} // Bấm vào thì sang History xem chi tiết
+                                        className="bg-[#1a1025]/80 border border-white/5 rounded-2xl p-5 hover:border-amber-500/30 hover:bg-[#1a1025] transition-all cursor-pointer group"
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded">#{session.id}</span>
+                                                {getStatusBadge(session.status)}
                                             </div>
-                                            <div className="flex flex-col justify-center items-end gap-3 min-w-[120px]">
-                                                <div className="text-right">
-                                                    <p className="text-white font-bold text-lg">{session.price}</p>
-                                                </div>
-                                                {session.status === 'COMPLETED' ? (
-                                                    <button onClick={() => setSelectedSession(session)} className="px-5 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
-                                                        Xem kết quả <ChevronRight className="w-4 h-4"/>
-                                                    </button>
-                                                ) : (
-                                                    <button disabled className="px-5 py-2 bg-transparent text-slate-600 text-sm font-medium cursor-not-allowed">
-                                                        Đang xử lý...
-                                                    </button>
-                                                )}
+                                            <span className="text-xs text-slate-500 font-medium">{session.createdAt ? new Date(session.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</span>
+                                        </div>
+                                        
+                                        <div className="flex items-center justify-between mt-3">
+                                            <div>
+                                                <h4 className="text-white font-bold text-lg group-hover:text-amber-400 transition-colors line-clamp-1">
+                                                    {session.topicId === 1 ? "Tổng Quan" : session.topicId === 2 ? "Tình Yêu" : "Sự Nghiệp"}
+                                                </h4>
+                                                <p className="text-slate-400 text-sm line-clamp-1 italic">
+                                                    "{session.question?.content || session.questionName || "..."}"
+                                                </p>
+                                            </div>
+                                            <div className="bg-white/5 p-2 rounded-full group-hover:bg-amber-500/20 transition-colors">
+                                                <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-amber-500" />
                                             </div>
                                         </div>
                                     </motion.div>
                                 ))}
-                            </AnimatePresence>
+                            </>
                         )}
                     </div>
                 </div>
             </div>
         </div>
         
-        {/* --- MODAL CHI TIẾT --- */}
-        <AnimatePresence>
-            {selectedSession && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-[#130823] w-full max-w-2xl rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-white/10 bg-gradient-to-r from-purple-900/20 to-amber-900/20 flex justify-between items-center sticky top-0 z-10">
-                            <div>
-                                <h3 className="text-xl font-bold text-white">Chi tiết luận giải</h3>
-                                <p className="text-xs text-slate-400">Mã phiên: #{selectedSession.id}</p>
-                            </div>
-                            <button onClick={() => setSelectedSession(null)} className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors">✕</button>
-                        </div>
-
-                        <div className="p-8 overflow-y-auto custom-scrollbar space-y-6">
-                            <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
-                                <p className="text-xs text-slate-500 uppercase font-bold mb-1">Câu hỏi của bạn</p>
-                                <p className="text-white italic text-lg">"{selectedSession.question}"</p>
-                            </div>
-                            <div className="space-y-2">
-                                <h4 className="text-amber-500 font-bold flex items-center gap-2"><Sparkles className="w-4 h-4"/> Thông điệp từ Reader {selectedSession.reader}</h4>
-                                <div className="text-slate-300 leading-relaxed text-sm whitespace-pre-line p-4 bg-white/5 rounded-xl border border-white/5">
-                                    {selectedSession.result || "Đang cập nhật nội dung chi tiết..."}
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                </motion.div>
-            )}
-        </AnimatePresence>
-
         {/* --- LOGOUT POP-UP --- */}
         <LogoutModal 
             isOpen={showLogoutModal} 
