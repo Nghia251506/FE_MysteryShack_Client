@@ -15,5 +15,13 @@ export const UserService = {
   getUserById: async (id: number): Promise<User> => {
     const response = await axios.get(`${API_URL}/${id}`);
     return response.data;
-  }
+  },
+  toggleStatus: async () => {
+    try {
+      const response = await axios.put("/users/toggle-status");
+      return response.data; // BE trả về: { success: true, newStatus: true/false, message: "..." }
+    } catch (error) {
+      throw error;
+    }
+  },
 };

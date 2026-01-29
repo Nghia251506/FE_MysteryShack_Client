@@ -8,7 +8,6 @@ export const ReadingSessionService = {
   // Lấy danh sách (Dùng /matched để tránh lỗi 500 Lazy Load)
   getAll: async (): Promise<ReadingSession[]> => {
     const response = await axios.get(`${ENDPOINT}/matched`);
-    console.log(response.data);
     return response.data;
   },
 

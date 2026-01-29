@@ -6,7 +6,8 @@ export interface User {
   role: 'CUSTOMER' | 'READER';
   eloScore: number;
   rating?: number;
-  isVerified?: boolean;
+  verified?: boolean;
+  active: boolean;
   // Các field mở rộng cho Reader
 //   tags?: string[];
 //   reviewsCount?: number;

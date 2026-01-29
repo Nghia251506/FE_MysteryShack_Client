@@ -1,3 +1,300 @@
+// "use client";
+
+// import React, { useState, useEffect } from "react";
+// import { useRouter } from "next/navigation";
+// import { useSelector, useDispatch } from "react-redux";
+// import { RootState, AppDispatch } from "@/store/store";
+// import { motion, AnimatePresence } from "framer-motion";
+// import {
+//     Inbox, Clock, User, Calendar, ArrowRight, Sparkles, ShieldAlert, Moon,
+//     CheckCircle2,
+//     AlertCircle,
+//     Info,
+//     X,
+//     XCircle,
+//     Timer
+// } from "lucide-react";
+
+// // Services & Actions
+// import { ReadingSessionService } from "@/services/readingSessionService";
+// import { registerFcmToken } from "@/store/slices/fcmSlice";
+// import { getToken } from "firebase/messaging";
+// import { toast } from "react-toastify";
+
+// type ToastType = 'success' | 'error' | 'info';
+// interface ToastMsg { id: number; type: ToastType; message: string; }
+
+// const ToastContainer = ({ toasts, removeToast }: { toasts: ToastMsg[], removeToast: (id: number) => void }) => {
+//     return (
+//         <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+//             <AnimatePresence>
+//                 {toasts.map((toast) => (
+//                     <motion.div
+//                         key={toast.id}
+//                         initial={{ opacity: 0, x: 50, scale: 0.9 }}
+//                         animate={{ opacity: 1, x: 0, scale: 1 }}
+//                         exit={{ opacity: 0, x: 20, scale: 0.9 }}
+//                         className="pointer-events-auto min-w-[300px] max-w-sm bg-[#1a1025] border border-white/10 rounded-xl shadow-2xl p-4 flex items-start gap-3 backdrop-blur-md"
+//                     >
+//                         <div className={`mt-0.5 p-1 rounded-full ${toast.type === 'success' ? 'bg-green-500/20 text-green-400' :
+//                                 toast.type === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+//                             }`}>
+//                             {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : toast.type === 'error' ? <AlertCircle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
+//                         </div>
+//                         <div className="flex-1">
+//                             <h4 className={`text-sm font-bold ${toast.type === 'success' ? 'text-green-400' : toast.type === 'error' ? 'text-red-400' : 'text-blue-400'}`}>
+//                                 {toast.type === 'success' ? 'Thành Công' : toast.type === 'error' ? 'Lỗi' : 'Thông báo'}
+//                             </h4>
+//                             <p className="text-slate-300 text-xs mt-1">{toast.message}</p>
+//                         </div>
+//                         <button onClick={() => removeToast(toast.id)} className="text-slate-500 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
+//                     </motion.div>
+//                 ))}
+//             </AnimatePresence>
+//         </div>
+//     );
+// };
+
+// const RequestCard = ({ req, onAccept, onReject }: { req: any, onAccept: any, onReject: any }) => {
+//     const [displayTime, setDisplayTime] = useState<string>("--:--");
+//     const [isExpired, setIsExpired] = useState(false);
+
+//     useEffect(() => {
+//         const calculateTime = () => {
+//             if (!req.rawCreatedAt) return 0;
+//             const createdTime = new Date(req.rawCreatedAt).getTime();
+//             const expireTime = createdTime + (5 * 60 * 1000); // 5 phút
+//             const now = Date.now();
+//             return Math.floor((expireTime - now) / 1000);
+//         };
+
+//         let diffInSeconds = calculateTime();
+
+//         // Nếu đã hết hạn ngay từ đầu -> gọi reject luôn
+//         if (diffInSeconds <= 0 && !isExpired) {
+//             setDisplayTime("00:00");
+//             setIsExpired(true);
+//             onReject(req.id, true); // Auto reject khi vừa load
+//             return;
+//         }
+
+//         const interval = setInterval(() => {
+//             diffInSeconds = calculateTime();
+
+//             if (diffInSeconds <= 0) {
+//                 setDisplayTime("00:00");
+//                 if (!isExpired) {
+//                     setIsExpired(true);
+//                     onReject(req.id, true); // Auto reject khi đếm về 0
+//                 }
+//                 clearInterval(interval);
+//             } else {
+//                 const minutes = Math.floor(diffInSeconds / 60);
+//                 const seconds = diffInSeconds % 60;
+//                 setDisplayTime(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+//             }
+//         }, 1000);
+
+//         return () => clearInterval(interval);
+//     }, [req.rawCreatedAt, req.id, onReject, isExpired]);
+
+//     return (
+//         <div className="bg-[#130823]/60 backdrop-blur-md border border-slate-800 rounded-[2rem] p-8 mb-6 relative overflow-hidden shadow-2xl">
+//             <div className="absolute top-0 left-0 right-0 h-1 bg-slate-800">
+//                 <motion.div
+//                     initial={{ width: "100%" }}
+//                     animate={{ width: displayTime === "00:00" ? "0%" : `${(Math.max(0, (new Date(req.rawCreatedAt).getTime() + 300000 - Date.now()) / 3000))}%` }}
+//                     transition={{ duration: 1, ease: "linear" }}
+//                     className={`h-full ${displayTime === "00:00" ? 'bg-red-500' : 'bg-green-500'}`}
+//                 />
+//             </div>
+//             <div className="flex flex-col lg:flex-row gap-8 text-white">
+//                 <div className="flex gap-2 shrink-0 min-w-[120px]">
+//                     {req.cards.length > 0 ? req.cards.map((c: any, i: number) => (
+//                         <div key={i} className="relative w-16 h-28 rounded-lg border border-slate-700 overflow-hidden" style={{ rotate: `${(i - 1) * 5}deg`, marginLeft: i > 0 ? '-1rem' : '0' }}>
+//                             <img src={c.img} alt={c.name} className="w-full h-full object-cover" />
+//                             {c.isReversed && <div className="absolute top-1 right-1 bg-red-600 text-white text-[8px] px-1 rounded font-bold">REV</div>}
+//                         </div>
+//                     )) : (
+//                         <div className="w-16 h-28 bg-slate-800/50 rounded-lg border border-dashed border-slate-600 flex items-center justify-center text-[10px] text-slate-500">No Cards</div>
+//                     )}
+//                 </div>
+//                 <div className="flex-grow space-y-4">
+//                     <div className="flex justify-between items-center">
+//                         <div className="flex items-center gap-3">
+//                             <span className="text-[10px] font-mono font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase tracking-widest">#{req.id}</span>
+//                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${req.status === 'MATCHED' ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-700 text-slate-300'}`}>{req.status === 'MATCHED' ? 'ĐÃ KHỚP' : 'MỚI'}</span>
+//                             <span className="text-slate-500 text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {req.timestamp}</span>
+//                         </div>
+//                         <div className={`flex items-center gap-2 font-mono font-bold text-sm px-3 py-1 rounded-full border ${displayTime === "00:00" ? 'text-red-500 border-red-500/30 bg-red-500/10 animate-pulse' : 'text-green-400 border-green-500/30 bg-green-500/10'}`}><Timer className="w-4 h-4" /> {displayTime}</div>
+//                     </div>
+//                     <div>
+//                         <h3 className="text-xl font-bold text-white uppercase tracking-wider">{req.topic}</h3>
+//                         <div className="mt-2 p-3 bg-slate-950/40 rounded-xl border border-slate-800/50">
+//                             <p className="text-sm text-slate-300 italic">"{req.question}"</p>
+//                         </div>
+//                     </div>
+//                     <div className="flex items-center gap-2 text-xs text-slate-400">
+//                         <span className="flex items-center gap-1.5 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-800"><User className="w-3.5 h-3.5 text-purple-400" /> {req.querentName}</span>
+//                         <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${req.birthDate === "Chưa cung cấp" ? 'bg-red-900/20 border-red-900/30 text-red-400' : 'bg-slate-900/50 border-slate-800'}`}><Calendar className="w-3.5 h-3.5 text-blue-400" /> {req.birthDate}</span>
+//                     </div>
+//                 </div>
+//                 <div className="flex lg:flex-col justify-end gap-3 shrink-0">
+//                     <button onClick={() => onReject(req.id, false)} className="px-6 py-2 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all text-sm font-medium"><XCircle className="w-4 h-4 inline mr-1" /> Từ chối</button>
+//                     <button onClick={() => onAccept(req)} className="px-6 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm shadow-lg shadow-amber-900/20"><CheckCircle2 className="w-4 h-4 inline mr-1" /> Chấp nhận</button>
+//                 </div>
+//             </div>
+//         </div>
+//     );
+// };
+// export default function ReaderDashboardMain() {
+//     const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+//     const [loading, setLoading] = useState(true);
+//     const [isMounted, setIsMounted] = useState(false);
+
+//     const router = useRouter();
+//     const dispatch = useDispatch<AppDispatch>();
+
+//     const { user } = useSelector((state: RootState) => state.user);
+//     const { isRegistered } = useSelector((state: RootState) => state.fcm);
+//     const isActive = !!user?.active;
+
+//     useEffect(() => {
+//         setIsMounted(true);
+//     }, []);
+
+//     // --- 👇 XỬ LÝ FCM: ĐĂNG KÝ TOKEN KHI READER VÀO DASHBOARD 👇 ---
+//     useEffect(() => {
+//         if (isMounted && user && !isRegistered) {
+//             const setupFCM = async () => {
+//                 try {
+//                     const permission = await Notification.requestPermission();
+//                     if (permission === "granted" && messaging) {
+//                         const currentToken = await getToken(messaging, {
+//                             vapidKey: "YOUR_VAPID_KEY_HERE" // Thay bằng key từ Firebase Console
+//                         });
+//                         if (currentToken) {
+//                             dispatch(registerFcmToken({
+//                                 userId: user.id,
+//                                 token: currentToken,
+//                                 deviceType: "WEB"
+//                             }));
+//                             console.log("FCM Token registered!");
+//                         }
+//                     }
+//                 } catch (error) {
+//                     console.error("FCM Setup Error:", error);
+//                 }
+//             };
+//             setupFCM();
+//         }
+//     }, [isMounted, user, isRegistered, dispatch]);
+
+//     // --- 👇 FETCH DỮ LIỆU TỪ ENDPOINT /matched 👇 ---
+//     const fetchRequests = async () => {
+//         try {
+//             const res = await ReadingSessionService.getAll();
+//             // Sửa ở đây: Chấp nhận cả MATCHED
+//             const activeRequests = Array.isArray(res)
+//                 ? res.filter((i: any) => i.status === 'MATCHED' || i.status === 'PENDING')
+//                 : [];
+
+//             setPendingRequests(activeRequests);
+//         } catch (error) {
+//             console.error("Lỗi lấy yêu cầu:", error);
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
+
+//     useEffect(() => {
+//         if (isMounted) {
+//             fetchRequests();
+//             // Polling nhẹ mỗi 30s nếu FCM bị trễ (Optional)
+//             const interval = setInterval(fetchRequests, 30000);
+//             return () => clearInterval(interval);
+//         }
+//     }, [isMounted]);
+
+//     const handleAcceptRequest = async (id: string) => {
+//         if (!isActive) {
+//             toast.error("Bạn đang ở chế độ nghỉ, vui lòng bật trạng thái sẵn sàng!");
+//             return;
+//         }
+//         try {
+//             await ReadingSessionService.accept(id);
+//             toast.success("Đã chấp nhận yêu cầu!");
+//             router.push(`/readerdashboard/workspace/${id}`);
+//         } catch (error) {
+//             toast.error("Không thể chấp nhận yêu cầu này.");
+//         }
+//     };
+
+//     if (!isMounted) return <div className="min-h-screen bg-[#050505]" />;
+
+//     return (
+//         <div className="max-w-5xl mx-auto px-6 py-12 relative z-10">
+//             {/* Banner Offline */}
+//             <AnimatePresence>
+//                 {!isActive && (
+//                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1, marginBottom: 32 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+//                         <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-3xl flex items-center justify-between text-amber-200">
+//                             <div className="flex items-center gap-3">
+//                                 <ShieldAlert className="w-5 h-5 text-amber-500" />
+//                                 <div>
+//                                     <p className="text-xs font-black uppercase">Chế độ ngoại tuyến</p>
+//                                     <p className="text-[11px] opacity-70">Bật "Sẵn sàng" để nhận được thông báo từ khách hàng.</p>
+//                                 </div>
+//                             </div>
+//                         </div>
+//                     </motion.div>
+//                 )}
+//             </AnimatePresence>
+
+//             <header className="mb-12">
+//                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+//                     <div>
+//                         <div className="flex items-center gap-2 mb-2">
+//                             <span className="h-[2px] w-8 bg-amber-500"></span>
+//                             <span className="text-amber-500 text-[10px] font-black uppercase tracking-[0.3em]">Mystic Tarot Reader</span>
+//                         </div>
+//                         <h2 className="text-5xl font-bold text-white tracking-tighter">
+//                             Yêu cầu <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-orange-400">Năng Lượng</span>
+//                         </h2>
+//                         <p className="text-slate-500 text-sm mt-3 flex items-center gap-2">
+//                             <Inbox className="w-4 h-4" />
+//                             Có <span className="text-white font-bold">{pendingRequests.length}</span> yêu cầu dành cho bạn.
+//                         </p>
+//                     </div>
+
+//                     <div className={`px-5 py-2.5 border rounded-[2rem] text-[10px] font-black uppercase flex items-center gap-3 ${isActive ? "text-green-400 border-green-500/30" : "text-slate-500 border-white/5"}`}>
+//                         <span className={`h-2 w-2 rounded-full ${isActive ? "bg-green-500 animate-pulse" : "bg-slate-600"}`}></span>
+//                         {isActive ? "Sẵn sàng" : "Tạm nghỉ"}
+//                     </div>
+//                 </div>
+//             </header>
+
+//             <AnimatePresence mode="wait">
+//                 {loading ? (
+//                     <div className="py-32 flex justify-center"><div className="w-8 h-8 border-2 border-t-amber-500 animate-spin rounded-full"></div></div>
+//                 ) : pendingRequests.length === 0 ? (
+//                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center py-24 bg-white/[0.02] rounded-[3.5rem] border border-dashed border-white/10">
+//                         <Moon className="w-10 h-10 text-slate-700 mb-4" />
+//                         <h3 className="text-white font-bold text-xl">Chưa có yêu cầu nào</h3>
+//                         <p className="text-slate-500 text-sm mt-2">Khi có khách hàng chọn bạn, yêu cầu sẽ xuất hiện tại đây.</p>
+//                     </motion.div>
+//                 ) : (
+//                     <div className="grid gap-8">
+//                         {pendingRequests.map((req) => (
+//                             <RequestCard key={req.id} req={req} onAccept={handleAcceptRequest} isDisabled={!isActive} />
+//                         ))}
+//                     </div>
+//                 )}
+//             </AnimatePresence>
+//         </div>
+//     );
+// }
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -6,11 +303,10 @@ import {
   Sparkles, Send, User, Calendar,
   CheckCircle2, Bold, Italic, Wand2, LayoutDashboard, History,
   Clock, MessageSquare, Timer, Search, Inbox, Feather, XCircle, LogOut,
-  AlertCircle, QrCode, DollarSign, X, Info, AlertTriangle, List, CreditCard, ChevronRight
+  AlertCircle, QrCode, DollarSign, X, Info, AlertTriangle, List
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image"; // Đảm bảo đã import Image
 import { useRouter } from "next/navigation";
 import { ReadingSessionService } from "@/services/readingSessionService";
 import { InterpretationService } from "@/services/interpretationService";
@@ -33,7 +329,7 @@ const ToastContainer = ({ toasts, removeToast }: { toasts: ToastMsg[], removeToa
                         initial={{ opacity: 0, x: 50, scale: 0.9 }}
                         animate={{ opacity: 1, x: 0, scale: 1 }}
                         exit={{ opacity: 0, x: 20, scale: 0.9 }}
-                        className="pointer-events-auto min-w-[300px] max-w-sm bg-[#1a1025]/90 border border-white/10 rounded-xl shadow-2xl p-4 flex items-start gap-3 backdrop-blur-md"
+                        className="pointer-events-auto min-w-[300px] max-w-sm bg-[#1a1025] border border-white/10 rounded-xl shadow-2xl p-4 flex items-start gap-3 backdrop-blur-md"
                     >
                         <div className={`mt-0.5 p-1 rounded-full ${
                             toast.type === 'success' ? 'bg-green-500/20 text-green-400' :
@@ -73,15 +369,17 @@ const getCardDetail = (id: number) => {
 const getVietQR = (amount: number, content: string) => `https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}`;
 
 const EditorToolbar = () => (
-  <div className="flex items-center gap-1 p-2 border-b border-white/5 bg-white/5 text-slate-400 rounded-t-xl select-none">
-    <button className="p-1.5 hover:bg-white/10 rounded hover:text-white transition-colors"><Bold className="w-4 h-4" /></button>
-    <button className="p-1.5 hover:bg-white/10 rounded hover:text-white transition-colors"><Italic className="w-4 h-4" /></button>
-    <div className="w-px h-4 bg-white/10 mx-2"></div>
-    <button className="flex items-center gap-1 text-xs text-purple-300 bg-purple-500/20 px-2 py-1 rounded-md border border-purple-500/30 hover:bg-purple-500/30 transition-colors ml-auto"><Wand2 className="w-3 h-3" /> AI Gợi ý</button>
+  <div className="flex items-center gap-1 p-2 border-b border-slate-800/60 bg-slate-900/50 text-slate-400 rounded-t-xl select-none">
+    <button className="p-1.5 hover:bg-slate-800 rounded hover:text-white transition-colors"><Bold className="w-4 h-4" /></button>
+    <button className="p-1.5 hover:bg-slate-800 rounded hover:text-white transition-colors"><Italic className="w-4 h-4" /></button>
+    <div className="w-px h-4 bg-slate-700 mx-2"></div>
+    <button className="flex items-center gap-1 text-xs text-purple-400 bg-purple-900/30 px-2 py-1 rounded-md border border-purple-500/30 hover:bg-purple-900/50 transition-colors ml-auto"><Wand2 className="w-3 h-3" /> AI Gợi ý</button>
   </div>
 );
 
 // --- 3. MODALS ---
+
+// Modal Xác Nhận Thanh Toán
 const PaymentConfirmationModal = ({ isOpen, onClose, onConfirm, amount, loading }: any) => {
     if (!isOpen) return null;
     return (
@@ -91,7 +389,7 @@ const PaymentConfirmationModal = ({ isOpen, onClose, onConfirm, amount, loading 
                 <h3 className="text-2xl font-bold text-white mb-2">Xác nhận tiền về</h3>
                 <p className="text-slate-400 text-sm mb-6">Bạn xác nhận đã nhận được khoản thanh toán <span className="text-green-400 font-bold">{amount?.toLocaleString('vi-VN')} đ</span>?</p>
                 <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold transition-all">Hủy</button>
+                    <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all">Hủy</button>
                     <button onClick={onConfirm} disabled={loading} className="flex-1 py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold transition-all shadow-lg shadow-green-900/20 disabled:opacity-70">{loading ? 'Đang xử lý...' : 'Đã nhận tiền'}</button>
                 </div>
             </motion.div>
@@ -99,6 +397,7 @@ const PaymentConfirmationModal = ({ isOpen, onClose, onConfirm, amount, loading 
     );
 };
 
+// Modal Xác Nhận Từ Chối (NEW)
 const RejectConfirmationModal = ({ isOpen, onClose, onConfirm }: any) => {
     if (!isOpen) return null;
     return (
@@ -108,7 +407,7 @@ const RejectConfirmationModal = ({ isOpen, onClose, onConfirm }: any) => {
                 <h3 className="text-2xl font-bold text-white mb-2">Từ chối yêu cầu?</h3>
                 <p className="text-slate-400 text-sm mb-6">Bạn có chắc chắn muốn từ chối yêu cầu này? Yêu cầu sẽ được chuyển cho Reader khác.</p>
                 <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold transition-all">Quay lại</button>
+                    <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all">Quay lại</button>
                     <button onClick={onConfirm} className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-all shadow-lg shadow-red-900/20">Từ chối</button>
                 </div>
             </motion.div>
@@ -116,7 +415,7 @@ const RejectConfirmationModal = ({ isOpen, onClose, onConfirm }: any) => {
     );
 };
 
-// --- REQUEST CARD (STYLE PROFILE) ---
+// --- REQUEST CARD ---
 const RequestCard = ({ req, onAccept, onReject }: { req: any, onAccept: any, onReject: any }) => {
     const [displayTime, setDisplayTime] = useState<string>("--:--");
     const [isExpired, setIsExpired] = useState(false);
@@ -131,66 +430,79 @@ const RequestCard = ({ req, onAccept, onReject }: { req: any, onAccept: any, onR
         };
 
         let diffInSeconds = calculateTime();
+
+        // Nếu đã hết hạn ngay từ đầu -> gọi reject luôn
         if (diffInSeconds <= 0 && !isExpired) {
-            setDisplayTime("00:00"); setIsExpired(true); onReject(req.id, true); return;
+            setDisplayTime("00:00");
+            setIsExpired(true);
+            onReject(req.id, true); // Auto reject khi vừa load
+            return;
         }
 
         const interval = setInterval(() => {
             diffInSeconds = calculateTime();
+
             if (diffInSeconds <= 0) {
-                setDisplayTime("00:00"); if (!isExpired) { setIsExpired(true); onReject(req.id, true); }
+                setDisplayTime("00:00");
+                if (!isExpired) {
+                    setIsExpired(true);
+                    onReject(req.id, true); // Auto reject khi đếm về 0
+                }
                 clearInterval(interval);
             } else {
-                const minutes = Math.floor(diffInSeconds / 60); const seconds = diffInSeconds % 60;
+                const minutes = Math.floor(diffInSeconds / 60);
+                const seconds = diffInSeconds % 60;
                 setDisplayTime(`${minutes}:${seconds.toString().padStart(2, '0')}`);
             }
         }, 1000);
+
         return () => clearInterval(interval);
     }, [req.rawCreatedAt, req.id, onReject, isExpired]);
 
     return (
-        <div className="bg-[#130823]/60 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 mb-6 relative overflow-hidden shadow-xl hover:border-white/20 transition-all group">
-            {/* Progress Bar Timer */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-white/5">
-                <motion.div initial={{ width: "100%" }} animate={{ width: displayTime === "00:00" ? "0%" : `${(Math.max(0, (new Date(req.rawCreatedAt).getTime() + 300000 - Date.now()) / 3000))}%` }} transition={{ duration: 1, ease: "linear" }} className={`h-full ${displayTime === "00:00" ? 'bg-red-500' : 'bg-green-500'}`} />
+        <div className="bg-[#130823]/60 backdrop-blur-md border border-slate-800 rounded-[2rem] p-8 mb-6 relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-slate-800">
+                <motion.div 
+                    initial={{ width: "100%" }} 
+                    animate={{ width: displayTime === "00:00" ? "0%" : `${(Math.max(0, (new Date(req.rawCreatedAt).getTime() + 300000 - Date.now()) / 3000))}%` }} 
+                    transition={{ duration: 1, ease: "linear" }} 
+                    className={`h-full ${displayTime === "00:00" ? 'bg-red-500' : 'bg-green-500'}`} 
+                />
             </div>
-            
-            <div className="flex flex-col lg:flex-row gap-6 text-white pt-2">
-                {/* Card Images */}
+            <div className="flex flex-col lg:flex-row gap-8 text-white">
                 <div className="flex gap-2 shrink-0 min-w-[120px]">
                     {req.cards.length > 0 ? req.cards.map((c: any, i: number) => (
-                        <div key={i} className="relative w-16 h-24 rounded-lg border border-white/10 overflow-hidden shadow-lg" style={{ rotate: `${(i - 1) * 6}deg`, marginLeft: i > 0 ? '-1rem' : '0' }}>
+                        <div key={i} className="relative w-16 h-28 rounded-lg border border-slate-700 overflow-hidden" style={{ rotate: `${(i - 1) * 5}deg`, marginLeft: i > 0 ? '-1rem' : '0' }}>
                             <img src={c.img} alt={c.name} className="w-full h-full object-cover" />
-                            {c.isReversed && <div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white text-[6px] px-1 rounded">REV</div>}
+                            {c.isReversed && <div className="absolute top-1 right-1 bg-red-600 text-white text-[8px] px-1 rounded font-bold">REV</div>}
                         </div>
                     )) : (
-                        <div className="w-16 h-24 bg-white/5 rounded-lg border border-dashed border-white/20 flex items-center justify-center text-[10px] text-slate-500">Empty</div>
+                        <div className="w-16 h-28 bg-slate-800/50 rounded-lg border border-dashed border-slate-600 flex items-center justify-center text-[10px] text-slate-500">No Cards</div>
                     )}
                 </div>
-
-                {/* Info */}
-                <div className="flex-grow space-y-3">
+                <div className="flex-grow space-y-4">
                     <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">#{req.id}</span>
-                            <span className="text-slate-400 text-xs flex items-center gap-1"><Clock className="w-3 h-3"/> {req.timestamp}</span>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-mono font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase tracking-widest">#{req.id}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${req.status === 'MATCHED' ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-700 text-slate-300'}`}>{req.status === 'MATCHED' ? 'ĐÃ KHỚP' : 'MỚI'}</span>
+                            <span className="text-slate-500 text-xs flex items-center gap-1"><Clock className="w-3 h-3"/> {req.timestamp}</span>
                         </div>
-                        <div className={`flex items-center gap-1.5 font-mono font-bold text-xs px-2 py-0.5 rounded-full border ${displayTime === "00:00" ? 'text-red-400 border-red-500/30 bg-red-500/10 animate-pulse' : 'text-green-400 border-green-500/30 bg-green-500/10'}`}><Timer className="w-3 h-3"/> {displayTime}</div>
+                        <div className={`flex items-center gap-2 font-mono font-bold text-sm px-3 py-1 rounded-full border ${displayTime === "00:00" ? 'text-red-500 border-red-500/30 bg-red-500/10 animate-pulse' : 'text-green-400 border-green-500/30 bg-green-500/10'}`}><Timer className="w-4 h-4"/> {displayTime}</div>
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-white uppercase tracking-wide">{req.topic}</h3>
-                        <p className="text-sm text-slate-300 italic mt-1 line-clamp-2">"{req.question}"</p>
+                        <h3 className="text-xl font-bold text-white uppercase tracking-wider">{req.topic}</h3>
+                        <div className="mt-2 p-3 bg-slate-950/40 rounded-xl border border-slate-800/50">
+                            <p className="text-sm text-slate-300 italic">"{req.question}"</p>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-400">
-                        <span className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/5"><User className="w-3 h-3 text-purple-400"/> {req.querentName}</span>
-                        <span className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/5"><Calendar className="w-3 h-3 text-blue-400"/> {req.birthDate}</span>
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <span className="flex items-center gap-1.5 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-800"><User className="w-3.5 h-3.5 text-purple-400"/> {req.querentName}</span>
+                        <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${req.birthDate === "Chưa cung cấp" ? 'bg-red-900/20 border-red-900/30 text-red-400' : 'bg-slate-900/50 border-slate-800'}`}><Calendar className="w-3.5 h-3.5 text-blue-400"/> {req.birthDate}</span>
                     </div>
                 </div>
-
-                {/* Actions */}
-                <div className="flex lg:flex-col justify-end gap-2 shrink-0">
-                    <button onClick={() => onReject(req.id, false)} className="px-4 py-2 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all text-xs font-bold flex items-center justify-center gap-1"><XCircle className="w-3 h-3"/> Từ chối</button>
-                    <button onClick={() => onAccept(req)} className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-xs shadow-lg hover:scale-105 transition-transform flex items-center justify-center gap-1"><CheckCircle2 className="w-3 h-3"/> Chấp nhận</button>
+                <div className="flex lg:flex-col justify-end gap-3 shrink-0">
+                    <button onClick={() => onReject(req.id, false)} className="px-6 py-2 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all text-sm font-medium"><XCircle className="w-4 h-4 inline mr-1"/> Từ chối</button>
+                    <button onClick={() => onAccept(req)} className="px-6 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm shadow-lg shadow-amber-900/20"><CheckCircle2 className="w-4 h-4 inline mr-1"/> Chấp nhận</button>
                 </div>
             </div>
         </div>
@@ -203,10 +515,11 @@ export default function ReaderDashboardProfessional() {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
 
-  // -- STATES --
+  // -- TOAST STATE --
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
   const addToast = (type: ToastType, message: string) => {
-      const id = Date.now(); setToasts(prev => [...prev, { id, type, message }]);
+      const id = Date.now();
+      setToasts(prev => [...prev, { id, type, message }]);
       setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000); 
   };
   const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
@@ -221,8 +534,11 @@ export default function ReaderDashboardProfessional() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSent, setIsSent] = useState(false);
   
+  // Modal States
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  
+  // State Modal Từ Chối (Mới)
   const [rejectModal, setRejectModal] = useState<{isOpen: boolean, id: number | null}>({isOpen: false, id: null});
 
   const [timeLeft, setTimeLeft] = useState(3600); 
@@ -237,16 +553,27 @@ export default function ReaderDashboardProfessional() {
   const handleConfirmLogout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("currentUser");
-    dispatch(logout()); router.push("/login");
+    dispatch(logout()); 
+    router.push("/login");
   };
 
   const handleQrUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) { try { const base64 = await convertFileToBase64(file); setQrBase64(base64); } catch { addToast('error', "Lỗi tải ảnh QR"); } }
+    if (file) {
+        try {
+            const base64 = await convertFileToBase64(file);
+            setQrBase64(base64); 
+        } catch (error) {
+            addToast('error', "Lỗi tải ảnh QR");
+        }
+    }
   };
 
-  // --- FETCHING LOGIC ---
-  useEffect(() => { fetchData(); const interval = setInterval(fetchData, 5000); return () => clearInterval(interval); }, [ignoredIds, user]); 
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 5000); 
+    return () => clearInterval(interval);
+  }, [ignoredIds, user]); 
 
   // Timer Workspace
   useEffect(() => {
@@ -274,10 +601,21 @@ export default function ReaderDashboardProfessional() {
     try {
         const response: any = await ReadingSessionService.getAll();
         const dataList = Array.isArray(response) ? response : (response.content || []);
+        
         if(Array.isArray(dataList)) {
-            const pending = dataList.filter((i: any) => (i.status === 'PENDING' || i.status === 'MATCHED') && i.status !== 'REJECTED' && !ignoredIds.includes(i.id)).map(transformData);
+            const pending = dataList
+                .filter((i: any) => 
+                    (i.status === 'PENDING' || i.status === 'MATCHED') && 
+                    i.status !== 'REJECTED' && 
+                    !ignoredIds.includes(i.id)
+                )
+                .map(transformData);
+                
             setPendingRequests(pending);
-            const completed = dataList.filter((i: any) => i.status === 'COMPLETED').map(transformData);
+            
+            const completed = dataList
+                .filter((i: any) => i.status === 'COMPLETED')
+                .map(transformData);
             setCompletedRequests(completed);
         }
     } catch (error) { console.error("Error fetching:", error); }
@@ -285,70 +623,161 @@ export default function ReaderDashboardProfessional() {
 
   const transformData = (item: any) => {
       let rawCreatedAt = item.createdAt || item.created_at || item.timestamp;
+
       if (!rawCreatedAt && typeof window !== 'undefined') {
-          const key = `session_created_at_${item.id}`; const stored = localStorage.getItem(key);
-          if (stored) rawCreatedAt = stored; else { rawCreatedAt = new Date().toISOString(); localStorage.setItem(key, rawCreatedAt); }
+          const key = `session_created_at_${item.id}`;
+          const stored = localStorage.getItem(key);
+          if (stored) {
+              rawCreatedAt = stored;
+          } else {
+              rawCreatedAt = new Date().toISOString();
+              localStorage.setItem(key, rawCreatedAt);
+          }
       }
-      
+
       let cards: any[] = [];
       try {
-          let raw = item.selectedCards; if (typeof raw === 'string') try { raw = JSON.parse(raw); } catch {}
+          let raw = item.selectedCards;
+          if (typeof raw === 'string') try { raw = JSON.parse(raw); } catch {}
           if(Array.isArray(raw) && raw.length > 0) {
               cards = raw.map((c: any, index: number) => {
-                  const id = Number(c.cardId || c.id || 0); const isReversed = typeof c === 'object' ? (c.isReversed || false) : false;
-                  const serverName = c.nameVi || c.name; const serverImg = c.imageUrl || c.image || c.img; const localInfo = getCardDetail(id);
+                  const id = Number(c.cardId || c.id || 0); 
+                  const isReversed = typeof c === 'object' ? (c.isReversed || false) : false;
+                  const serverName = c.nameVi || c.name; 
+                  const serverImg = c.imageUrl || c.image || c.img;
+                  const localInfo = getCardDetail(id);
                   return { id: id || (1000 + index), isReversed, name: serverName || localInfo.name, img: serverImg || localInfo.img };
               });
           }
       } catch (e) { }
-      
-      let birthDateDisplay = "Chưa cung cấp"; const rawDob = item.customer?.birthDate || item.birthDate;
+
+      let birthDateDisplay = "Chưa cung cấp";
+      const rawDob = item.customer?.birthDate || item.birthDate;
       if(rawDob) { try { if (Array.isArray(rawDob)) birthDateDisplay = `${rawDob[2]}/${rawDob[1]}/${rawDob[0]}`; else { const d = new Date(rawDob); birthDateDisplay = !isNaN(d.getTime()) ? d.toLocaleDateString('vi-VN') : String(rawDob); } } catch { birthDateDisplay = String(rawDob); } }
+
       let querentName = item.customer?.fullName || item.fullName || "Khách ẩn danh";
       let questionContent = item.question?.content || item.question?.questionText || item.questionName || "Không có câu hỏi";
       if (item.note && (querentName === "Khách ẩn danh" || querentName === "customer")) { if (item.note.includes("KH:")) querentName = item.note.split("KH:")[1].split("-")[0].trim(); }
 
-      return { id: item.id, querentName, topic: "Tổng quan", question: questionContent, birthDate: birthDateDisplay, timestamp: new Date(rawCreatedAt).toLocaleString('vi-VN'), cards, rawNote: item.note, status: item.status, amount: item.amount || 50000, rawCreatedAt };
+      return {
+          id: item.id, 
+          querentName, 
+          topic: "Tổng quan", 
+          question: questionContent,
+          birthDate: birthDateDisplay, 
+          timestamp: new Date(rawCreatedAt).toLocaleString('vi-VN'),
+          cards, 
+          rawNote: item.note, 
+          status: item.status, 
+          amount: item.amount || 50000,
+          rawCreatedAt
+      };
   };
 
-  // --- HANDLERS ---
   const handleAcceptRequest = async (request: any) => {
-    try { await ReadingSessionService.accept(request.id); setActiveRequest(request); setIsSent(false); setCardInputs({}); setSummary(""); setActiveTab('workspace'); addToast('success', 'Đã nhận yêu cầu! Bắt đầu luận giải.'); } 
-    catch (e: any) { addToast('error', e.message || "Lỗi khi nhận yêu cầu"); }
+    try { 
+        await ReadingSessionService.accept(request.id); 
+        setActiveRequest(request); 
+        setIsSent(false); 
+        setCardInputs({}); 
+        setSummary(""); 
+        setActiveTab('workspace'); 
+        addToast('success', 'Đã nhận yêu cầu! Bắt đầu luận giải.');
+    } catch (e: any) { 
+        addToast('error', e.message || "Lỗi khi nhận yêu cầu"); 
+    }
   };
 
+  // --- SỬA LOGIC REJECT (KÍCH HOẠT MODAL KHI MANUAL) ---
   const handleRejectRequest = async (id: any, isAuto: boolean = false) => {
-      if (isAuto) { setIgnoredIds(prev => [...prev, id]); setPendingRequests(prev => prev.filter(req => req.id !== id)); try { await ReadingSessionService.reject(id); addToast('info', `Yêu cầu #${id} đã hết hạn.`); } catch (e) {} } 
-      else { setRejectModal({ isOpen: true, id: id }); }
+      if (isAuto) {
+          // Tự động từ chối (hết giờ) -> Không hiện Modal, chỉ Toast Info
+          setIgnoredIds(prev => [...prev, id]); 
+          setPendingRequests(prev => prev.filter(req => req.id !== id));
+          try { 
+              await ReadingSessionService.reject(id); 
+              addToast('info', `Yêu cầu #${id} đã hết hạn và tự động từ chối.`);
+          } catch (e: any) { console.error(e); }
+      } else {
+          // Thủ công -> Mở Modal Xác Nhận
+          setRejectModal({ isOpen: true, id: id });
+      }
   };
 
+  // --- HÀM THỰC THI REJECT SAU KHI BẤM XÁC NHẬN TRONG MODAL ---
   const handleConfirmReject = async () => {
-      const id = rejectModal.id; if (!id) return;
-      setRejectModal({ isOpen: false, id: null }); setIgnoredIds(prev => [...prev, id]); setPendingRequests(prev => prev.filter(req => req.id !== id));
-      try { await ReadingSessionService.reject(id); addToast('success', 'Đã từ chối yêu cầu.'); } catch (e: any) { addToast('error', "Lỗi khi từ chối yêu cầu"); setIgnoredIds(prev => prev.filter(i => i !== id)); }
+      const id = rejectModal.id;
+      if (!id) return;
+
+      setRejectModal({ isOpen: false, id: null });
+      setIgnoredIds(prev => [...prev, id]); 
+      setPendingRequests(prev => prev.filter(req => req.id !== id));
+      
+      try { 
+          await ReadingSessionService.reject(id); 
+          addToast('success', 'Đã từ chối yêu cầu.');
+      } catch (e: any) { 
+          addToast('error', "Lỗi khi từ chối yêu cầu");
+          setIgnoredIds(prev => prev.filter(i => i !== id)); 
+      }
   };
 
   const handleSubmit = async () => {
-    if (!activeRequest) return; setIsSubmitting(true);
+    if (!activeRequest) return;
+    setIsSubmitting(true);
+    
     try {
         const card1Content = activeRequest.cards[0] ? (cardInputs[activeRequest.cards[0].id] || "") : "";
         const card2Content = activeRequest.cards[1] ? (cardInputs[activeRequest.cards[1].id] || "") : "";
         const card3Content = activeRequest.cards[2] ? (cardInputs[activeRequest.cards[2].id] || "") : "";
+
         const interp1 = card1Content.trim() !== "" ? card1Content : "Lá bài 1 - Năng lượng khởi đầu.";
         const interp2 = card2Content.trim() !== "" ? card2Content : "Lá bài 2 - Năng lượng trung tâm.";
         const interp3 = card3Content.trim() !== "" ? card3Content : "Lá bài 3 - Năng lượng kết thúc.";
+        
         const adviceText = summary.trim() !== "" ? summary : "Tarot khuyên querent nên lắng nghe trực giác nội tâm.";
         const qrLink = qrBase64 || getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`);
-        const payload = { interpretation1: interp1, interpretation2: interp2, interpretation3: interp3, advice: adviceText, qrPayment: qrLink };
+
+        const payload = {
+            interpretation1: interp1,
+            interpretation2: interp2,
+            interpretation3: interp3,
+            advice: adviceText,
+            qrPayment: qrLink
+        };
+
         await InterpretationService.submit(activeRequest.id, payload);
-        setTimeout(() => { setIsSubmitting(false); setIsSent(true); fetchData(); addToast('success', 'Đã gửi bài giải thành công!'); }, 1500);
-    } catch (e: any) { addToast('error', `Gửi thất bại: ${e.message}`); setIsSubmitting(false); }
+
+        setTimeout(() => {
+            setIsSubmitting(false);
+            setIsSent(true);
+            fetchData();
+            addToast('success', 'Đã gửi bài giải thành công!');
+        }, 1500);
+
+    } catch (e: any) {
+        const serverMessage = e.response?.data?.message || e.response?.data?.error || "Lỗi không xác định";
+        addToast('error', `Gửi thất bại: ${serverMessage}`);
+        setIsSubmitting(false);
+    }
   };
 
   const handleConfirmPayment = async () => {
-    if (!activeRequest) return; setConfirmingPayment(true);
-    try { await InterpretationService.confirmPayment(activeRequest.id); setShowPaymentModal(false); await fetchData(); setActiveRequest(null); setIsSent(false); setActiveTab('requests'); addToast('success', 'Đã xác nhận thanh toán!'); } 
-    catch (e: any) { addToast('error', `Thất bại: ${e.message}`); } finally { setConfirmingPayment(false); }
+    if (!activeRequest) return;
+    setConfirmingPayment(true);
+    try { 
+        await InterpretationService.confirmPayment(activeRequest.id); 
+        setShowPaymentModal(false); 
+        await fetchData(); 
+        setActiveRequest(null); 
+        setIsSent(false); 
+        setActiveTab('requests'); 
+        addToast('success', 'Đã xác nhận thanh toán thành công!');
+    } catch (e: any) { 
+        addToast('error', `Xác nhận thất bại: ${e.message}`); 
+    } finally { 
+        setConfirmingPayment(false); 
+    }
   };
 
   const formatTime = (s: number) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
@@ -357,248 +786,104 @@ export default function ReaderDashboardProfessional() {
   if (!isMounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-200 font-sans flex overflow-hidden relative selection:bg-amber-500/30">
-        
-        {/* Background Decor */}
-        <div className="fixed inset-0 pointer-events-none">
-            <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-purple-900/10 rounded-full blur-[120px]" />
-            <div className="absolute bottom-0 left-0 w-[30vw] h-[30vw] bg-amber-900/10 rounded-full blur-[100px]" />
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-        </div>
-
-        {/* TOAST */}
+    <div className="min-h-screen bg-[#0a0410] text-slate-200 font-sans flex overflow-hidden">
+        {/* TOAST CONTAINER */}
         <ToastContainer toasts={toasts} removeToast={removeToast} />
 
-        {/* SIDEBAR (STYLE PROFILE) */}
-        <aside className="w-64 bg-[#130823]/60 backdrop-blur-xl border-r border-white/5 hidden lg:flex flex-col h-screen sticky top-0 z-50">
+        <aside className="w-64 bg-[#0f0518] border-r border-slate-800 hidden lg:flex flex-col h-screen sticky top-0 z-50">
             <div className="p-6">
-                {/* ĐÃ THAY LOGO Ở ĐÂY */}
                 <Link href="/" className="flex items-center gap-3 cursor-pointer group">
-                    <Image src="/logo.png" alt="MysticTarot Logo" width={32} height={32} className="w-8 h-8 object-contain group-hover:opacity-80 transition-opacity" />
-                    <span className="font-bold text-xl text-white">Mystic<span className="text-amber-500">Tarot</span></span>
+                    <div className="p-2 bg-amber-500/20 rounded-lg border border-amber-500/30 group-hover:bg-amber-500/30 transition-colors">
+                        <Feather className="w-6 h-6 text-amber-500" />
+                    </div>
+                    <h1 className="text-lg font-bold text-white group-hover:text-amber-400 transition-colors">Mystic Reader</h1>
                 </Link>
             </div>
 
-            <nav className="flex-grow px-4 space-y-2 mt-4">
-               <button onClick={() => setActiveTab('requests')} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'requests' ? 'bg-gradient-to-r from-amber-600/20 to-purple-600/20 text-white border border-white/10 font-bold' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
-                   <div className="flex items-center gap-3"><Inbox className="w-5 h-5" /> <span>Yêu cầu mới</span></div>
-                   {pendingRequests.length > 0 && <span className="bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">{pendingRequests.length}</span>}
-               </button>
-               
-               <button onClick={() => activeRequest && setActiveTab('workspace')} disabled={!activeRequest} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'workspace' ? 'bg-white/10 text-white border border-white/5 font-bold' : 'text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50'}`}>
-                   <LayoutDashboard className="w-5 h-5" /> Workspace
-               </button>
-               
-               <button onClick={() => setActiveTab('history')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'history' ? 'bg-white/10 text-white border border-white/5 font-bold' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
-                   <History className="w-5 h-5" /> Lịch sử
-               </button>
-
-               <div className="my-4 border-t border-white/5"></div>
-
-               {/* BUTTON SANG READER PROFILE */}
-               <Link href="/readerdashboard/profile" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-colors font-bold">
-                   <User className="w-5 h-5" /> <span>Hồ sơ cá nhân</span>
-               </Link>
+            <nav className="flex-grow px-4 space-y-2 mt-6">
+               <button onClick={() => setActiveTab('requests')} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'requests' ? 'bg-slate-800 text-amber-400 border border-slate-700 shadow-lg' : 'text-slate-400 hover:bg-slate-800/30'}`}><div className="flex items-center gap-3"><Inbox className="w-5 h-5" /> <span>Yêu cầu mới</span></div>{pendingRequests.length > 0 && <span className="bg-amber-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-bounce">{pendingRequests.length}</span>}</button>
+               <button onClick={() => activeRequest && setActiveTab('workspace')} disabled={!activeRequest} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'workspace' ? 'bg-slate-800/50 text-amber-400 border border-slate-700/50' : 'text-slate-400 hover:bg-slate-800/30 hover:text-white disabled:opacity-50'}`}><LayoutDashboard className="w-5 h-5" /> Workspace</button>
+               <button onClick={() => setActiveTab('history')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'history' ? 'bg-slate-800/50 text-amber-400 border border-slate-700/50' : 'text-slate-400 hover:bg-slate-800/30 hover:text-white'}`}><History className="w-5 h-5" /> Lịch sử</button>
             </nav>
-
             <div className="p-4 m-4">
-                <div className="bg-white/5 rounded-xl border border-white/5 p-3 flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-purple-600 p-[2px]">
-                        <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-xs font-bold text-white">{user?.fullName?.charAt(0)}</div>
-                    </div>
-                    <div>
-                        <div className="text-sm font-bold text-white truncate max-w-[100px]">{user?.fullName || "Reader"}</div>
-                        <div className="text-[10px] text-green-400 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Online</div>
-                    </div>
-                </div>
-                <button onClick={handleLogoutClick} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-red-400 hover:bg-red-500/10 border border-red-500/20 transition-colors text-xs font-bold uppercase tracking-wider">
-                    <LogOut className="w-4 h-4" /> Đăng xuất
-                </button>
+                <div className="bg-slate-900/80 rounded-xl border border-slate-800 p-3 flex items-center gap-3 mb-2"><div className="w-10 h-10 bg-purple-900/50 rounded-full flex items-center justify-center text-purple-300"><User className="w-5 h-5" /></div><div><div className="text-sm font-medium text-white">{user?.fullName || "Reader"}</div><div className="text-xs text-green-400 flex items-center gap-1"><div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div> Online</div></div></div>
+                <button onClick={handleLogoutClick} className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 transition-colors text-sm font-medium"><LogOut className="w-4 h-4" /> Đăng xuất</button>
             </div>
         </aside>
 
-        {/* MAIN CONTENT */}
         <main className="flex-grow h-screen overflow-y-auto custom-scrollbar relative pb-24">
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-purple-900/10 via-[#0a0410] to-[#0a0410]"></div>
             <div className="max-w-5xl mx-auto px-6 py-8 relative z-10">
             <AnimatePresence mode="wait">
-                
-                {/* TAB 1: REQUESTS */}
                 {activeTab === 'requests' && (
                 <motion.div key="requests" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                    <header className="mb-8">
-                        <h2 className="text-3xl font-bold text-white tracking-tight">Yêu cầu <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400">Mới Nhất</span></h2>
-                        <p className="text-slate-400 text-sm mt-2">Danh sách các khách hàng đang chờ bạn kết nối.</p>
-                    </header>
-                    
-                    {pendingRequests.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-24 bg-[#130823]/40 rounded-[2rem] border border-white/5 border-dashed">
-                            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4"><Inbox className="w-8 h-8 text-slate-500 opacity-50"/></div>
-                            <p className="text-slate-400 font-medium">Hiện chưa có yêu cầu nào.</p>
-                            <p className="text-slate-500 text-sm">Vui lòng chờ đợi...</p>
-                        </div>
-                    ) : (
-                        <div className="grid gap-6">
-                            {pendingRequests.map((req) => ( <RequestCard key={req.id} req={req} onAccept={handleAcceptRequest} onReject={handleRejectRequest} /> ))}
-                        </div>
+                    <header className="mb-8"><h2 className="text-3xl font-bold text-white tracking-tight">Yêu cầu luận giải <span className="text-amber-500">mới</span></h2><p className="text-slate-400 mt-2">Danh sách chờ xử lý từ hệ thống.</p></header>
+                    {pendingRequests.length === 0 ? (<div className="text-center py-20 bg-slate-900/30 rounded-2xl border border-slate-800 text-slate-500"><Inbox className="w-12 h-12 mx-auto mb-3 opacity-50"/><p>Hiện không có yêu cầu nào.</p></div>) : (
+                        <div className="grid gap-6">{pendingRequests.map((req) => ( <RequestCard key={req.id} req={req} onAccept={handleAcceptRequest} onReject={handleRejectRequest} /> ))}</div>
                     )}
                 </motion.div>
                 )}
 
-                {/* TAB 2: WORKSPACE */}
                 {activeTab === 'workspace' && activeRequest && !isSent && (
                 <motion.div key="workspace" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
-                    {/* Header Workspace */}
-                    <div className="bg-[#130823]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-2xl">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">#{activeRequest.id}</span>
-                                <span className="text-xs text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3"/> {activeRequest.timestamp}</span>
-                            </div>
-                            <h2 className="text-3xl font-bold text-white mb-2">{activeRequest.topic}</h2>
-                            <div className="flex gap-4 text-sm text-slate-300">
-                                <span className="flex items-center gap-1.5"><User className="w-4 h-4 text-purple-400"/> {activeRequest.querentName}</span>
-                                <span className="w-px h-4 bg-white/10"></span>
-                                <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-blue-400"/> {activeRequest.birthDate}</span>
-                            </div>
+                    <header className="bg-[#130823]/80 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl"><div><div className="flex items-center gap-2 text-xs text-slate-400 mb-2"><Clock className="w-3.5 h-3.5" /> Nhận lúc: {activeRequest.timestamp}<span className="text-slate-600">|</span><span className="text-amber-500 font-mono">#{activeRequest.id}</span></div><h2 className="text-2xl font-bold text-white mb-2">{activeRequest.topic}</h2><div className="flex items-center gap-4 text-sm"><div className="flex items-center gap-2 text-slate-300 bg-slate-900/50 px-3 py-1.5 rounded-full border border-slate-800"><User className="w-4 h-4 text-purple-400" /> Querent: <span className="font-semibold text-white">{activeRequest.querentName}</span></div><div className="flex items-center gap-2 text-slate-300 bg-slate-900/50 px-3 py-1.5 rounded-full border border-slate-800"><Calendar className="w-4 h-4 text-blue-400" /> Sinh: <span className="font-semibold text-white">{activeRequest.birthDate}</span></div></div></div><div className="flex flex-col items-center px-6 py-2 bg-slate-950/50 rounded-2xl border border-amber-500/20 shadow-inner min-w-[140px]"><span className="text-[10px] text-amber-500 font-bold uppercase tracking-[0.2em] mb-1">Thời gian còn lại</span><div className={`text-3xl font-mono font-bold flex items-center gap-2 ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-white'}`}><Timer className="w-5 h-5 text-amber-500" />{formatTime(timeLeft)}</div></div></header>
+                    <div className="bg-[#130823]/50 backdrop-blur-md border border-slate-800/80 rounded-[2rem] p-8 space-y-10 shadow-2xl">
+                    {activeRequest.cards.length === 0 ? (<div className="text-center py-12 border-2 border-dashed border-red-900/30 rounded-2xl bg-red-900/10"><AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" /><h3 className="text-2xl font-bold text-white mb-2">Không tìm thấy dữ liệu bài!</h3><p className="text-slate-400">Backend trả về dữ liệu rỗng.</p></div>) : (
+                        activeRequest.cards.map((card: any, index: number) => (<div key={card.id} className="flex flex-col md:flex-row gap-8"><div className="w-full md:w-40 shrink-0 flex flex-col items-center"><img src={card.img} className="w-40 h-64 object-cover rounded-xl border-4 border-slate-800" alt={card.name} /><h3 className="text-white font-bold mt-2 text-center">{card.name} {card.isReversed && <span className="text-red-400 text-sm block">(Ngược)</span>}</h3></div><div className="flex-grow flex flex-col"><EditorToolbar /><textarea value={cardInputs[card.id] || ""} onChange={(e) => setCardInputs({...cardInputs, [card.id]: e.target.value})} className="w-full h-48 bg-[#0a0410] border border-slate-800 p-4 rounded-b-xl outline-none text-white focus:border-amber-500/50 transition-colors" placeholder={`Nhập luận giải chi tiết cho lá ${card.name} ${card.isReversed ? '(Ngược)' : ''}...`} /></div></div>))
+                    )}
+                    <div className="pt-8 border-t border-slate-800"><h3 className="text-xl font-bold text-amber-500 mb-4 flex items-center gap-2"><Sparkles/> Lời khuyên tổng kết</h3><EditorToolbar /><textarea value={summary} onChange={(e) => setSummary(e.target.value)} className="w-full h-32 bg-[#0a0410] border border-slate-800 p-4 rounded-b-xl outline-none text-white focus:border-amber-500/50 transition-colors" placeholder="Tóm tắt thông điệp và lời khuyên cho khách hàng..." /></div>
+                    <div className="pt-8 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div><h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><QrCode className="w-5 h-5 text-green-400"/> Mã QR thanh toán</h3>
+                        <p className="text-sm text-slate-400 mb-4">Quét mã để xác nhận thanh toán đơn hàng này.</p>
+                        <div className="p-4 bg-white/5 rounded-2xl border border-slate-700 w-fit">
+                            <img src={getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`)} alt="QR Payment" className="w-40 h-40 object-contain rounded-lg"/>
                         </div>
-                        <div className="flex flex-col items-center px-6 py-3 bg-black/20 rounded-2xl border border-white/5 min-w-[140px]">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Hết hạn sau</span>
-                            <div className={`text-2xl font-mono font-bold flex items-center gap-2 ${timeLeft < 300 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
-                                {Math.floor(timeLeft/60).toString().padStart(2,'0')}:{(timeLeft%60).toString().padStart(2,'0')}
-                            </div>
+                        <div className="mt-4">
+                            <label className="text-sm text-slate-400 mb-2 block">Cập nhật mã QR thanh toán</label>
+                            <input type="file" accept="image/*" onChange={handleQrUpload} className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-purple-900/30 file:text-purple-400 hover:file:bg-purple-900/50"/>
+                            {qrBase64 && <img src={qrBase64} alt="Preview QR" className="w-32 h-32 mt-2 rounded-lg border border-slate-700"/>}
                         </div>
+                        </div>
+                        <div className="flex flex-col justify-center space-y-4"><div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700"><div className="flex items-center justify-between mb-2"><span className="text-slate-400 text-sm">Số tiền:</span><span className="text-xl font-bold text-green-400">{activeRequest.amount.toLocaleString('vi-VN')} đ</span></div><div className="flex items-center justify-between"><span className="text-slate-400 text-sm">Trạng thái:</span><span className="text-xs font-bold bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded">Chờ xác nhận</span></div></div><p className="text-xs text-slate-500 italic">* Kiểm tra kỹ thông tin trước khi gửi kết quả.</p></div>
                     </div>
-
-                    {/* Main Editor */}
-                    <div className="bg-[#130823]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 space-y-10 shadow-2xl">
-                        {activeRequest.cards.length === 0 ? (
-                            <div className="text-center py-12 text-red-400">Không có dữ liệu bài</div>
-                        ) : (
-                            activeRequest.cards.map((card: any, index: number) => (
-                                <div key={card.id} className="flex flex-col md:flex-row gap-8 pb-8 border-b border-white/5 last:border-0 last:pb-0">
-                                    <div className="w-full md:w-48 shrink-0 flex flex-col items-center">
-                                        <div className="relative group">
-                                            <img src={card.img} className="w-40 h-64 object-cover rounded-xl border-2 border-white/10 shadow-lg group-hover:scale-105 transition-transform" alt={card.name} />
-                                            {card.isReversed && <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">REV</div>}
-                                        </div>
-                                        <h3 className="text-white font-bold mt-3 text-center">{card.name}</h3>
-                                    </div>
-                                    <div className="flex-grow flex flex-col">
-                                        <label className="text-xs font-bold text-slate-400 uppercase mb-2">Luận giải lá bài</label>
-                                        <div className="flex-grow flex flex-col bg-black/20 rounded-xl border border-white/10 overflow-hidden focus-within:border-amber-500/50 transition-colors">
-                                            <EditorToolbar />
-                                            <textarea 
-                                                value={cardInputs[card.id] || ""} 
-                                                onChange={(e) => setCardInputs({...cardInputs, [card.id]: e.target.value})} 
-                                                className="w-full h-40 bg-transparent border-none p-4 outline-none text-slate-200 placeholder-slate-600 text-sm leading-relaxed resize-none" 
-                                                placeholder={`Nhập thông điệp cho lá ${card.name}...`} 
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                        
-                        {/* Summary & QR */}
-                        <div className="pt-8 border-t border-white/10 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div>
-                                <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><Sparkles className="w-4 h-4 text-amber-400"/> Lời khuyên tổng kết</h3>
-                                <div className="bg-black/20 rounded-xl border border-white/10 overflow-hidden h-full">
-                                    <EditorToolbar />
-                                    <textarea value={summary} onChange={(e) => setSummary(e.target.value)} className="w-full h-40 bg-transparent border-none p-4 outline-none text-slate-200 placeholder-slate-600 text-sm leading-relaxed resize-none" placeholder="Đúc kết lời khuyên..." />
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><QrCode className="w-4 h-4 text-green-400"/> Thông tin thanh toán</h3>
-                                <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex gap-4 items-center">
-                                    <div className="p-2 bg-white rounded-lg">
-                                        <img src={getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`)} alt="QR Payment" className="w-24 h-24 object-contain"/>
-                                    </div>
-                                    <div className="space-y-2 flex-1">
-                                        <div className="flex justify-between text-sm"><span className="text-slate-400">Số tiền:</span><span className="font-bold text-green-400">{activeRequest.amount.toLocaleString()} đ</span></div>
-                                        <div className="text-xs text-slate-500 bg-black/20 p-2 rounded border border-white/5">QR này sẽ được gửi kèm cho khách để họ thanh toán.</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </motion.div>
                 )}
 
-                {/* TAB 3: HISTORY */}
                 {activeTab === 'history' && (
                 <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                    <header className="flex justify-between items-center mb-8">
-                        <h2 className="text-3xl font-bold text-white">Lịch sử <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400">Luận Giải</span></h2>
-                        <div className="relative group">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                            <input type="text" placeholder="Tìm tên khách..." className="bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 outline-none w-64 text-sm text-white focus:border-amber-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                        </div>
-                    </header>
-                    <div className="bg-[#130823]/60 border border-white/10 rounded-[2rem] overflow-hidden backdrop-blur-xl shadow-2xl">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-white/5 text-slate-400 text-xs uppercase tracking-widest border-b border-white/5">
-                                <tr><th className="px-6 py-4 font-bold">Mã / Ngày</th><th className="px-6 py-4 font-bold">Khách hàng</th><th className="px-6 py-4 font-bold">Chủ đề</th><th className="px-6 py-4 font-bold text-right">Trạng thái</th></tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5">
-                                {filteredHistory.map((item) => (
-                                    <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="text-amber-400 font-mono text-xs font-bold mb-1">#{item.id}</div>
-                                            <div className="text-slate-500 text-[10px]">{item.timestamp}</div>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-200 text-sm font-medium">{item.querentName}</td>
-                                        <td className="px-6 py-4 text-slate-400 text-sm">{item.topic}</td>
-                                        <td className="px-6 py-4 text-right">
-                                            <span className="text-green-400 bg-green-400/10 border border-green-400/20 px-2 py-1 rounded text-[10px] font-bold uppercase">Hoàn thành</span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {filteredHistory.length === 0 && <div className="text-center py-10 text-slate-500 text-sm">Chưa có lịch sử nào.</div>}
-                    </div>
+                    <header className="flex justify-between items-center mb-8"><h2 className="text-3xl font-bold text-white">Lịch sử luận giải</h2><div className="relative group"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" /><input type="text" placeholder="Tìm kiếm..." className="bg-slate-900/50 border border-slate-800 rounded-xl py-2 pl-10 pr-4 outline-none w-64 text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div></header>
+                    <div className="bg-[#130823]/40 border border-slate-800 rounded-[2rem] overflow-hidden backdrop-blur-md shadow-2xl"><table className="w-full text-left border-collapse"><thead className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-widest"><tr><th className="px-6 py-4 font-bold">Mã / Ngày</th><th className="px-6 py-4 font-bold">Khách hàng</th><th className="px-6 py-4 font-bold">Chủ đề</th><th className="px-6 py-4 font-bold text-right">Trạng thái</th></tr></thead><tbody className="divide-y divide-slate-800/50">{filteredHistory.map((item) => (<tr key={item.id} className="hover:bg-white/5 transition-colors"><td className="px-6 py-5"><div className="text-amber-500 font-mono text-xs font-bold mb-1">#{item.id}</div><div className="text-slate-500 text-[11px]">{item.timestamp}</div></td><td className="px-6 py-5 text-white text-sm">{item.querentName}</td><td className="px-6 py-5 text-slate-300 text-sm">{item.topic}</td><td className="px-6 py-5 text-right"><span className="text-green-400 bg-green-400/10 px-2 py-1 rounded text-xs font-bold">Hoàn thành</span></td></tr>))}</tbody></table></div>
                 </motion.div>
                 )}
 
-                {/* SUCCESS SCREEN */}
                 {isSent && (
-                <motion.div key="success" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="space-y-8 flex flex-col items-center justify-center h-[60vh]">
-                    <div className="bg-[#130823]/80 backdrop-blur-xl border border-green-500/30 rounded-[3rem] p-12 text-center shadow-[0_0_50px_rgba(34,197,94,0.2)]">
-                        <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-green-500/20">
-                            <CheckCircle2 className="w-12 h-12 text-green-400 animate-bounce" />
-                        </div>
-                        <h2 className="text-4xl font-bold text-white mb-2">Đã Gửi Thành Công!</h2>
-                        <p className="text-slate-400 mb-8">Kết quả luận giải đã được gửi đến khách hàng.</p>
-                        <button onClick={() => setShowPaymentModal(true)} disabled={confirmingPayment} className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 mx-auto transform hover:scale-105">
-                            {confirmingPayment ? "Đang xử lý..." : <><DollarSign className="w-5 h-5" /> Xác Nhận Đã Nhận Tiền</>}
-                        </button>
-                    </div>
-                </motion.div>
+                <motion.div key="success" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="space-y-8"><div className="bg-[#130823]/80 backdrop-blur-xl border border-green-500/30 rounded-3xl p-12 text-center"><CheckCircle2 className="w-24 h-24 text-green-400 mx-auto mb-6 animate-pulse" /><h2 className="text-4xl font-bold text-white mb-4">Đã Gửi Bài Giải!</h2><p className="text-slate-400 mb-2">Kết quả đã được gửi đến khách hàng.</p></div><div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 backdrop-blur-md border-2 border-green-500/30 rounded-[2rem] p-8 shadow-2xl text-center"><h3 className="text-2xl font-bold text-white mb-6 uppercase tracking-widest">Xác nhận thanh toán</h3><button onClick={() => setShowPaymentModal(true)} disabled={confirmingPayment} className="px-10 py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 mx-auto">{confirmingPayment ? "Đang xử lý..." : <><CheckCircle2 className="w-5 h-5" /> Xác Nhận Đã Nhận Tiền</>}</button></div></motion.div>
                 )}
-
             </AnimatePresence>
             </div>
         </main>
 
-        {/* FLOATING ACTION BAR FOR WORKSPACE */}
         {activeTab === 'workspace' && activeRequest && !isSent && (
-            <div className="fixed bottom-6 left-0 md:left-64 right-0 z-40 px-4 flex justify-center">
-                <div className="bg-[#1a1025]/90 border border-white/10 p-2 pl-6 rounded-2xl flex items-center gap-6 shadow-2xl backdrop-blur-xl">
-                    <span className="text-slate-300 text-sm font-medium">
-                        {activeRequest.cards.length > 0 ? `Đã nhập: ${Object.keys(cardInputs).length}/${activeRequest.cards.length} lá` : "Vui lòng nhập lời khuyên"}
-                    </span>
-                    <button onClick={handleSubmit} disabled={isSubmitting} className="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-2.5 rounded-xl text-white font-bold flex items-center gap-2 hover:shadow-lg hover:shadow-amber-900/20 transition-all disabled:opacity-50 hover:scale-105">
-                        {isSubmitting ? "Đang gửi..." : "Gửi Kết Quả"} <Send className="w-4 h-4"/>
-                    </button>
-                </div>
-            </div>
+            <div className="fixed bottom-6 left-0 md:left-64 right-0 z-40 px-4 flex justify-center"><div className="bg-[#0f0518]/90 border border-slate-700 p-2 pl-6 rounded-2xl flex items-center gap-5 shadow-2xl backdrop-blur-md"><span className="text-white text-sm">{activeRequest.cards.length > 0 ? `Đã nhập ${Object.keys(cardInputs).length}/${activeRequest.cards.length} lá` : "Vui lòng nhập lời khuyên"}</span><button onClick={handleSubmit} disabled={isSubmitting} className="bg-gradient-to-r from-amber-600 to-purple-600 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-2 hover:shadow-lg transition-all disabled:opacity-50">{isSubmitting ? "Đang gửi..." : "Gửi Kết Quả"} <Send className="w-4 h-4"/></button></div></div>
         )}
 
-        {/* MODALS */}
-        <PaymentConfirmationModal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)} onConfirm={handleConfirmPayment} amount={activeRequest?.amount || 50000} loading={confirmingPayment} />
-        <RejectConfirmationModal isOpen={rejectModal.isOpen} onClose={() => setRejectModal({isOpen: false, id: null})} onConfirm={handleConfirmReject} />
+        {/* Modal xác nhận thanh toán */}
+        <PaymentConfirmationModal 
+            isOpen={showPaymentModal} 
+            onClose={() => setShowPaymentModal(false)} 
+            onConfirm={handleConfirmPayment} 
+            amount={activeRequest?.amount || 50000}
+            loading={confirmingPayment}
+        />
+
+        {/* Modal xác nhận từ chối */}
+        <RejectConfirmationModal 
+            isOpen={rejectModal.isOpen} 
+            onClose={() => setRejectModal({isOpen: false, id: null})} 
+            onConfirm={handleConfirmReject} 
+        />
+
         <LogoutModal isOpen={showLogoutModal} onClose={() => setShowLogoutModal(false)} onConfirm={handleConfirmLogout} />
     </div>
   );

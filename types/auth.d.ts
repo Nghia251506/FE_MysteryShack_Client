@@ -1,5 +1,7 @@
 // Dữ liệu User trả về sau khi Login thành công
 export interface User {
+  isActive(isActive: any): unknown;
+  profilePicture: string;
   id: number;
   username: string;
   email: string;
