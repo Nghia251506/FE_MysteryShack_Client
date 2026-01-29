@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image"; // Đảm bảo đã import Image
+import Image from "next/image"; // Ensure Image is imported
 import { useRouter } from "next/navigation";
 import { ReadingSessionService } from "@/services/readingSessionService";
 import { InterpretationService } from "@/services/interpretationService";
@@ -18,6 +18,7 @@ import { logout } from "@/store/features/authSlice";
 import { LogoutModal } from "@/components/LogoutModal";
 import { RootState } from "@/store/store";
 import { convertFileToBase64 } from "@/utils/fileUtils";
+import { AuthService } from "@/services/authService"; // Import AuthService
 
 // --- 1. TOAST NOTIFICATION SYSTEM ---
 type ToastType = 'success' | 'error' | 'info';
@@ -234,10 +235,18 @@ export default function ReaderDashboardProfessional() {
   useEffect(() => { setIsMounted(true); }, []);
 
   const handleLogoutClick = () => setShowLogoutModal(true);
-  const handleConfirmLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("currentUser");
-    dispatch(logout()); router.push("/login");
+  
+  const handleConfirmLogout = async () => {
+    try {
+        await AuthService.logout();
+    } catch (error) {
+        console.error("Lỗi khi gọi API logout:", error);
+    } finally {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("currentUser");
+        dispatch(logout()); 
+        router.push("/login");
+    }
   };
 
   const handleQrUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

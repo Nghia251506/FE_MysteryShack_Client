@@ -14,6 +14,7 @@ import { RootState, AppDispatch } from "@/store/store";
 import { logout } from "@/store/features/authSlice";
 import { LogoutModal } from "@/components/LogoutModal";
 import { ReadingSessionService } from "@/services/readingSessionService";
+import { AuthService } from "@/services/authService"; // Import AuthService
 
 // --- HELPER: ZODIAC ---
 const getZodiac = (dateString: string | undefined) => {
@@ -85,9 +86,21 @@ export default function UserProfilePage() {
 
   const handleLogoutClick = () => setShowLogoutModal(true);
   
-  const handleConfirmLogout = () => {
-    dispatch(logout());
-    router.push("/login");
+  const handleConfirmLogout = async () => {
+    try {
+      // 1. Gọi API báo Backend (Không cần quan tâm kết quả thành công hay thất bại)
+      await AuthService.logout();
+    } catch (error) {
+      console.error("Lỗi khi gọi API logout:", error);
+    } finally {
+      // 2. Dù API lỗi hay không, vẫn phải Xóa data ở Client để user thoát ra
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("currentUser");
+      dispatch(logout()); // Xóa Redux state
+      
+      // 3. Chuyển hướng
+      router.push("/login");
+    }
   };
 
   if (!isMounted) return null;

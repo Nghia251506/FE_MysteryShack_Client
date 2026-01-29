@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux"; // Đã thêm useDispatch
 import { RootState } from "@/store/store";
 import { 
   Star, ShieldCheck, MapPin, Edit3, Save, Camera, 
@@ -11,6 +11,8 @@ import {
   Power, QrCode, UploadCloud, X, Mail, Sparkles, LayoutDashboard, AlertCircle, ArrowLeft, Calendar
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { AuthService } from "@/services/authService"; // Import AuthService
+import { logout } from "@/store/features/authSlice"; // Import action logout
 
 // --- 1. ĐỊNH NGHĨA DỮ LIỆU TỪ BACKEND ---
 interface ReaderUser {
@@ -26,7 +28,7 @@ interface ReaderUser {
   bio?: string;
   phone?: string;
   address?: string;
-  birthDate?: string; // Đã thêm trường này
+  birthDate?: string;
   specialties?: string[];
   paymentQr?: string;
   
@@ -39,6 +41,7 @@ interface ReaderUser {
 
 export default function ReaderProfilePage() {
   const router = useRouter();
+  const dispatch = useDispatch(); // Khởi tạo dispatch
   const { user: rawUser } = useSelector((state: RootState) => state.auth);
   const user = rawUser as unknown as ReaderUser;
 
@@ -51,7 +54,7 @@ export default function ReaderProfilePage() {
     bio: "",
     specialties: [] as string[],
     location: "",
-    birthDate: "", // State cho ngày sinh
+    birthDate: "", 
     paymentQr: "",
   });
   
@@ -62,10 +65,8 @@ export default function ReaderProfilePage() {
     if (user) {
         const realName = user.fullName || user.name || user.username || user.email?.split('@')[0] || "";
         
-        // Xử lý ngày sinh: Nếu có thì format, không thì để rỗng
         let dob = "";
         if (user.birthDate) {
-            // Nếu BE trả về dạng ISO (2000-01-01T00:00:00Z), cắt lấy YYYY-MM-DD để hiện trong input date
             dob = user.birthDate.split("T")[0];
         }
 
@@ -107,12 +108,26 @@ export default function ReaderProfilePage() {
     setIsEditing(false);
   };
 
-  // Helper để hiển thị ngày sinh đẹp mắt (DD/MM/YYYY) khi không edit
   const formatDateDisplay = (dateString: string) => {
       if (!dateString) return "Chưa cập nhật";
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return dateString; // Fallback nếu string không phải ngày chuẩn
+      if (isNaN(date.getTime())) return dateString; 
       return date.toLocaleDateString('vi-VN');
+  };
+
+  // --- HÀM LOGOUT ĐÃ ĐƯỢC THÊM ---
+  // (Bạn có thể gắn hàm này vào một nút Đăng xuất nếu muốn thêm vào giao diện sau này)
+  const handleLogout = async () => {
+    try {
+      await AuthService.logout();
+    } catch (error) {
+      console.error("Lỗi khi gọi API logout:", error);
+    } finally {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("currentUser");
+      dispatch(logout()); 
+      router.push("/login");
+    }
   };
 
   return (
@@ -225,7 +240,7 @@ export default function ReaderProfilePage() {
                             </div>
                         </div>
 
-                        {/* NGÀY SINH (MỚI) */}
+                        {/* NGÀY SINH */}
                         <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 transition-colors">
                             <Calendar className="w-5 h-5 text-slate-400" />
                             <div className="w-full">
