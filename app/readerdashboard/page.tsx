@@ -47,6 +47,7 @@ export default function ReaderDashboardPage() {
   const fetchRequests = useCallback(async () => {
     try {
       const response: any = await ReadingSessionService.getAll();
+      console.log(response)
       const dataList = Array.isArray(response) ? response : (response.content || []);
       
       // Lọc: Chỉ lấy PENDING/MATCHED và không nằm trong danh sách ẩn (ignoredIds)
