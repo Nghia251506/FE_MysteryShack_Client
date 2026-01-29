@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { logout } from '@/store/features/authSlice';
 import { useRouter } from 'next/navigation';
+import { AuthService } from "@/services/authService"; // Import AuthService
 
 export default function Home() {
   const [hoveredTopic, setHoveredTopic] = useState<number | null>(null);
@@ -32,9 +33,20 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    router.refresh(); 
+  // --- HÀM LOGOUT ĐÃ CẬP NHẬT ---
+  const handleLogout = async () => {
+    try {
+      // Gọi API báo Backend hủy token (quan trọng)
+      await AuthService.logout();
+    } catch (error) {
+      console.error("Logout API error:", error);
+    } finally {
+      // Luôn dọn dẹp Client và refresh trang
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("currentUser");
+      dispatch(logout());
+      router.refresh(); 
+    }
   };
 
   const topics = [
@@ -110,10 +122,14 @@ export default function Home() {
             </span>
           </Link>
           
-          <div className="hidden md:flex items-center gap-10">
+          <div className="hidden md:flex items-center gap-8">
             <Link href="/tarot-draw" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Rút Bài</Link>
+            
+            {/* --- CÁC TRANG ARTICLE MỚI THÊM --- */}
+            <Link href="/what-is-tarot" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Tarot là gì?</Link>
+            <Link href="/compare-tarot" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">So Sánh</Link>
+            
             <Link href="/about" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Sứ mệnh</Link>
-            <Link href="/article" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Cẩm nang Tarot</Link>
             
             <div className="h-4 w-px bg-white/10" />
             
@@ -196,7 +212,7 @@ export default function Home() {
                   Bắt Đầu Rút Bài <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
               </Link>
-              <Link href="/about">
+              <Link href="/what-is-tarot">
                 <button className="px-12 py-5 bg-white/5 border border-white/10 text-slate-200 font-bold text-lg rounded-2xl hover:bg-white/10 transition-all backdrop-blur-xl border-dashed">
                   Tìm hiểu thêm
                 </button>
@@ -333,6 +349,8 @@ export default function Home() {
                 <h4 className="text-white font-bold text-xs uppercase tracking-widest">Nền tảng</h4>
                 <ul className="space-y-2 text-sm text-slate-500">
                     <li><Link href="/about" className="hover:text-amber-400 transition-colors">Về chúng tôi</Link></li>
+                    <li><Link href="/what-is-tarot" className="hover:text-amber-400 transition-colors">Tarot là gì?</Link></li>
+                    <li><Link href="/compare-tarot" className="hover:text-amber-400 transition-colors">So sánh huyền học</Link></li>
                     <li><Link href="/contact" className="hover:text-amber-400 transition-colors">Liên hệ với chúng tôi</Link></li>
                 </ul>
             </div>

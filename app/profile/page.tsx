@@ -15,6 +15,7 @@ import { RootState, AppDispatch } from "@/store/store";
 import { logout } from "@/store/features/authSlice";
 import { LogoutModal } from "@/components/LogoutModal";
 import { HistoryService } from "@/services/historyService";
+import { AuthService } from "@/services/authService"; // Import AuthService
 
 // --- HELPERS: TAROT DETAIL & ZODIAC ---
 const getCardDetail = (id: number) => {
@@ -132,7 +133,20 @@ export default function UserProfilePage() {
     }, [allRecentSessions, currentPage]);
 
     const totalPages = Math.ceil(allRecentSessions.length / itemsPerPage);
-    const handleConfirmLogout = () => { dispatch(logout()); router.push("/login"); };
+    
+    // --- HÀM LOGOUT ĐÃ CẬP NHẬT ---
+    const handleConfirmLogout = async () => {
+        try {
+            await AuthService.logout();
+        } catch (error) {
+            console.error("Logout API error:", error);
+        } finally {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("currentUser");
+            dispatch(logout()); 
+            router.push("/login");
+        }
+    };
 
     const getStatusBadge = (status: string) => {
         switch (status) {

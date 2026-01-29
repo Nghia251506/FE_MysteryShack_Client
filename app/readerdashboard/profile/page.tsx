@@ -73,7 +73,7 @@ export default function ReaderProfilePage() {
             fullName: realName,
             bio: user.bio || "",
             specialties: user.specialties || [],
-            location: user.address || "",
+           location: user.address || "",
             birthDate: dob,
             paymentQr: user.paymentQr || ""
         });
