@@ -7,7 +7,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { 
   Star, ShieldCheck, MapPin, Edit3, Save, Camera, 
-  Award, Zap, MessageSquare, 
+  Award, Zap, TrendingUp, MessageSquare, 
   Power, QrCode, UploadCloud, X, Mail, Sparkles, LayoutDashboard, AlertCircle, ArrowLeft, Calendar
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -20,21 +20,20 @@ interface ReaderUser {
   name?: string;
   username?: string;
   role: string;
-  // Thêm cả 2 trường để đảm bảo bắt được ảnh
-  avatarUrl?: string; 
-  profilePicture?: string;
+  avatarUrl?: string;
   
   // Thông tin cá nhân
   bio?: string;
   phone?: string;
   address?: string;
-  birthDate?: string; 
+  birthDate?: string; // Đã thêm trường này
   specialties?: string[];
   paymentQr?: string;
   
   // Thống kê
   rating?: number;
   totalSessions?: number;
+  totalRevenue?: number;
   experienceYears?: number;
 }
 
@@ -52,23 +51,21 @@ export default function ReaderProfilePage() {
     bio: "",
     specialties: [] as string[],
     location: "",
-    birthDate: "", 
+    birthDate: "", // State cho ngày sinh
     paymentQr: "",
   });
   
   const [previewQr, setPreviewQr] = useState<string>("");
-
-  // --- LẤY AVATAR ƯU TIÊN ---
-  // Kiểm tra cả 2 trường, nếu không có thì null
-  const userAvatar = user?.avatarUrl || user?.profilePicture;
 
   // --- ĐỒNG BỘ DỮ LIỆU ---
   useEffect(() => {
     if (user) {
         const realName = user.fullName || user.name || user.username || user.email?.split('@')[0] || "";
         
+        // Xử lý ngày sinh: Nếu có thì format, không thì để rỗng
         let dob = "";
         if (user.birthDate) {
+            // Nếu BE trả về dạng ISO (2000-01-01T00:00:00Z), cắt lấy YYYY-MM-DD để hiện trong input date
             dob = user.birthDate.split("T")[0];
         }
 
@@ -76,7 +73,7 @@ export default function ReaderProfilePage() {
             fullName: realName,
             bio: user.bio || "",
             specialties: user.specialties || [],
-            location: user.address || "",
+           location: user.address || "",
             birthDate: dob,
             paymentQr: user.paymentQr || ""
         });
@@ -110,10 +107,11 @@ export default function ReaderProfilePage() {
     setIsEditing(false);
   };
 
+  // Helper để hiển thị ngày sinh đẹp mắt (DD/MM/YYYY) khi không edit
   const formatDateDisplay = (dateString: string) => {
       if (!dateString) return "Chưa cập nhật";
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return dateString; 
+      if (isNaN(date.getTime())) return dateString; // Fallback nếu string không phải ngày chuẩn
       return date.toLocaleDateString('vi-VN');
   };
 
@@ -183,14 +181,8 @@ export default function ReaderProfilePage() {
                 <div className="bg-[#130823]/60 border border-white/10 rounded-[2.5rem] p-8 text-center relative overflow-hidden backdrop-blur-xl shadow-2xl">
                     <div className="relative group mx-auto w-fit">
                         <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-br from-amber-400 to-purple-600 mb-4 relative mx-auto">
-                            {userAvatar ? (
-                                <Image 
-                                    src={userAvatar} 
-                                    alt="Avatar" 
-                                    layout="fill" 
-                                    objectFit="cover" 
-                                    className="rounded-full border-4 border-[#130823]" 
-                                />
+                            {user?.avatarUrl ? (
+                                <Image src={user.avatarUrl} alt="Avatar" layout="fill" objectFit="cover" className="rounded-full border-4 border-[#130823]" />
                             ) : (
                                 <div className="w-full h-full bg-[#1a1025] rounded-full border-4 border-[#130823] flex items-center justify-center text-4xl font-bold text-white uppercase">
                                     {(formData.fullName || user?.email || "?").charAt(0).toUpperCase()}
@@ -233,7 +225,7 @@ export default function ReaderProfilePage() {
                             </div>
                         </div>
 
-                        {/* NGÀY SINH */}
+                        {/* NGÀY SINH (MỚI) */}
                         <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 transition-colors">
                             <Calendar className="w-5 h-5 text-slate-400" />
                             <div className="w-full">
@@ -268,6 +260,19 @@ export default function ReaderProfilePage() {
                                 )}
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* 2. Total Revenue Card */}
+                <div className="bg-gradient-to-br from-[#1a1025] to-[#0f0518] border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
+                    <div className="flex items-center gap-2 mb-3 text-slate-400 font-bold text-xs uppercase tracking-wider">
+                        <TrendingUp className="w-4 h-4 text-green-400" /> Tổng Thu Nhập
+                    </div>
+                    <div className="flex items-baseline gap-2 relative z-10">
+                        <h2 className="text-4xl font-bold text-white tracking-tight">
+                            {(user?.totalRevenue ?? 0).toLocaleString('vi-VN')}
+                        </h2>
+                        <span className="text-slate-500 font-bold text-sm">VNĐ</span>
                     </div>
                 </div>
             </div>
