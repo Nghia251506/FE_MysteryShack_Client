@@ -113,6 +113,7 @@ export default function Home() {
           <div className="hidden md:flex items-center gap-10">
             <Link href="/tarot-draw" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Rút Bài</Link>
             <Link href="/about" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Sứ mệnh</Link>
+            <Link href="/article" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Cẩm nang Tarot</Link>
             
             <div className="h-4 w-px bg-white/10" />
             
