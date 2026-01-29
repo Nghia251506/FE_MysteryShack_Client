@@ -10,7 +10,6 @@ import {
     History,
     User as UserIcon,
     LogOut,
-    Loader2,
     Power,
     BellRing
 } from "lucide-react";
@@ -21,7 +20,7 @@ import { UserService } from "@/services/userService";
 import { toast } from "react-hot-toast";
 import { updateActiveStatus } from "@/store/slices/userSlice";
 
-// --- IMPORT FIREBASE LOGIC TỪ SOURCE CŨ ---
+// --- IMPORT FIREBASE LOGIC ---
 import { messaging } from "@/lib/firebaseConfig"; 
 import { onMessage } from "firebase/messaging";
 
@@ -44,15 +43,13 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
         }
     }, [user]);
 
-    // 2. LOGIC FCM (BÊ TỪ SOURCE CŨ SANG)
+    // 2. LOGIC FCM
     useEffect(() => {
         if (!mounted || !messaging) return;
 
-        // Đăng ký lắng nghe thông báo Foreground
         const unsubscribe = onMessage(messaging, (payload) => {
             console.log("Nhận thông báo mới (Foreground):", payload);
             
-            // Hiển thị toast xịn từ react-hot-toast thay vì ToastContainer cũ
             toast.custom((t) => (
                 <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-[#1c112d] shadow-2xl rounded-[1.5rem] pointer-events-auto flex ring-1 ring-white/10 border border-amber-500/30`}>
                     <div className="flex-1 w-0 p-4">
@@ -86,7 +83,6 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
                 </div>
             ), { duration: 6000 });
 
-            // Phát tiếng chuông
             const audio = new Audio("/sounds/notification.mp3");
             audio.play().catch(() => {});
         });
@@ -111,13 +107,23 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
         }
     };
 
+    // --- HÀM LOGOUT CHUẨN ---
     const handleLogout = async () => {
+        if (isLoggingOut) return;
         setIsLoggingOut(true);
-        try { await AuthService.logout(); } catch (e) {}
-        localStorage.clear();
-        dispatch(logout());
-        router.replace("/login");
-        setIsLoggingOut(false);
+        try {
+            // Gọi API báo backend hủy token (quan trọng)
+            await AuthService.logout();
+        } catch (error) {
+            console.error("Lỗi khi logout API:", error);
+        } finally {
+            // Dọn dẹp client dù API lỗi hay không
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("currentUser");
+            dispatch(logout());
+            router.replace("/login");
+            setIsLoggingOut(false);
+        }
     };
 
     const navItems = [
@@ -178,7 +184,7 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
 
                     <div className="bg-white/5 rounded-xl border border-white/5 p-3 flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-black shrink-0 ${isActive ? "bg-amber-500" : "bg-slate-600"}`}>
-                            {user?.fullName?.charAt(0)}
+                            {user?.fullName?.charAt(0) || "R"}
                         </div>
                         <div className="overflow-hidden text-left">
                             <p className="text-sm font-bold text-white truncate">{user?.fullName || "Reader"}</p>
@@ -191,7 +197,7 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
                     <button
                         onClick={handleLogout}
                         disabled={isLoggingOut}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-red-400/60 border border-red-500/10 rounded-xl text-[10px] font-black uppercase transition-all"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-red-400/60 border border-red-500/10 rounded-xl text-[10px] font-black uppercase transition-all hover:bg-red-500/10 hover:text-red-400"
                     >
                         <LogOut className="w-3.5 h-3.5" />
                         {isLoggingOut ? "Đang thoát..." : "Đăng xuất"}

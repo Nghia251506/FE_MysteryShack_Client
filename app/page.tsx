@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { logout } from '@/store/features/authSlice';
 import { useRouter } from 'next/navigation';
+import { AuthService } from "@/services/authService"; // Import AuthService
 
 export default function Home() {
   const [hoveredTopic, setHoveredTopic] = useState<number | null>(null);
@@ -32,9 +33,20 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    router.refresh(); 
+  // --- HÀM LOGOUT ĐÃ CẬP NHẬT ---
+  const handleLogout = async () => {
+    try {
+      // Gọi API báo Backend hủy token (quan trọng)
+      await AuthService.logout();
+    } catch (error) {
+      console.error("Logout API error:", error);
+    } finally {
+      // Luôn dọn dẹp Client và refresh trang
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("currentUser");
+      dispatch(logout());
+      router.refresh(); 
+    }
   };
 
   const topics = [

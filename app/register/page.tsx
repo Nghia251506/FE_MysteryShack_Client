@@ -131,20 +131,23 @@ export default function RegisterPage() {
       <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-purple-600/10 rounded-full blur-3xl opacity-30 animate-pulse delay-1000"></div>
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
 
-      {/* --- LOGO VỀ TRANG CHỦ --- */}
+      {/* --- LOGO VỀ TRANG CHỦ (Đã đồng bộ) --- */}
       <div className="absolute top-8 left-8 z-20">
-        <Link href="/" className="group flex items-center gap-3 text-amber-100/80 hover:text-amber-400 transition-all duration-300">
-          <div className="relative w-[50px] h-[50px] flex items-center justify-center">
-              <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full scale-75 group-hover:scale-105 transition-transform duration-700" />
-              <Image 
-                src="/logo.png" 
-                alt="Mystic Tarot Logo" 
-                width={50} 
-                height={50} 
-                className="relative z-10 transition-transform duration-500 group-hover:rotate-6 rounded-full shadow-lg shadow-amber-500/20"
-              />
-          </div>
-          <span className="text-xl font-bold tracking-wide hidden sm:block">Mystic Tarot</span>
+        <Link href="/" className="flex items-center gap-4 group">
+            <div className="relative w-[50px] h-[50px] flex items-center justify-center">
+                <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full scale-75 group-hover:scale-105 transition-transform duration-700" />
+                <Image 
+                  src="/logo.png" 
+                  alt="Mystic Tarot Logo" 
+                  width={50} 
+                  height={50} 
+                  className="relative z-10 transition-transform duration-500 group-hover:rotate-6 rounded-full shadow-lg shadow-amber-500/20"
+                />
+            </div>
+            
+            <span className="font-bold text-xl text-white tracking-tighter hidden sm:block">
+              Mystic<span className="text-amber-500"> Tarot</span>
+            </span>
         </Link>
       </div>
 
