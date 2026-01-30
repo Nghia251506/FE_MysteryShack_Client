@@ -14,7 +14,7 @@ export const store = configureStore({
     fcm: fcmReducer,
     history: historyRecucer,
   },
-  middleware: (getDefaultMiddleware: (arg0: { serializableCheck: boolean; }) => any) =>
+  middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,
     }),

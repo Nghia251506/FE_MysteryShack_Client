@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthService } from '@/services/authService';
-import { User, LoginRequest, RegisterRequest } from '@/types/auth';
+import { User, LoginRequest, RegisterRequest, AuthResponse } from '@/types/auth';
 
 // 1. Thêm isAuthenticated vào Interface
 interface AuthState {
@@ -9,6 +9,11 @@ interface AuthState {
   isAuthenticated: boolean; // <--- THÊM DÒNG NÀY
   loading: boolean;
   error: string | null;
+}
+
+interface LoginResponse {
+  user: User;
+  token: string;
 }
 
 const getInitialState = (): AuthState => {
@@ -20,7 +25,7 @@ const getInitialState = (): AuthState => {
         user: user ? JSON.parse(user) : null,
         token: token || null,
         // 2. Tính toán trạng thái đăng nhập từ token
-        isAuthenticated: !!token, 
+        isAuthenticated: !!token,
         loading: false,
         error: null,
       };
@@ -33,19 +38,15 @@ const getInitialState = (): AuthState => {
 
 const initialState: AuthState = getInitialState();
 
-export const loginUser = createAsyncThunk(
+export const loginUser = createAsyncThunk<AuthResponse, LoginRequest, { rejectValue: string }>(
   'auth/login',
-  async (credentials: LoginRequest, thunkAPI) => {
+  async (credentials, thunkAPI) => {
     try {
       const response = await AuthService.login(credentials);
-      console.log("Full Login Response:", response);
-      return { 
-        user: response.user,
-        token: response.token 
-      };
+      // Giả sử AuthService.login trả về dữ liệu đúng kiểu AuthResponse
+      return response; 
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Đăng nhập thất bại';
-      return thunkAPI.rejectWithValue(message);
+      return thunkAPI.rejectWithValue(error.response?.data?.message || 'Đăng nhập thất bại');
     }
   }
 );
@@ -138,7 +139,9 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
-        // isAuthenticated sẽ được set bởi loginSuccess ở UI hoặc logic loginUser
+        state.user = action.payload.user; // Nên cập nhật user luôn sau khi đăng ký thành công
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;

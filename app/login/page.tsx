@@ -9,8 +9,8 @@ import Link from 'next/link';
 import Image from 'next/image'; // Import Image
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch, RootState } from '@/store/store';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 import { loginUser, clearError } from '@/store/features/authSlice';
 import { useAppDispatch } from '@/hooks/useAppRedux';
 
@@ -18,7 +18,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
-  
+
   const { loading, error, isAuthenticated, user } = useSelector((state: RootState) => state.auth);
 
   const callbackUrl = searchParams.get("callbackUrl") || "/";
@@ -44,10 +44,9 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.username || !formData.password) return;
-
     const resultAction = await dispatch(loginUser({
       username: formData.username,
-      passwordHash: formData.password 
+      passwordHash: formData.password,
     }));
 
     if (loginUser.fulfilled.match(resultAction)) {
@@ -77,26 +76,26 @@ export default function LoginPage() {
       {/* --- LOGO VỀ TRANG CHỦ (Đã đồng bộ giao diện với Homepage) --- */}
       <div className="absolute top-8 left-8 z-20">
         <Link href="/" className="flex items-center gap-4 group">
-            <div className="relative w-[50px] h-[50px] flex items-center justify-center">
-                <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full scale-75 group-hover:scale-105 transition-transform duration-700" />
-                <Image 
-                  src="/logo.png" 
-                  alt="Mystic Tarot Logo" 
-                  width={50} 
-                  height={50} 
-                  className="relative z-10 transition-transform duration-500 group-hover:rotate-3 rounded-full shadow-lg shadow-amber-500/20"
-                />
-            </div>
-            
-            <span className="font-bold text-xl text-white tracking-tighter hidden sm:block">
-              Mystic<span className="text-amber-500"> Tarot</span>
-            </span>
+          <div className="relative w-[50px] h-[50px] flex items-center justify-center">
+            <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full scale-75 group-hover:scale-105 transition-transform duration-700" />
+            <Image
+              src="/logo.png"
+              alt="Mystic Tarot Logo"
+              width={50}
+              height={50}
+              className="relative z-10 transition-transform duration-500 group-hover:rotate-3 rounded-full shadow-lg shadow-amber-500/20"
+            />
+          </div>
+
+          <span className="font-bold text-xl text-white tracking-tighter hidden sm:block">
+            Mystic<span className="text-amber-500"> Tarot</span>
+          </span>
         </Link>
       </div>
 
       <div className="relative w-full max-w-md z-10 group">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500 to-purple-600 rounded-2xl opacity-20 blur group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-        
+
         <Card className="relative w-full bg-[#0f0a19]/90 border-white/10 backdrop-blur-xl shadow-2xl">
           <CardHeader className="space-y-3 text-center pb-6 pt-8">
             <div className="mx-auto w-14 h-14 rounded-full bg-gradient-to-b from-amber-500/20 to-transparent flex items-center justify-center border border-amber-500/20 mb-1 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
@@ -119,13 +118,13 @@ export default function LoginPage() {
                 <Label className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">Tên đăng nhập</Label>
                 <div className="relative group/input">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within/input:text-amber-500 transition-colors" />
-                  <Input 
-                    type="text" 
-                    placeholder="username hoặc email" 
+                  <Input
+                    type="text"
+                    placeholder="username hoặc email"
                     value={formData.username}
-                    onChange={(e) => setFormData({...formData, username: e.target.value})}
-                    className="h-11 pl-10 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all" 
-                    required 
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="h-11 pl-10 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all"
+                    required
                   />
                 </div>
               </div>
@@ -137,13 +136,13 @@ export default function LoginPage() {
                 </div>
                 <div className="relative group/input">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within/input:text-amber-500 transition-colors" />
-                  <Input 
-                    type={showPassword ? "text" : "password"} 
-                    placeholder="••••••••" 
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    className="h-11 pl-10 pr-10 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all" 
-                    required 
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="h-11 pl-10 pr-10 bg-slate-950/50 border-white/10 text-slate-100 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-amber-500/20 transition-all"
+                    required
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-amber-400 transition-colors">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
