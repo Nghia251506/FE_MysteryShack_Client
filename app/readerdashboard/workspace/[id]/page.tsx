@@ -10,6 +10,7 @@ import {
 import { ReadingSessionService } from "@/services/readingSessionService";
 import { InterpretationService } from "@/services/interpretationService";
 import { toast } from "react-hot-toast";
+import { EditorToolbar } from "@/components/EditorToolbar";
 
 // --- HELPERS TỪ SOURCE CŨ ---
 const getCardDetail = (id: number) => {
@@ -31,19 +32,19 @@ const getCardDetail = (id: number) => {
   return { name: `Card #${safeId}`, img: "https://placehold.co/150x250?text=?" };
 };
 
-const getVietQR = (amount: number, content: string) => 
-  `https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}`;
+// const getVietQR = (amount: number, content: string) => 
+//   `https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}`;
 
-const EditorToolbar = () => (
-  <div className="flex items-center gap-1 p-2 border-b border-white/5 bg-white/5 text-slate-400 rounded-t-xl select-none">
-    <button className="p-1.5 hover:bg-white/10 rounded hover:text-white transition-colors"><Bold className="w-4 h-4" /></button>
-    <button className="p-1.5 hover:bg-white/10 rounded hover:text-white transition-colors"><Italic className="w-4 h-4" /></button>
-    <div className="w-px h-4 bg-white/10 mx-2"></div>
-    <button className="flex items-center gap-1 text-xs text-purple-300 bg-purple-500/20 px-2 py-1 rounded-md border border-purple-500/30 hover:bg-purple-500/30 transition-colors ml-auto">
-      <Wand2 className="w-3 h-3" /> AI Gợi ý
-    </button>
-  </div>
-);
+// const EditorToolbar = () => (
+//   <div className="flex items-center gap-1 p-2 border-b border-white/5 bg-white/5 text-slate-400 rounded-t-xl select-none">
+//     <button className="p-1.5 hover:bg-white/10 rounded hover:text-white transition-colors"><Bold className="w-4 h-4" /></button>
+//     <button className="p-1.5 hover:bg-white/10 rounded hover:text-white transition-colors"><Italic className="w-4 h-4" /></button>
+//     <div className="w-px h-4 bg-white/10 mx-2"></div>
+//     <button className="flex items-center gap-1 text-xs text-purple-300 bg-purple-500/20 px-2 py-1 rounded-md border border-purple-500/30 hover:bg-purple-500/30 transition-colors ml-auto">
+//       <Wand2 className="w-3 h-3" /> AI Gợi ý
+//     </button>
+//   </div>
+// );
 
 export default function WorkspacePage() {
   const { id } = useParams();
@@ -105,7 +106,8 @@ export default function WorkspacePage() {
       timestamp: new Date(rawCreatedAt).toLocaleString('vi-VN'),
       cards,
       amount: item.amount || 50000,
-      rawCreatedAt
+      rawCreatedAt,
+      qrPayment:item.reader?.qrCode,
     };
   };
 
@@ -155,7 +157,7 @@ export default function WorkspacePage() {
         interpretation2: cardInputs[activeRequest.cards[1]?.id] || "",
         interpretation3: cardInputs[activeRequest.cards[2]?.id] || "",
         advice: summary,
-        qrPayment: getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`)
+        qrPayment: activeRequest.qrPayment,
       };
       await InterpretationService.submit(activeRequest.id, payload);
       toast.success("Gửi kết quả thành công!");
@@ -166,7 +168,7 @@ export default function WorkspacePage() {
       setIsSubmitting(false);
     }
   };
-
+  // console.log(activeRequest)
   const handleConfirmPayment = async () => {
     setConfirmingPayment(true);
     try {
@@ -257,7 +259,7 @@ export default function WorkspacePage() {
                 </div>
               ))}
               
-              <div className="pt-10 border-t border-white/10 grid grid-cols-1 lg:grid-cols-2 gap-10">
+              <div className="pt-10 border-t border-white/10">
                 <div className="space-y-4">
                   <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
                     <Wand2 className="w-5 h-5 text-amber-400"/> Lời khuyên tổng quát
@@ -270,25 +272,6 @@ export default function WorkspacePage() {
                       className="w-full h-48 bg-transparent border-none p-6 outline-none text-slate-200 text-base leading-relaxed resize-none placeholder:text-slate-700 font-medium" 
                       placeholder="Đúc kết thông điệp cuối cùng cho khách hàng..." 
                     />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
-                    <QrCode className="w-5 h-5 text-green-400"/> Thông tin thanh toán
-                  </h3>
-                  <div className="bg-gradient-to-br from-white/10 to-transparent rounded-[2rem] p-8 border border-white/10 flex flex-col sm:flex-row gap-8 items-center shadow-2xl relative overflow-hidden group">
-                    <div className="p-3 bg-white rounded-2xl shadow-2xl relative z-10 rotate-3 group-hover:rotate-0 transition-transform duration-500">
-                      <img src={getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`)} alt="QR" className="w-32 h-32"/>
-                    </div>
-                    <div className="space-y-4 flex-1 relative z-10 text-center sm:text-left">
-                      <div>
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Số tiền cần trả</span>
-                        <div className="text-3xl font-black text-green-400 tracking-tighter">
-                          {activeRequest.amount.toLocaleString()}<span className="text-lg ml-1 font-bold">đ</span>
-                        </div>
-                      </div>
-                      <p className="text-[11px] text-slate-400 font-medium leading-relaxed italic">QR tự động cho {activeRequest.querentName}.</p>
-                    </div>
                   </div>
                 </div>
               </div>
