@@ -12,7 +12,7 @@ export const ReadingSessionService = {
   },
 
     // 2. Tạo mới (User gửi request từ trang Tarot Draw)
-    create: async (data: ReadingSessionDTO): Promise<ReadingSession> => {
+    create: async (payload: { customerId: number; readerId: any; question: number; topic: number; selectedCards: any; status: string; amount: number; note: string; createdAt: string; }, token: string | null, data: ReadingSessionDTO): Promise<ReadingSession> => {
         const response = await axios.post(ENDPOINT, data);
         return response.data;
     },

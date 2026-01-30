@@ -98,7 +98,7 @@ const UserInfoUpdateModal = ({ isOpen, onClose, user, token, onUpdateSuccess }: 
         try {
             // FIX CHUẨN: Dùng PATCH và URL không có /v1 (Dựa theo log 405 của bạn)
             await axios.patch(
-                `http://localhost:8080/api/users/booking-info/${user.id}`,
+                `https://bemystictarot-1040470993124.asia-southeast1.run.app/api/users/booking-info/${user.id}`,
                 { 
                     fullName: name, 
                     birthDate: dob 
@@ -319,7 +319,7 @@ export default function BookingRequestPage() {
 
       try {
         await axios.post(
-          'http://localhost:8080/api/v1/sessions', // API tạo session vẫn dùng v1
+          'https://bemystictarot-1040470993124.asia-southeast1.run.app/api/v1/sessions', // API tạo session vẫn dùng v1
           payload,
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
