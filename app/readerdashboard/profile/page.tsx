@@ -11,6 +11,7 @@ import {
   Power, QrCode, UploadCloud, X, Mail, Sparkles, LayoutDashboard, AlertCircle, ArrowLeft, Calendar
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 
 // --- 1. ĐỊNH NGHĨA DỮ LIỆU TỪ BACKEND ---
 interface ReaderUser {
@@ -103,7 +104,7 @@ export default function ReaderProfilePage() {
   const handleSaveProfile = () => {
     // TODO: Gọi API update profile tại đây
     console.log("Saving profile:", formData);
-    alert("Đã cập nhật hồ sơ thành công!");
+    toast("Đã cập nhật hồ sơ thành công!");
     setIsEditing(false);
   };
 

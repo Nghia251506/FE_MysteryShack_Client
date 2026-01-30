@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Sparkles, ArrowRight, Lock, Eye, Heart, Briefcase, Wallet, 
-  ChevronRight, Hand, RotateCcw, LogOut, LogIn, UserPlus, RefreshCw, Check, Star, 
+  Sparkles, ArrowRight, Lock, Eye, Heart, Briefcase, Wallet,
+  ChevronRight, Hand, RotateCcw, LogOut, LogIn, UserPlus, RefreshCw, Check, Star,
   Moon, Sun, Cloud, Hexagon, Triangle, Circle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,11 +12,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { setTopicAndQuestion, addCard, resetSession } from "@/store/slices/tarotSlice";
-import { logout } from "@/store/features/authSlice"; 
-import { LogoutModal } from "@/components/LogoutModal"; 
+import { logout } from "@/store/features/authSlice";
+import { LogoutModal } from "@/components/LogoutModal";
 // --- IMPORT SERVICES ---
-import { TopicService } from "@/services/topicService"; 
-import { QuestionService } from "@/services/questionService"; 
+import { TopicService } from "@/services/topicService";
+import { QuestionService } from "@/services/questionService";
 import { Topic } from "@/types/topic";
 import { Question } from "@/types/topicQuestion";
 import { shuffleDeck } from "@/services/tarotService";
@@ -29,7 +29,7 @@ interface LocalTarotCard {
   nameVi: string;
   imageUrl: string;
   shortMsg: string;
-  isReversed?: boolean; 
+  isReversed?: boolean;
 }
 
 // --- 2. CẤU HÌNH GIAO DIỆN ---
@@ -106,15 +106,15 @@ const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   if (!isOpen) return null;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }} 
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
     >
-      <motion.div 
-        initial={{ scale: 0.9, y: 20 }} 
-        animate={{ scale: 1, y: 0 }} 
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
         className="max-w-md w-full bg-[#1a1025] border border-amber-500/30 rounded-[2rem] p-8 text-center shadow-2xl relative overflow-hidden"
       >
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
@@ -127,23 +127,23 @@ const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         </p>
         <div className="space-y-3">
           {/* NÚT ĐĂNG NHẬP CÓ CALLBACK URL */}
-          <button 
-            onClick={() => router.push("/login?callbackUrl=/booking")} 
+          <button
+            onClick={() => router.push("/login?callbackUrl=/booking")}
             className="w-full py-3.5 bg-gradient-to-r from-amber-600 to-purple-600 hover:from-amber-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
           >
             <LogIn className="w-4 h-4" /> Đăng Nhập
           </button>
-          
+
           {/* NÚT ĐĂNG KÝ CÓ CALLBACK URL */}
-          <button 
-            onClick={() => router.push("/register?callbackUrl=/booking")} 
+          <button
+            onClick={() => router.push("/register?callbackUrl=/booking")}
             className="w-full py-3.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all"
           >
             <UserPlus className="w-4 h-4" /> Đăng Ký Mới
           </button>
         </div>
-        <button 
-          onClick={onClose} 
+        <button
+          onClick={onClose}
           className="mt-6 text-xs text-slate-500 hover:text-slate-300 underline underline-offset-4"
         >
           Quay lại xem bài
@@ -162,10 +162,10 @@ export default function TarotDrawPage() {
   const [step, setStep] = useState<"topic" | "shuffling" | "picking" | "revealing" | "result">("topic");
   const [selectedTopic, setSelectedTopic] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState("");
-  
+
   const [shuffledDeck, setShuffledDeck] = useState<LocalTarotCard[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
-  
+
   const [shouldFlipToFace, setShouldFlipToFace] = useState(false);
   const [apiTopics, setApiTopics] = useState<Topic[]>([]);
   const [apiQuestions, setApiQuestions] = useState<Question[]>([]);
@@ -175,6 +175,15 @@ export default function TarotDrawPage() {
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true); // Chỉ chạy ở client
+    dispatch(resetSession());
+  }, [dispatch]);
+
+  // Và bọc nút Đăng xuất để hết lỗi đỏ
+  
 
   useEffect(() => { dispatch(resetSession()); }, [dispatch]);
 
@@ -202,18 +211,18 @@ export default function TarotDrawPage() {
   }, [selectedTopicId]);
 
   const handleLogoutClick = () => setShowLogoutModal(true);
-  
+
   // --- TÍCH HỢP LOGOUT API ---
-  const handleConfirmLogout = async () => { 
+  const handleConfirmLogout = async () => {
     try {
-        await AuthService.logout();
+      await AuthService.logout();
     } catch (error) {
-        console.error("Logout API error:", error);
+      console.error("Logout API error:", error);
     } finally {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("currentUser");
-        dispatch(logout()); 
-        router.push('/login');
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("currentUser");
+      dispatch(logout());
+      router.push('/login');
     }
   };
 
@@ -224,19 +233,19 @@ export default function TarotDrawPage() {
       const dbCards = await shuffleDeck({ topic: selectedTopic });
       const mappedCards: LocalTarotCard[] = dbCards.map((card: any) => ({
         id: card.id,
-        nameVi: card.nameVi || card.nameEn, 
-        imageUrl: card.imageUrl || getCardImg("ar", 0), 
+        nameVi: card.nameVi || card.nameEn,
+        imageUrl: card.imageUrl || getCardImg("ar", 0),
         shortMsg: card.uprightMeaning?.substring(0, 50) + "...",
-        isReversed: Math.random() < 0.5 
+        isReversed: Math.random() < 0.5
       }));
       setTimeout(() => {
         setShuffledDeck(mappedCards);
         setStep("picking");
         setShouldFlipToFace(false);
-        setSelectedIndices([]); 
+        setSelectedIndices([]);
       }, 3000);
     } catch (error) {
-      alert("Lỗi kết nối vũ trụ."); setStep("topic"); 
+      alert("Lỗi kết nối vũ trụ."); setStep("topic");
     }
   };
 
@@ -266,18 +275,28 @@ export default function TarotDrawPage() {
   const handleRedraw = () => {
     setSelectedIndices([]);
     setShouldFlipToFace(false);
-    handleStartDraw(); 
+    handleStartDraw();
   };
 
   const handleSubmitCards = () => {
+    // Kiểm tra nếu chưa chọn câu hỏi thì dừng lại luôn
+    if (!selectedQuestionId) {
+      alert("Vui lòng chọn câu hỏi cụ thể trước khi kết nối Reader!");
+      return;
+    }
+
     const finalCards = selectedIndices.map(idx => shuffledDeck[idx]);
     dispatch(resetSession());
+
+    // 1. Cập nhật Redux
     dispatch(setTopicAndQuestion({
       topic: selectedTopic || "",
-      question: selectedQuestion || "",
-      questionId: selectedQuestionId || 0,
+      questionText: selectedQuestion || "", // Dùng key này cho text hiển thị ở FE
+      question: selectedQuestionId, // Đây là cái BE cần: question là ID (Long)
       topicId: selectedTopicId || 0
     }));
+
+    // 2. Lưu Cards vào store
     finalCards.forEach(card => {
       dispatch(addCard({
         id: card.id,
@@ -287,23 +306,26 @@ export default function TarotDrawPage() {
         reversed: card.isReversed || false
       }));
     });
+
+    // 3. Cập nhật SessionStorage chuẩn DTO
     const sessionData = {
-        topic: selectedTopic,
-        question: selectedQuestion,
-        cards: finalCards.map(c => ({
-            id: c.id,
-            name: c.nameVi,
-            img: c.imageUrl,
-            isReversed: c.isReversed || false
-        }))
+      topicId: selectedTopicId,
+      question: selectedQuestionId, // Key 'question' phải là ID để BE hiểu
+      questionText: selectedQuestion,        // Lưu thêm cái này để FE hiển thị lại nếu cần
+      topic: selectedTopic,
+      cards: finalCards.map(c => ({
+        id: c.id,
+        name: c.nameVi,
+        img: c.imageUrl,
+        isReversed: c.isReversed || false
+      }))
     };
     sessionStorage.setItem("guestTarotSession", JSON.stringify(sessionData));
-    
-    // Nếu chưa đăng nhập thì hiện Modal (với callbackUrl), nếu rồi thì chuyển trang luôn
-    if (!user) { 
-        setShowGuestModal(true); 
-    } else { 
-        router.push("/booking"); 
+
+    if (!user) {
+      setShowGuestModal(true);
+    } else {
+      router.push("/booking");
     }
   };
 
@@ -322,7 +344,7 @@ export default function TarotDrawPage() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 font-sans overflow-hidden relative selection:bg-amber-500/30">
-      
+
       {/* Background & Side Decor Effects */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-purple-900/10 rounded-full blur-[120px]" />
@@ -336,7 +358,7 @@ export default function TarotDrawPage() {
       {/* --- ADD SIDE DECOR --- */}
       <SideDecor />
 
-      {user && (
+      {mounted && user && (
         <div className="absolute top-4 right-4 z-50">
           <button onClick={handleLogoutClick} className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm shadow-lg font-bold">
             <LogOut className="w-4 h-4" /><span className="text-sm">Đăng xuất</span>
@@ -350,8 +372,8 @@ export default function TarotDrawPage() {
 
             {/* BƯỚC 1: CHỌN CHỦ ĐỀ */}
             {step === "topic" && (
-              <motion.div 
-                key="topic" 
+              <motion.div
+                key="topic"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -373,32 +395,32 @@ export default function TarotDrawPage() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full min-h-[450px]">
-                  
+
                   {/* CỘT TRÁI: MENU CHỦ ĐỀ */}
                   <div className="lg:col-span-5 space-y-3 flex flex-col justify-center">
                     <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 px-2 flex items-center gap-2">
-                        <Moon className="w-3 h-3 text-amber-500" /> Chọn Lĩnh Vực
+                      <Moon className="w-3 h-3 text-amber-500" /> Chọn Lĩnh Vực
                     </h3>
-                    
+
                     {apiTopics.map(t => (
-                      <button 
-                        key={t.id} 
-                        onClick={() => { setSelectedTopicId(t.id); setSelectedTopic(t.name); setSelectedQuestion(""); setSelectedQuestionId(null); }} 
+                      <button
+                        key={t.id}
+                        onClick={() => { setSelectedTopicId(t.id); setSelectedTopic(t.name); setSelectedQuestion(""); setSelectedQuestionId(null); }}
                         className={`w-full flex items-center gap-4 p-4 rounded-2xl border text-left transition-all duration-300 group relative overflow-hidden ${selectedTopicId === t.id ? 'bg-gradient-to-r from-purple-900/40 to-amber-900/40 border-amber-500/50 shadow-md scale-[1.01]' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
                       >
                         {selectedTopicId === t.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>}
-                        
+
                         <div className={`p-2.5 rounded-xl shrink-0 transition-colors ${selectedTopicId === t.id ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 'bg-black/30 text-slate-400 group-hover:text-white'}`}>
                           {getTopicIcon(t.name)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className={`font-bold text-base mb-0.5 flex justify-between items-center ${selectedTopicId === t.id ? 'text-amber-400' : 'text-slate-200'}`}>
-                              {t.name}
-                              {selectedTopicId === t.id && <Check className="w-3.5 h-3.5 text-amber-500" />}
+                            {t.name}
+                            {selectedTopicId === t.id && <Check className="w-3.5 h-3.5 text-amber-500" />}
                           </div>
                           {/* Câu Quote hay hay */}
                           <p className={`text-xs italic truncate ${selectedTopicId === t.id ? 'text-slate-300' : 'text-slate-500'}`}>
-                              "{getQuote(t.name)}"
+                            "{getQuote(t.name)}"
                           </p>
                         </div>
                       </button>
@@ -407,58 +429,80 @@ export default function TarotDrawPage() {
 
                   {/* CỘT PHẢI: DANH SÁCH CÂU HỎI HOẶC HIỆU ỨNG */}
                   <div className="lg:col-span-7 bg-black/20 rounded-[2rem] border border-white/5 p-6 relative overflow-hidden flex flex-col min-h-[400px]">
-                    
+
                     {!selectedTopicId ? (
                       // --- HIỆU ỨNG LÁ BÀI BAY (DECOR) ---
                       <div className="h-full flex items-center justify-center opacity-60">
                         <div className="relative w-40 h-56">
-                            {/* Card Background Bloom */}
-                            <div className="absolute inset-0 bg-amber-500/20 blur-[60px] rounded-full animate-pulse"></div>
-                            
-                            {/* Card 1 - Floating */}
-                            <motion.div 
-                                animate={{ y: [0, -15, 0], rotate: [0, 3, 0] }} 
-                                transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-                                className="absolute inset-0 bg-gradient-to-br from-purple-600/90 to-blue-600/90 rounded-xl shadow-2xl border border-white/10"
-                            ></motion.div>
-                            
-                            {/* Card 2 - Main */}
-                            <motion.div 
-                                animate={{ y: [0, -10, 0], rotate: [0, -3, 0] }} 
-                                transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 0.5 }}
-                                className="absolute inset-0 bg-[#1a0b2e] border border-amber-500/30 rounded-xl flex items-center justify-center translate-x-3 translate-y-3 shadow-[0_0_30px_rgba(0,0,0,0.5)]"
-                            >
-                                <div className="p-4 border border-amber-500/20 rounded-lg">
-                                    <Sparkles className="w-12 h-12 text-amber-400/80 animate-pulse" />
-                                </div>
-                            </motion.div>
+                          {/* Card Background Bloom */}
+                          <div className="absolute inset-0 bg-amber-500/20 blur-[60px] rounded-full animate-pulse"></div>
+
+                          {/* Card 1 - Floating */}
+                          <motion.div
+                            animate={{ y: [0, -15, 0], rotate: [0, 3, 0] }}
+                            transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+                            className="absolute inset-0 bg-gradient-to-br from-purple-600/90 to-blue-600/90 rounded-xl shadow-2xl border border-white/10"
+                          ></motion.div>
+
+                          {/* Card 2 - Main */}
+                          <motion.div
+                            animate={{ y: [0, -10, 0], rotate: [0, -3, 0] }}
+                            transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 0.5 }}
+                            className="absolute inset-0 bg-[#1a0b2e] border border-amber-500/30 rounded-xl flex items-center justify-center translate-x-3 translate-y-3 shadow-[0_0_30px_rgba(0,0,0,0.5)]"
+                          >
+                            <div className="p-4 border border-amber-500/20 rounded-lg">
+                              <Sparkles className="w-12 h-12 text-amber-400/80 animate-pulse" />
+                            </div>
+                          </motion.div>
                         </div>
                       </div>
                     ) : (
                       <>
                         <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 px-2 flex items-center gap-2">
-                            <Hand className="w-3 h-3 text-amber-500" /> Chọn Câu Hỏi Cụ Thể
+                          <Hand className="w-3 h-3 text-amber-500" /> Chọn Câu Hỏi Cụ Thể
                         </h3>
-                        
+
                         <div className="flex-grow overflow-y-auto custom-scrollbar pr-2 -mr-2">
                           {loadingQuestions ? (
                             <div className="h-full flex items-center justify-center space-x-2 text-amber-500">
                               <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce"></div>
-                              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 gap-2.5 pb-20">
                               {apiQuestions.map((q) => (
-                                <label 
-                                  key={q.id} 
-                                  className={`relative flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 group hover:shadow-lg ${selectedQuestionId === q.id ? 'bg-amber-500/10 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'}`}
+                                <label
+                                  key={q.id}
+                                  // CHỈNH SỬA: Thêm onClick vào đây để đảm bảo ăn sự kiện
+                                  onClick={() => {
+                                    setSelectedQuestion(q.questionText);
+                                    setSelectedQuestionId(q.id);
+                                  }}
+                                  className={`relative flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 group hover:shadow-lg ${selectedQuestionId === q.id
+                                    ? 'bg-amber-500/10 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
+                                    : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'
+                                    }`}
                                 >
-                                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${selectedQuestionId === q.id ? 'border-amber-500 bg-amber-500 text-black' : 'border-slate-600 text-transparent group-hover:border-slate-400'}`}>
+                                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${selectedQuestionId === q.id
+                                    ? 'border-amber-500 bg-amber-500 text-black'
+                                    : 'border-slate-600 text-transparent group-hover:border-slate-400'
+                                    }`}>
                                     {selectedQuestionId === q.id && <div className="w-2 h-2 bg-white rounded-full" />}
                                   </div>
-                                  <input type="radio" className="hidden" checked={selectedQuestionId === q.id} onChange={() => { setSelectedQuestion(q.questionText); setSelectedQuestionId(q.id); }} />
-                                  <span className={`text-sm font-medium ${selectedQuestionId === q.id ? 'text-white' : 'text-slate-300'}`}>{q.questionText}</span>
+
+                                  {/* Input này để phục vụ accessibility, sự kiện chính đã nằm ở label */}
+                                  <input
+                                    type="radio"
+                                    className="hidden"
+                                    checked={selectedQuestionId === q.id}
+                                    readOnly // Đổi thành readOnly vì ta xử lý ở label
+                                  />
+
+                                  <span className={`text-sm font-medium ${selectedQuestionId === q.id ? 'text-white' : 'text-slate-300'
+                                    }`}>
+                                    {q.questionText}
+                                  </span>
                                 </label>
                               ))}
                             </div>
@@ -467,9 +511,9 @@ export default function TarotDrawPage() {
 
                         {/* THANH ACTION */}
                         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#150a1f] via-[#150a1f]/95 to-transparent pt-10 flex justify-end">
-                          <button 
-                            onClick={handleStartDraw} 
-                            disabled={!selectedQuestionId} 
+                          <button
+                            onClick={handleStartDraw}
+                            disabled={!selectedQuestionId}
                             className="px-8 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold rounded-xl shadow-lg hover:shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm"
                           >
                             <Sparkles className="w-4 h-4" /> Bắt Đầu Trải Bài
@@ -514,24 +558,24 @@ export default function TarotDrawPage() {
                     {step === "picking" ? <><Hand className="w-4 h-4" /> Bấm để chọn hoặc bỏ chọn</> : "Bao gồm cả Xuôi và Ngược"}
                   </p>
                 </div>
-                
+
                 <div className="flex flex-wrap justify-center gap-1.5 md:gap-2 max-w-[1400px] px-2" style={{ perspective: "1000px" }}>
                   {shuffledDeck.map((card, idx) => {
                     const isSelected = selectedIndices.includes(idx);
                     const isHidden = step === "revealing" && !isSelected;
                     return (
-                      <motion.div 
-                        key={idx} 
-                        layout 
-                        initial={{ scale: 0, opacity: 0 }} 
-                        animate={{ 
-                            scale: 1, 
-                            opacity: isHidden ? 0.3 : 1, 
-                            y: step === "picking" && isSelected ? -20 : 0, 
-                            zIndex: isSelected ? 50 : 0 
-                        }} 
-                        transition={{ duration: 0.3 }} 
-                        onClick={() => step === "picking" && handleToggleCard(idx)} 
+                      <motion.div
+                        key={idx}
+                        layout
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{
+                          scale: 1,
+                          opacity: isHidden ? 0.3 : 1,
+                          y: step === "picking" && isSelected ? -20 : 0,
+                          zIndex: isSelected ? 50 : 0
+                        }}
+                        transition={{ duration: 0.3 }}
+                        onClick={() => step === "picking" && handleToggleCard(idx)}
                         className={`relative w-12 h-20 md:w-16 md:h-28 rounded cursor-pointer transition-all duration-300 ${step === "picking" ? "hover:-translate-y-2 hover:z-10" : ""}`}
                       >
                         <motion.div className="w-full h-full relative" style={{ transformStyle: "preserve-3d" }} animate={{ rotateY: shouldFlipToFace ? 0 : 180 }} transition={{ duration: 0.8, ease: "easeInOut" }}>
@@ -542,9 +586,9 @@ export default function TarotDrawPage() {
                           <div className="absolute inset-0 w-full h-full rounded" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
                             <CardBackDesign />
                             {isSelected && (
-                                <div className="absolute -top-2 -right-2 w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center text-black font-bold text-[10px] shadow-lg border border-white z-20">
-                                    <Check className="w-3 h-3 md:w-4 md:h-4" />
-                                </div>
+                              <div className="absolute -top-2 -right-2 w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center text-black font-bold text-[10px] shadow-lg border border-white z-20">
+                                <Check className="w-3 h-3 md:w-4 md:h-4" />
+                              </div>
                             )}
                           </div>
                         </motion.div>
@@ -555,12 +599,12 @@ export default function TarotDrawPage() {
 
                 {step === "picking" && selectedIndices.length === 3 && (
                   <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="fixed bottom-8 z-30">
-                      <button 
-                          onClick={handleConfirmSelection}
-                          className="px-10 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg rounded-full shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-105 transition-transform flex items-center gap-2 animate-bounce"
-                      >
-                          Lật Bài <Eye className="w-5 h-5" />
-                      </button>
+                    <button
+                      onClick={handleConfirmSelection}
+                      className="px-10 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg rounded-full shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-105 transition-transform flex items-center gap-2 animate-bounce"
+                    >
+                      Lật Bài <Eye className="w-5 h-5" />
+                    </button>
                   </motion.div>
                 )}
               </motion.div>
@@ -572,7 +616,7 @@ export default function TarotDrawPage() {
                   <h2 className="text-3xl font-bold text-white mb-2">Kết Quả Trải Bài</h2>
                   <p className="text-slate-400">3 lá bài định mệnh của bạn</p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4 md:px-0">
                   {selectedIndices.map(idx => shuffledDeck[idx]).map((card, idx) => (
                     <motion.div key={idx} initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: idx * 0.2 }} className="bg-[#130823]/80 border border-white/10 rounded-3xl p-6 text-center shadow-xl relative overflow-hidden" >
@@ -586,15 +630,15 @@ export default function TarotDrawPage() {
                     </motion.div>
                   ))}
                 </div>
-                
-                <div className="relative mt-8 text-center flex flex-col md:flex-row gap-4 justify-center items-center relative z-20">
-                    <button onClick={handleRedraw} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold rounded-2xl transition-all flex items-center gap-2 hover:scale-105">
-                      <RefreshCw className="w-5 h-5" /> Rút lại bài khác
-                    </button>
 
-                    <button onClick={handleSubmitCards} className="group relative px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-lg rounded-2xl shadow-xl hover:scale-105 transition-transform flex items-center gap-3">
-                      <Lock className="w-5 h-5" /> Kết Nối Reader
-                    </button>
+                <div className="relative mt-8 text-center flex flex-col md:flex-row gap-4 justify-center items-center relative z-20">
+                  <button onClick={handleRedraw} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold rounded-2xl transition-all flex items-center gap-2 hover:scale-105">
+                    <RefreshCw className="w-5 h-5" /> Rút lại bài khác
+                  </button>
+
+                  <button onClick={handleSubmitCards} className="group relative px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-lg rounded-2xl shadow-xl hover:scale-105 transition-transform flex items-center gap-3">
+                    <Lock className="w-5 h-5" /> Kết Nối Reader
+                  </button>
                 </div>
               </motion.div>
             )}

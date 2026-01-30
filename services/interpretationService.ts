@@ -19,7 +19,6 @@ export const InterpretationService = {
     interpretation2: string;
     interpretation3: string;
     advice: string;
-    qrPayment: string;
   }) => {
     return await axios.post(`${API_URL}/submit/${sessionId}`, data);
   },
@@ -41,5 +40,14 @@ export const InterpretationService = {
     console.log("=== GET VIEW RESPONSE ===");
     console.log(response.data);
     return response.data;
-  }
+  },
+
+  updateStatus: async (sessionId: number | string, status: string) => {
+    const response = await axios.patch(
+        `${API_URL}/${sessionId}/notify-paid`, 
+        { status }, 
+        getConfig()
+    );
+    return response.data;
+  },
 };

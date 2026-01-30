@@ -162,25 +162,25 @@ export default function BookingRequestPage() {
   const dispatch = useDispatch();
   
   // Redux
-  const { drawnCards, topic, question } = useSelector((state: any) => state.tarot);
+  const { drawnCards, topic, question, questionText } = useSelector((state: any) => state.tarot);
   const { user, token } = useSelector((state: RootState) => state.auth);
   const { matchedReader } = useSelector((state: any) => state.user);
   
-  const session = { drawnCards, topic, question };
-
+  const session = { drawnCards, topic, question, questionText };
   const [step, setStep] = useState<1 | 3 | 4>(1); // BỎ STEP 2
   const [scanStatus, setScanStatus] = useState("Đang kết nối vệ tinh tâm linh...");
   const [progress, setProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, type: 'info', message: '', onConfirm: null as any });
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, type: 'info', message: '', onConfirm: null as any, confirmText: '' });
   const [showUpdateInfoModal, setShowUpdateInfoModal] = useState(false);
 
   // Form Data (Lưu tạm topic/question)
   const [formData, setFormData] = useState({
     topic: "",
-    question: ""
+    question: 0,
+    questionText: ""
   });
 
   // --- 1. CORE LOGIC: MATCH READER ---
@@ -236,7 +236,7 @@ export default function BookingRequestPage() {
 
   // --- 3. HANDLERS ---
   const showAlert = (message: string) => {
-      setModalConfig({ isOpen: true, type: 'warning', message: message, onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })) });
+      setModalConfig({ isOpen: true, type: 'warning', message: message, onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })), confirmText: 'Đóng' });
   };
 
   const handleNextStep = () => {
@@ -292,7 +292,7 @@ export default function BookingRequestPage() {
 
       const topicIdMap: Record<string, number> = { "love": 1, "career": 2, "finance": 3 };
       const currentTopicId = topicIdMap[formData.topic] || 1;
-      const questionIdToSend = QUESTION_DB_MAP[formData.question] || 1;
+      const questionIdToSend = formData.question || 1;
 
       const cardsPayload = session.drawnCards.map((c: any, index: number) => ({
         cardId: Number(c.id || c.dbId || 0),
@@ -313,7 +313,7 @@ export default function BookingRequestPage() {
         selectedCards: cardsPayload,
         status: "PENDING",
         amount: 50000,
-        note: `KH: ${customerName} - Hỏi: ${formData.question}`,
+        note: `KH: ${customerName} - Hỏi: ${formData.questionText}`,
         createdAt: new Date().toISOString()
       };
 
@@ -357,7 +357,7 @@ export default function BookingRequestPage() {
         <AnimatePresence mode="wait">
           
           {/* STEP 1: CHỌN CHỦ ĐỀ (Chỉ hiện khi chưa có Topic/Question hoặc vào thẳng) */}
-          {step === 1 && (
+          {/* {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               <div className="lg:col-span-4 flex flex-col justify-center space-y-4">
                 <div className="inline-flex w-fit items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-bold uppercase tracking-wider"><Sparkles className="w-3 h-3" /> Bước 1</div>
@@ -391,7 +391,7 @@ export default function BookingRequestPage() {
                  </AnimatePresence>
               </div>
             </motion.div>
-          )}
+          )} */}
 
           {/* STEP 2 ĐÃ BỊ LOẠI BỎ THEO YÊU CẦU */}
 
@@ -424,11 +424,11 @@ export default function BookingRequestPage() {
                   </div>
                   <div className="bg-slate-900/50 rounded-xl p-6 mb-8 text-left max-w-xl mx-auto border border-slate-700/50">
                       <p className="text-xs text-slate-500 uppercase font-bold mb-2">Câu hỏi:</p>
-                      <p className="text-white italic text-lg">"{session.question || formData.question}"</p>
+                      <p className="text-white italic text-lg">"{session.questionText || formData.questionText}"</p>
                   </div>
                   <div className="flex flex-col sm:flex-row justify-center gap-4">
                      <button onClick={() => setShowProfile(true)} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-2xl font-medium transition-all">Xem hồ sơ</button>
-                     <button onClick={() => { setStep(3); setProgress(0); }} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-2xl font-medium transition-all flex items-center justify-center gap-2"><Search className="w-4 h-4" /> Đổi Reader</button>
+                     <button onClick={() => handleMatchReader()} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-2xl font-medium transition-all flex items-center justify-center gap-2"><Search className="w-4 h-4" /> Đổi Reader</button>
                      <button onClick={handleCreateBooking} disabled={isSubmitting} className="px-10 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-2xl shadow-lg hover:-translate-y-1 transition-all flex items-center justify-center gap-3 disabled:opacity-70">
                         {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" /> Đang gửi...</> : <>Gửi câu hỏi <ArrowRight className="w-5 h-5" /></>}
                      </button>

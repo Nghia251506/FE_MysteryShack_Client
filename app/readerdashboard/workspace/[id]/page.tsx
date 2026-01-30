@@ -99,7 +99,7 @@ export default function WorkspacePage() {
     return {
       id: item.id,
       querentName,
-      topic: item.topic || "Luận giải Tarot",
+      topic: item.question.topic.name || "Luận giải Tarot",
       question: questionText, // Bây giờ luôn là string
       birthDate: item.customer?.birthDate ? new Date(item.customer.birthDate).toLocaleDateString('vi-VN') : "N/A",
       timestamp: new Date(rawCreatedAt).toLocaleString('vi-VN'),
@@ -155,7 +155,6 @@ export default function WorkspacePage() {
         interpretation2: cardInputs[activeRequest.cards[1]?.id] || "",
         interpretation3: cardInputs[activeRequest.cards[2]?.id] || "",
         advice: summary,
-        qrPayment: getVietQR(activeRequest.amount, `Thanh toan don ${activeRequest.id}`)
       };
       await InterpretationService.submit(activeRequest.id, payload);
       toast.success("Gửi kết quả thành công!");
@@ -186,7 +185,6 @@ export default function WorkspacePage() {
       <div className="text-slate-400 font-mono tracking-widest text-xs uppercase">Kết nối tín hiệu...</div>
     </div>
   );
-
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 pb-32 relative z-10">
       <AnimatePresence mode="wait">
@@ -257,7 +255,7 @@ export default function WorkspacePage() {
                 </div>
               ))}
               
-              <div className="pt-10 border-t border-white/10 grid grid-cols-1 lg:grid-cols-2 gap-10">
+              <div className="pt-10 border-t border-white/10">
                 <div className="space-y-4">
                   <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
                     <Wand2 className="w-5 h-5 text-amber-400"/> Lời khuyên tổng quát
@@ -272,7 +270,7 @@ export default function WorkspacePage() {
                     />
                   </div>
                 </div>
-                <div className="space-y-4">
+                {/* <div className="space-y-4">
                   <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
                     <QrCode className="w-5 h-5 text-green-400"/> Thông tin thanh toán
                   </h3>
@@ -290,7 +288,7 @@ export default function WorkspacePage() {
                       <p className="text-[11px] text-slate-400 font-medium leading-relaxed italic">QR tự động cho {activeRequest.querentName}.</p>
                     </div>
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
 

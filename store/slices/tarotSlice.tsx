@@ -14,8 +14,8 @@ interface TarotState {
   drawnCards: TarotCard[];
   topic: string;           // Tên chủ đề (để hiển thị UI)
   topicId: number | null;  // ID chủ đề (để gửi API)
-  question: string;        // Nội dung câu hỏi (để hiển thị UI)
-  questionId: number | null; // ID câu hỏi (để gửi API)
+  questionText: string;        // Nội dung câu hỏi (để hiển thị UI)
+  question: number | null; // ID câu hỏi (để gửi API)
   isDrawing: boolean;
 }
 
@@ -35,8 +35,8 @@ const getInitialState = (): TarotState => {
     drawnCards: [],
     topic: '',
     topicId: null,
-    question: '',
-    questionId: null,
+    questionText: '',
+    question: null,
     isDrawing: false,
   };
 };
@@ -51,14 +51,14 @@ const tarotSlice = createSlice({
       action: PayloadAction<{ 
         topic: string; 
         topicId: number; 
-        question: string; 
-        questionId: number;
+        questionText: string; 
+        question: number;
       }>
     ) => {
       state.topic = action.payload.topic;
       state.topicId = action.payload.topicId;
+      state.questionText = action.payload.questionText;
       state.question = action.payload.question;
-      state.questionId = action.payload.questionId;
       
       // Đồng bộ vào localStorage
       if (typeof window !== 'undefined') {
@@ -81,8 +81,8 @@ const tarotSlice = createSlice({
       state.drawnCards = [];
       state.topic = '';
       state.topicId = null;
-      state.question = '';
-      state.questionId = null;
+      state.questionText = '';
+      state.question = null;
       state.isDrawing = false;
       if (typeof window !== 'undefined') {
         localStorage.removeItem('tarot-session');
