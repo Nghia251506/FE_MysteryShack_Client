@@ -1,18 +1,18 @@
 // Import từ thư mục gốc dùng alias @/
-import axios from "@/lib/axios"; 
+import axios from "@/lib/axios";
 import { ReadingSession, ReadingSessionDTO } from '@/types/readingSession';
 
 const ENDPOINT = '/v1/sessions';
 
 export const ReadingSessionService = {
-  // Lấy danh sách (Dùng /matched để tránh lỗi 500 Lazy Load)
-  getAll: async (): Promise<ReadingSession[]> => {
-    const response = await axios.get(`${ENDPOINT}/matched`);
-    return response.data;
-  },
+    // Lấy danh sách (Dùng /matched để tránh lỗi 500 Lazy Load)
+    getAll: async (): Promise<ReadingSession[]> => {
+        const response = await axios.get(`${ENDPOINT}/matched`);
+        return response.data;
+    },
 
     // 2. Tạo mới (User gửi request từ trang Tarot Draw)
-    create: async (payload: { customerId: number; readerId: any; question: number; topic: number; selectedCards: any; status: string; amount: number; note: string; createdAt: string; }, token: string | null, data: ReadingSessionDTO): Promise<ReadingSession> => {
+    create: async (data: any, token: string | null, p0: any): Promise<ReadingSession> => {
         const response = await axios.post(ENDPOINT, data);
         return response.data;
     },
