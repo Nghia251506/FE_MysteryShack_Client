@@ -11,7 +11,6 @@ import {
     User as UserIcon,
     LogOut,
     Power,
-    BellRing
 } from "lucide-react";
 import { logout } from "@/store/features/authSlice";
 import { RootState } from "@/store/store";
@@ -20,9 +19,9 @@ import { UserService } from "@/services/userService";
 import { toast } from "react-hot-toast";
 import { updateActiveStatus } from "@/store/slices/userSlice";
 
-// --- IMPORT FIREBASE LOGIC ---
-import { messaging } from "@/lib/firebaseConfig"; 
-import { onMessage } from "firebase/messaging";
+// --- HỆ THỐNG FCM MỚI ---
+import FCMInitializer from "@/components/common/FCMInitializer";
+import { ModalFCMGlobal } from "@/components/fcm/ModalFCMGlobal";
 
 export default function ReaderLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -35,7 +34,6 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
     const [isToggling, setIsToggling] = useState(false);
     const [isActive, setIsActive] = useState(false);
 
-    // 1. CHỐNG HYDRATION & SYNC USER
     useEffect(() => {
         setMounted(true);
         if (user) {
@@ -43,52 +41,7 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
         }
     }, [user]);
 
-    // 2. LOGIC FCM
-    useEffect(() => {
-        if (!mounted || !messaging) return;
-
-        const unsubscribe = onMessage(messaging, (payload) => {
-            console.log("Nhận thông báo mới (Foreground):", payload);
-            
-            toast.custom((t) => (
-                <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-[#1c112d] shadow-2xl rounded-[1.5rem] pointer-events-auto flex ring-1 ring-white/10 border border-amber-500/30`}>
-                    <div className="flex-1 w-0 p-4">
-                        <div className="flex items-start">
-                            <div className="flex-shrink-0 pt-0.5">
-                                <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center border border-amber-500/50">
-                                    <BellRing className="h-5 w-5 text-amber-500" />
-                                </div>
-                            </div>
-                            <div className="ml-3 flex-1">
-                                <p className="text-sm font-bold text-white">
-                                    {payload.notification?.title || "Yêu cầu mới!"}
-                                </p>
-                                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-                                    {payload.notification?.body || "Bạn có một phiên Tarot mới đang chờ luận giải."}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex border-l border-white/5">
-                        <button
-                            onClick={() => {
-                                toast.dismiss(t.id);
-                                router.push("/readerdashboard");
-                            }}
-                            className="w-full border border-transparent rounded-none rounded-r-[1.5rem] p-4 flex items-center justify-center text-xs font-black text-amber-500 hover:bg-white/5 focus:outline-none uppercase tracking-tighter"
-                        >
-                            Xem ngay
-                        </button>
-                    </div>
-                </div>
-            ), { duration: 6000 });
-
-            const audio = new Audio("/sounds/notification.mp3");
-            audio.play().catch(() => {});
-        });
-
-        return () => unsubscribe();
-    }, [mounted, router]);
+    // --- LOGIC FCM CŨ ĐÃ ĐƯỢC CHUYỂN VÀO FCMInitializer & ModalFCMGlobal ---
 
     const handleToggleStatus = async () => {
         if (isToggling) return;
@@ -107,17 +60,14 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
         }
     };
 
-    // --- HÀM LOGOUT CHUẨN ---
     const handleLogout = async () => {
         if (isLoggingOut) return;
         setIsLoggingOut(true);
         try {
-            // Gọi API báo backend hủy token (quan trọng)
             await AuthService.logout();
         } catch (error) {
             console.error("Lỗi khi logout API:", error);
         } finally {
-            // Dọn dẹp client dù API lỗi hay không
             localStorage.removeItem("accessToken");
             localStorage.removeItem("currentUser");
             dispatch(logout());
@@ -136,6 +86,11 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
 
     return (
         <div className="min-h-screen bg-[#050505] text-slate-200 font-sans flex overflow-hidden relative">
+            
+            {/* --- CHÈN HỆ THỐNG THÔNG BÁO GLOBAL TẠI ĐÂY --- */}
+            {/* <FCMInitializer />
+            <ModalFCMGlobal /> */}
+
             {/* Background Decor */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-purple-900/10 rounded-full blur-[120px]" />

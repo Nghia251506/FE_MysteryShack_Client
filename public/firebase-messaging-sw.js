@@ -22,12 +22,16 @@ const messaging = firebase.messaging();
 
 // 4. Cấu hình cách hiển thị Popup khi tin nhắn đẩy về lúc đang đóng tab
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Nhận tin nhắn nền: ', payload);
-  
-  const notificationTitle = payload.notification.title || "Mystic Tarot";
+  console.log('[SW] Nhận tin nhắn nền: ', payload);
+
+  // Vì BE gửi dạng Data Message, thông tin sẽ nằm trong payload.data
+  const { title, message, type } = payload.data;
+
+  const notificationTitle = title || "Mystic Tarot";
   const notificationOptions = {
-    body: payload.notification.body || "Bạn có thông báo mới.",
-    icon: '/logo.png', // Thay bằng icon web của bạn
+    body: message || "Bạn có một cập nhật mới về phiên xem bài.",
+    icon: '/logo.png',
+    data: payload.data, // Lưu lại data để khi click vào thông báo có thể điều hướng
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

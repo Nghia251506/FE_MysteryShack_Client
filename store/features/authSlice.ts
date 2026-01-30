@@ -38,8 +38,9 @@ export const loginUser = createAsyncThunk(
   async (credentials: LoginRequest, thunkAPI) => {
     try {
       const response = await AuthService.login(credentials);
+      console.log("Full Login Response:", response);
       return { 
-        user: response.user || response, 
+        user: response.user,
         token: response.token 
       };
     } catch (error: any) {
@@ -59,7 +60,7 @@ export const registerUser = createAsyncThunk(
         passwordHash: data.passwordHash // <--- Fix lỗi type password -> passwordHash
       });
       return {
-        user: loginResponse.user || loginResponse,
+        user: loginResponse.user,
         token: loginResponse.token
       };
     } catch (error: any) {

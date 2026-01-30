@@ -8,6 +8,7 @@ export interface User {
   rating?: number;
   verified?: boolean;
   active: boolean;
+  qrCode: string;
   // Các field mở rộng cho Reader
 //   tags?: string[];
 //   reviewsCount?: number;

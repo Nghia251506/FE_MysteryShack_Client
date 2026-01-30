@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getToken, onMessage } from "firebase/messaging";
 import { messaging } from "@/lib/firebaseConfig";
-import { registerFcmToken } from "@/store/slices/fcmSlice";
+import { registerFcmToken, receiveNotification } from "@/store/slices/fcmSlice"; // Import thêm action mới
 import { RootState } from "@/store/store";
 import { toast } from 'react-toastify';
 
@@ -13,9 +13,9 @@ export default function FCMInitializer() {
     const { user } = useSelector((state: RootState) => state.auth);
     const { isRegistered } = useSelector((state: RootState) => state.fcm);
 
+    // 1. Logic đăng ký Token (Giữ nguyên - rất tốt)
     useEffect(() => {
         const setupFCM = async () => {
-            // 1. Chỉ chạy khi có User, chưa đăng ký Token và Messaging đã sẵn sàng
             if (user?.id && !isRegistered && messaging) {
                 try {
                     const permission = await Notification.requestPermission();
@@ -28,44 +28,43 @@ export default function FCMInitializer() {
                             console.log("FCM Token registered:", token);
                             dispatch(registerFcmToken({ userId: user.id, token }));
                         }
-                    } else {
-                        console.warn("Quyền thông báo bị từ chối.");
                     }
                 } catch (error) {
                     console.error("FCM Setup Error:", error);
                 }
             }
         };
-
         setupFCM();
     }, [user?.id, isRegistered, dispatch]);
 
+    // 2. Logic lắng nghe tin nhắn (Foreground) - ĐỘ LẠI CHỖ NÀY
     useEffect(() => {
-        // 2. Tách logic lắng nghe tin nhắn (Foreground) ra để đảm bảo nó luôn trực chiến
         if (messaging) {
             const unsubscribe = onMessage(messaging, (payload) => {
                 console.log("Message received: ", payload);
 
-                // Hiển thị Toast tùy chỉnh đẹp hơn
-                toast.info(
-                    <div>
-                        <b style={{ display: 'block' }}>{payload.notification?.title}</b>
-                        <span>{payload.notification?.body}</span>
-                    </div>, 
-                    {
-                        position: "top-right",
-                        autoClose: 5000,
-                        hideProgressBar: false,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: true,
-                        // icon: "🔮"
-                    }
-                );
+                // --- PHÁT ÂM THANH ---
+                const audio = new Audio("/sounds/notification.mp3");
+                audio.play().catch(() => {});
+
+                // --- LOGIC PHÂN LOẠI HIỂN THỊ ---
+                // Nếu BE gửi data message (có type), ta ưu tiên dùng Popup Global
+                if (payload.data && payload.data.type) {
+                    dispatch(receiveNotification(payload.data));
+                } 
+                // Nếu là thông báo bình thường không có type, thì hiện Toast như cũ
+                else {
+                    toast.info(
+                        <div>
+                            <b>{payload.notification?.title}</b>
+                            <p>{payload.notification?.body}</p>
+                        </div>
+                    );
+                }
             });
             return () => unsubscribe();
         }
-    }, []); // Chỉ đăng ký lắng nghe 1 lần duy nhất khi component mount
+    }, [dispatch]); // Thêm dispatch vào dependency
 
     return null;
 }
