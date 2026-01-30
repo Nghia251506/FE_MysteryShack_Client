@@ -12,11 +12,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { loginUser, clearError } from '@/store/features/authSlice';
+import { useAppDispatch } from '@/hooks/useAppRedux';
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   
   const { loading, error, isAuthenticated, user } = useSelector((state: RootState) => state.auth);
 
