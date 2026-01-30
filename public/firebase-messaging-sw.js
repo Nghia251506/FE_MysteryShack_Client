@@ -27,7 +27,7 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title || "Mystic Tarot";
   const notificationOptions = {
     body: payload.notification.body || "Bạn có thông báo mới.",
-    icon: '/firebase-logo.png', // Thay bằng icon web của bạn
+    icon: '/logo.png', // Thay bằng icon web của bạn
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

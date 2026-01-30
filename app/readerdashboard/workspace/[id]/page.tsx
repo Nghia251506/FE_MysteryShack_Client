@@ -100,7 +100,7 @@ export default function WorkspacePage() {
     return {
       id: item.id,
       querentName,
-      topic: item.topic || "Luận giải Tarot",
+      topic: item.question.topic.name || "Luận giải Tarot",
       question: questionText, // Bây giờ luôn là string
       birthDate: item.customer?.birthDate ? new Date(item.customer.birthDate).toLocaleDateString('vi-VN') : "N/A",
       timestamp: new Date(rawCreatedAt).toLocaleString('vi-VN'),
@@ -188,7 +188,6 @@ export default function WorkspacePage() {
       <div className="text-slate-400 font-mono tracking-widest text-xs uppercase">Kết nối tín hiệu...</div>
     </div>
   );
-
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 pb-32 relative z-10">
       <AnimatePresence mode="wait">

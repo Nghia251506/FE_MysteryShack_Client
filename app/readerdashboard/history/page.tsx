@@ -102,6 +102,7 @@ export default function HistoryPage() {
 
   const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
   const currentItems = filteredHistory.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  console.log(currentItems)
 
   const renderStatus = (status: string) => {
     switch (status) {
@@ -197,7 +198,7 @@ export default function HistoryPage() {
                         <div className="flex justify-end gap-3 items-center">
                           {item.status === 'WAITING_PAYMENT' && (
                             <button 
-                              onClick={() => handleConfirmPayment(item.id)}
+                              onClick={() => handleConfirmPayment(item.request.id)}
                               disabled={processingId === item.id}
                               className="group/btn flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-[11px] font-black rounded-xl transition-all shadow-xl hover:shadow-green-900/30 active:scale-95 disabled:opacity-50"
                             >

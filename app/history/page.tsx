@@ -102,6 +102,8 @@ export default function HistoryPage() {
       return filteredSessions.slice(start, start + itemsPerPage);
   }, [filteredSessions, currentPage]);
 
+  
+
   if (!isMounted) return <div className="min-h-screen bg-[#050505]" />;
 
   return (
