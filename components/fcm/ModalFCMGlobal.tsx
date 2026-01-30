@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 export const ModalFCMGlobal = () => {
     const { isModalOpen, currentNotification } = useAppSelector((state) => state.fcm);
+    const { user } = useAppSelector((state) => state.auth);
     const dispatch = useAppDispatch();
     const router = useRouter();
     const [countdown, setCountdown] = useState(30);
@@ -27,8 +28,16 @@ export const ModalFCMGlobal = () => {
         return () => clearInterval(timer);
     }, [isModalOpen, currentNotification, dispatch]);
 
-    if (!isModalOpen || !currentNotification) return null;
+    if (!isModalOpen || !currentNotification || !user) return null;
+    const { type } = currentNotification;
+    const readerOnlyTypes = ["NEW_MATCH_REQUEST", "PAYMENT_NOTIFICATION"];
+    const customerOnlyTypes = ["READER_ACCEPTED", "READER_REJECTED", "READING_FINISHED", "PAYMENT_CONFIRMED"];
 
+    // Nếu thông báo của Reader mà user là CUSTOMER -> Không hiện
+    if (readerOnlyTypes.includes(type) && user.role !== "READER") return null;
+
+    // Nếu thông báo của Customer mà user là READER -> Không hiện (Tránh làm phiền Reader)
+    if (customerOnlyTypes.includes(type) && user.role !== "CUSTOMER") return null;
     const handleClose = () => dispatch(closeFcmModal());
 
     const renderContent = () => {
