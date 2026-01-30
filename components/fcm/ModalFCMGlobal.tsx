@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 
 export const ModalFCMGlobal = () => {
     const { isModalOpen, currentNotification } = useAppSelector((state) => state.fcm);
-    const { user } = useAppSelector((state) => state.auth);
     const dispatch = useAppDispatch();
     const router = useRouter();
     const [countdown, setCountdown] = useState(30);
@@ -28,19 +27,13 @@ export const ModalFCMGlobal = () => {
         return () => clearInterval(timer);
     }, [isModalOpen, currentNotification, dispatch]);
 
-    if (!isModalOpen || !currentNotification || !user) return null;
-    const { type } = currentNotification;
-    const readerOnlyTypes = ["NEW_MATCH_REQUEST", "PAYMENT_NOTIFICATION"];
-    const customerOnlyTypes = ["READER_ACCEPTED", "READER_REJECTED", "READING_FINISHED", "PAYMENT_CONFIRMED"];
+    // BE đã check Role rồi nên ở đây chỉ cần check xem có data không thôi
+    if (!isModalOpen || !currentNotification) return null;
 
-    // Nếu thông báo của Reader mà user là CUSTOMER -> Không hiện
-    if (readerOnlyTypes.includes(type) && user.role !== "READER") return null;
-
-    // Nếu thông báo của Customer mà user là READER -> Không hiện (Tránh làm phiền Reader)
-    if (customerOnlyTypes.includes(type) && user.role !== "CUSTOMER") return null;
     const handleClose = () => dispatch(closeFcmModal());
 
     const renderContent = () => {
+        // Khớp các biến từ Map.of của Spring Boot
         const { type, sessionId, customerName, customerRating, readerName, message } = currentNotification;
 
         switch (type) {
@@ -61,8 +54,8 @@ export const ModalFCMGlobal = () => {
                         </div>
                         <button 
                             onClick={() => {
+                                handleClose(); // Đóng trước cho mượt
                                 router.push(`/reader/session/${sessionId}`);
-                                handleClose();
                             }}
                             className="mt-6 w-full bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-all"
                         >
@@ -71,7 +64,7 @@ export const ModalFCMGlobal = () => {
                     </div>
                 );
 
-            // 2. CUSTOMER: Reader đã nhận bài và đang xem
+            // 2. CUSTOMER: Reader đã nhận bài
             case "READER_ACCEPTED":
                 return (
                     <div className="text-center">
@@ -79,12 +72,12 @@ export const ModalFCMGlobal = () => {
                             <span className="text-3xl">✅</span>
                         </div>
                         <h3 className="text-lg font-bold text-blue-600">Reader đã sẵn sàng!</h3>
-                        <p className="mt-2 text-gray-600">{readerName} đã bắt đầu trải bài cho bạn. Vui lòng giữ kết nối.</p>
+                        <p className="mt-2 text-gray-600">{message}</p>
                         <button onClick={handleClose} className="mt-6 w-full bg-gray-100 text-gray-800 py-3 rounded-xl font-semibold">Đóng</button>
                     </div>
                 );
 
-            // 3. CUSTOMER: Reader từ chối (Hệ thống tìm người khác)
+            // 3. CUSTOMER: Reader từ chối
             case "READER_REJECTED":
                 return (
                     <div className="text-center">
@@ -97,7 +90,7 @@ export const ModalFCMGlobal = () => {
                     </div>
                 );
 
-            // 4. CUSTOMER: Đã có kết quả luận giải (Yêu cầu thanh toán để xem hết)
+            // 4. CUSTOMER: Đã có kết quả luận giải
             case "READING_FINISHED":
                 return (
                     <div className="text-center">
@@ -106,8 +99,8 @@ export const ModalFCMGlobal = () => {
                         <p className="mt-2 text-gray-600">{message}</p>
                         <button 
                             onClick={() => {
-                                router.push(`/booking/result?sessionId=${sessionId}`);
                                 handleClose();
+                                router.push(`/booking/result?sessionId=${sessionId}`);
                             }}
                             className="mt-6 w-full bg-purple-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-purple-200"
                         >
@@ -116,8 +109,8 @@ export const ModalFCMGlobal = () => {
                     </div>
                 );
 
-            // 5. READER: Khách hàng báo đã chuyển tiền
-            case "PAYMENT_NOTIFICATION":
+            // 5. READER: Khách hàng báo đã chuyển tiền (Khớp type PAYMENT_SENT từ BE)
+            case "PAYMENT_SENT":
                 return (
                     <div className="text-center">
                         <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -127,8 +120,8 @@ export const ModalFCMGlobal = () => {
                         <p className="mt-2 text-gray-600">{message}</p>
                         <button 
                             onClick={() => {
-                                router.push(`/readerdashboard/workspace/${sessionId}`);
                                 handleClose();
+                                router.push(`/readerdashboard/workspace/${sessionId}`);
                             }}
                             className="mt-6 w-full bg-orange-500 text-white py-3 rounded-xl font-bold"
                         >
@@ -148,8 +141,8 @@ export const ModalFCMGlobal = () => {
                         <p className="mt-2 text-gray-600">{message}</p>
                         <button 
                             onClick={() => {
-                                router.push(`/booking/result?sessionId=${sessionId}`);
                                 handleClose();
+                                router.push(`/booking/result?sessionId=${sessionId}`);
                             }}
                             className="mt-6 w-full bg-green-500 text-white py-3 rounded-xl font-bold"
                         >
@@ -161,8 +154,8 @@ export const ModalFCMGlobal = () => {
             default:
                 return (
                     <div className="text-center">
-                        <h3 className="text-lg font-bold">Thông báo</h3>
-                        <p className="mt-2 text-gray-600">{message || "Bạn có thông báo mới"}</p>
+                        <h3 className="text-lg font-bold">Thông báo mới</h3>
+                        <p className="mt-2 text-gray-600">{message || "Bạn có một cập nhật mới từ hệ thống"}</p>
                         <button onClick={handleClose} className="mt-6 w-full bg-gray-100 py-3 rounded-xl">Đóng</button>
                     </div>
                 );
@@ -170,8 +163,8 @@ export const ModalFCMGlobal = () => {
     };
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all">
-            <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full relative mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all p-4">
+            <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full relative border border-gray-100 animate-in fade-in zoom-in duration-300">
                 <button 
                     onClick={handleClose}
                     className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:text-black hover:bg-gray-100 transition-colors"
