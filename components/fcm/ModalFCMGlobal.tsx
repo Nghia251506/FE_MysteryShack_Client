@@ -47,7 +47,6 @@ export const ModalFCMGlobal = () => {
                         <h3 className="text-xl font-bold text-green-600">Yêu cầu xem bài mới!</h3>
                         <div className="mt-3 text-gray-600">
                             <p>Khách hàng: <span className="font-semibold text-black">{customerName}</span></p>
-                            <p>Đánh giá: <span className="text-yellow-500 font-bold">⭐ {customerRating}</span></p>
                         </div>
                         <div className="mt-4 py-2 px-4 bg-orange-100 text-orange-700 rounded-full font-medium animate-pulse">
                             Hết hạn sau: {countdown} giây
@@ -55,7 +54,7 @@ export const ModalFCMGlobal = () => {
                         <button 
                             onClick={() => {
                                 handleClose(); // Đóng trước cho mượt
-                                router.push(`/reader/session/${sessionId}`);
+                                router.push(`/readerdashboard/workspace/${sessionId}`);
                             }}
                             className="mt-6 w-full bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-all"
                         >

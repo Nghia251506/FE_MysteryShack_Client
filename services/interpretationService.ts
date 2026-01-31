@@ -43,7 +43,7 @@ export const InterpretationService = {
   },
 
   updateStatus: async (sessionId: number | string, status: string) => {
-    const response = await axios.patch(
+    const response = await axios.post(
         `${API_URL}/${sessionId}/notify-paid`, 
         { status }, 
         getConfig()
