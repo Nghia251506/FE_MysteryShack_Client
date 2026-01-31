@@ -34,7 +34,7 @@ export const ModalFCMGlobal = () => {
 
     const renderContent = () => {
         // Khớp các biến từ Map.of của Spring Boot
-        const { type, sessionId, customerName, customerRating, readerName, message } = currentNotification;
+        const { type, sessionId, customerName, message } = currentNotification;
 
         switch (type) {
             // 1. READER: Nhận cuốc mới (Kiểu Grab)

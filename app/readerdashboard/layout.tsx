@@ -23,6 +23,7 @@ import FCMInitializer from "@/components/common/FCMInitializer";
 import { ModalFCMGlobal } from "@/components/fcm/ModalFCMGlobal";
 import { messaging } from "@/lib/firebaseConfig";
 import { onMessage } from "firebase/messaging";
+import { receiveNotification } from "@/store/slices/fcmSlice";
 
 export default function ReaderLayout({
   children,
@@ -66,7 +67,14 @@ export default function ReaderLayout({
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log("Nhận thông báo mới (Foreground):", payload);
 
-      // Hiển thị toast xịn từ react-hot-toast thay vì ToastContainer cũ
+      // 1. QUAN TRỌNG: Đẩy dữ liệu vào Redux để ModalFCMGlobal có thể bắt được và hiển thị
+      if (payload.data) {
+        // Lưu ý: Đảm bảo ông đã import receiveNotification từ fcmSlice ở trên đầu file nhé
+        // Nếu chưa import được thì dùng: dispatch({ type: "fcm/receiveNotification", payload: payload.data });
+        dispatch(receiveNotification(payload.data));
+      }
+
+      // 2. Hiển thị Toast Custom (Giữ nguyên giao diện đẹp của ông)
       toast.custom(
         (t) => (
           <div
@@ -81,11 +89,10 @@ export default function ReaderLayout({
                 </div>
                 <div className="ml-3 flex-1">
                   <p className="text-sm font-bold text-white">
-                    {payload.notification?.title || "Yêu cầu mới!"}
+                    {payload.notification?.title || payload.data?.customerName || "Yêu cầu mới!"}
                   </p>
                   <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-                    {payload.notification?.body ||
-                      "Bạn có một phiên Tarot mới đang chờ luận giải."}
+                    {payload.notification?.body || payload.data?.message || "Bạn có một phiên Tarot mới đang chờ luận giải."}
                   </p>
                 </div>
               </div>
@@ -106,13 +113,15 @@ export default function ReaderLayout({
         { duration: 6000 },
       );
 
-      // Phát tiếng chuông
+      // 3. Phát tiếng chuông
       const audio = new Audio("/sounds/notification.mp3");
-      audio.play().catch(() => {});
+      audio.play().catch(() => {
+        console.log("Trình duyệt chặn autoplay audio");
+      });
     });
 
     return () => unsubscribe();
-  }, [mounted, router]);
+  }, [mounted, router, dispatch]);
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {

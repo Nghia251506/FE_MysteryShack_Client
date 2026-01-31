@@ -179,7 +179,7 @@ export default function HistoryPage() {
                       className="group hover:bg-white/[0.03] transition-all"
                     >
                       <td className="px-8 py-6">
-                        <div className="font-mono text-sm text-amber-500 font-black mb-1">#{item.id}</div>
+                        <div className="font-mono text-sm text-amber-500 font-black mb-1">#{item.requestId}</div>
                         <div className="text-slate-500 text-[10px] flex items-center gap-1 font-medium"><Calendar className="w-3 h-3"/> {item.dateFormatted}</div>
                       </td>
                       <td className="px-8 py-6">
