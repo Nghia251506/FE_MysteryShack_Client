@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/hooks/useAppRedux";
 import { closeFcmModal } from "@/store/slices/fcmSlice";
 import { useRouter } from "next/navigation";
@@ -11,14 +11,32 @@ export const ModalFCMGlobal = () => {
     const dispatch = useAppDispatch();
     const router = useRouter();
     const [countdown, setCountdown] = useState(30);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const stopSound = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
+    };
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
+
         if (isModalOpen && currentNotification?.type === "NEW_MATCH_REQUEST") {
             setCountdown(30);
+
+            // 2. Bắt đầu phát nhạc lặp lại
+            if (!audioRef.current) {
+                audioRef.current = new Audio("/sounds/notification.mp3");
+                audioRef.current.loop = true; // Kêu liên tục
+            }
+            audioRef.current.play().catch(e => console.log("Autoplay bị chặn bởi trình duyệt"));
+
             timer = setInterval(() => {
                 setCountdown((prev) => {
                     if (prev <= 1) {
+                        stopSound(); // Tắt nhạc khi hết giờ
                         dispatch(closeFcmModal());
                         return 0;
                     }
@@ -26,13 +44,21 @@ export const ModalFCMGlobal = () => {
                 });
             }, 1000);
         }
-        return () => clearInterval(timer);
+
+        // Cleanup: Tắt nhạc khi Component bị unmount hoặc Modal đóng
+        return () => {
+            clearInterval(timer);
+            stopSound();
+        };
     }, [isModalOpen, currentNotification, dispatch]);
 
     // BE đã check Role rồi nên ở đây chỉ cần check xem có data không thôi
     if (!isModalOpen || !currentNotification) return null;
 
-    const handleClose = () => dispatch(closeFcmModal());
+    const handleClose = () => {
+        stopSound(); // Tắt nhạc khi đóng thủ công
+        dispatch(closeFcmModal());
+    };
 
     const renderContent = () => {
         // Khớp các biến từ Map.of của Spring Boot
@@ -56,22 +82,18 @@ export const ModalFCMGlobal = () => {
                         <button 
                             onClick={async () => {
                                 try {
-                                    // 1. Gọi API Accept lên Backend để xác nhận "cuốc" này
-                                    // Lưu ý: Nhớ import { ReadingSessionService } ở đầu file Modal này
+                                    stopSound(); // 3. Tắt nhạc NGAY KHI bấm chấp nhận
                                     if (!sessionId) {
                                         toast.error("Không có sessionId hợp lệ.");
                                         return;
                                     }
                                     await ReadingSessionService.accept(sessionId);
-                                    
                                     toast.success("Đã chấp nhận yêu cầu!");
-                                    handleClose(); // Đóng Modal
-                                    
-                                    // 2. Chuyển vào Workspace để bắt đầu luận giải
+                                    handleClose(); 
                                     router.push(`/readerdashboard/workspace/${sessionId}`);
                                 } catch (error) {
                                     console.error("Lỗi khi chấp nhận session:", error);
-                                    toast.error("Không thể chấp nhận yêu cầu. Có thể đã hết hạn hoặc có lỗi xảy ra.");
+                                    toast.error("Không thể chấp nhận yêu cầu.");
                                     handleClose();
                                 }
                             }}
