@@ -29,9 +29,16 @@ export const ModalFCMGlobal = () => {
             // 2. Bắt đầu phát nhạc lặp lại
             if (!audioRef.current) {
                 audioRef.current = new Audio("/sounds/notification.mp3");
-                audioRef.current.loop = true; // Kêu liên tục
+                
             }
-            audioRef.current.play().catch(e => console.log("Autoplay bị chặn bởi trình duyệt"));
+            audioRef.current.onended = () => {
+                if (audioRef.current) audioRef.current.play();
+            };
+
+            // 2. Kích hoạt phát nhạc
+            audioRef.current.play().catch(e => {
+                console.warn("Chưa có tương tác người dùng, nhạc chưa thể kêu!");
+            });
 
             timer = setInterval(() => {
                 setCountdown((prev) => {
