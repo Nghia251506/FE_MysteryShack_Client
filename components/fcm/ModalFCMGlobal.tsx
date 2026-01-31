@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/hooks/useAppRedux";
 import { closeFcmModal } from "@/store/slices/fcmSlice";
 import { useRouter } from "next/navigation";
+import { ReadingSessionService } from "@/services/readingSessionService";
+import { toast } from "react-toastify";
 
 export const ModalFCMGlobal = () => {
     const { isModalOpen, currentNotification } = useAppSelector((state) => state.fcm);
@@ -52,9 +54,26 @@ export const ModalFCMGlobal = () => {
                             Hết hạn sau: {countdown} giây
                         </div>
                         <button 
-                            onClick={() => {
-                                handleClose(); // Đóng trước cho mượt
-                                router.push(`/readerdashboard/workspace/${sessionId}`);
+                            onClick={async () => {
+                                try {
+                                    // 1. Gọi API Accept lên Backend để xác nhận "cuốc" này
+                                    // Lưu ý: Nhớ import { ReadingSessionService } ở đầu file Modal này
+                                    if (!sessionId) {
+                                        toast.error("Không có sessionId hợp lệ.");
+                                        return;
+                                    }
+                                    await ReadingSessionService.accept(sessionId);
+                                    
+                                    toast.success("Đã chấp nhận yêu cầu!");
+                                    handleClose(); // Đóng Modal
+                                    
+                                    // 2. Chuyển vào Workspace để bắt đầu luận giải
+                                    router.push(`/readerdashboard/workspace/${sessionId}`);
+                                } catch (error) {
+                                    console.error("Lỗi khi chấp nhận session:", error);
+                                    toast.error("Không thể chấp nhận yêu cầu. Có thể đã hết hạn hoặc có lỗi xảy ra.");
+                                    handleClose();
+                                }
                             }}
                             className="mt-6 w-full bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-all"
                         >
