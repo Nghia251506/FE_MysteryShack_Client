@@ -1,17 +1,33 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { User } from '@/types/user';
+import { UserService } from '@/services/userService'; // Ông check lại đường dẫn này nhé
 
 interface UserState {
   user: User | null;
   matchedReader: User | null;
+  excludedIds: number[]; // Lưu danh sách ID đã lướt qua
   loading: boolean;
   error: string | null;
 }
 
-// Hàm lấy dữ liệu từ đúng key "currentUser" trong ảnh của ông
+// --- ASYNC THUNK: GỌI QUA USER_SERVICE ---
+export const fetchRandomReader = createAsyncThunk(
+  'user/fetchRandomReader',
+  async (customerId: number, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { user: UserState };
+      // Sử dụng hàm getRandomReader từ UserService ông vừa viết
+      const data = await UserService.getRandomReader(state.user.excludedIds, customerId);
+      return data; // Trả về User hoặc null (nếu 204)
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || "Lỗi khi tìm Reader");
+    }
+  }
+);
+
 const getInitialUser = (): User | null => {
   if (typeof window !== "undefined") {
-    const saved = localStorage.getItem("currentUser"); // Đổi từ "user" thành "currentUser"
+    const saved = localStorage.getItem("currentUser");
     if (saved && saved !== "undefined") {
       try {
         return JSON.parse(saved);
@@ -24,8 +40,9 @@ const getInitialUser = (): User | null => {
 };
 
 const initialState: UserState = {
-  user: getInitialUser(), // Nạp dữ liệu từ LocalStorage ngay khi khởi tạo
+  user: getInitialUser(),
   matchedReader: null,
+  excludedIds: [],
   loading: false,
   error: null,
 };
@@ -37,7 +54,6 @@ export const userSlice = createSlice({
     setUser: (state, action: PayloadAction<User | null>) => {
       state.user = action.payload;
       state.loading = false;
-      // Lưu vào đúng key "currentUser"
       if (typeof window !== "undefined") {
         if (action.payload) {
           localStorage.setItem("currentUser", JSON.stringify(action.payload));
@@ -48,28 +64,59 @@ export const userSlice = createSlice({
     },
     updateActiveStatus: (state, action: PayloadAction<boolean>) => {
       if (state.user) {
-        // 1. Tạo object mới (Spread operator) để React render lại UI
         state.user = {
           ...state.user,
-          active: action.payload // Dùng 'active' thay vì 'isActive' cho khớp JSON BE
+          active: action.payload 
         };
-
-        // 2. Cập nhật vào LocalStorage với key "currentUser"
         if (typeof window !== "undefined") {
           localStorage.setItem("currentUser", JSON.stringify(state.user));
-          console.log("LocalStorage đã cập nhật active thành:", action.payload);
         }
       }
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
-
     setMatchedReader: (state, action: PayloadAction<User | null>) => {
       state.matchedReader = action.payload;
     },
+    // Reset khi khách muốn bắt đầu lại từ đầu hoặc thoát màn hình
+    resetMatching: (state) => {
+      state.matchedReader = null;
+      state.excludedIds = [];
+      state.error = null;
+    }
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchRandomReader.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchRandomReader.fulfilled, (state, action: PayloadAction<User | null>) => {
+        state.loading = false;
+        state.matchedReader = action.payload;
+        
+        // Nếu tìm thấy Reader, nhét ID vào mảng loại trừ ngay
+        if (action.payload) {
+          if (!state.excludedIds.includes(action.payload.id)) {
+            state.excludedIds.push(action.payload.id);
+          }
+        }
+      })
+      .addCase(fetchRandomReader.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        state.matchedReader = null; // Reset nếu lỗi để UI không hiển thị sai
+      });
   },
 });
 
-export const { updateActiveStatus, setUser, setLoading,setMatchedReader } = userSlice.actions;
+export const { 
+  updateActiveStatus, 
+  setUser, 
+  setLoading, 
+  setMatchedReader, 
+  resetMatching 
+} = userSlice.actions;
+
 export default userSlice.reducer;

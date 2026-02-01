@@ -5,6 +5,7 @@ import authReducer from './features/authSlice'; // Đảm bảo đường dẫn 
 import userReducer from './slices/userSlice';
 import fcmReducer from "./slices/fcmSlice";
 import historyRecucer from './slices/historySlice';
+import ratingReducer from './slices/historySlice';
 
 export const store = configureStore({
   reducer: {
@@ -13,6 +14,7 @@ export const store = configureStore({
     user: userReducer,
     fcm: fcmReducer,
     history: historyRecucer,
+    rating: ratingReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

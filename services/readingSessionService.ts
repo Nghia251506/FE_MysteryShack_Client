@@ -6,8 +6,12 @@ const ENDPOINT = '/v1/sessions';
 
 export const ReadingSessionService = {
     // Lấy danh sách (Dùng /matched để tránh lỗi 500 Lazy Load)
-    getAll: async (): Promise<ReadingSession[]> => {
-        const response = await axios.get(`${ENDPOINT}/matched`);
+    getAllAmount: async (): Promise<number> => {
+        const response = await axios.get(`${ENDPOINT}/total-income`);
+        return response.data;
+    },
+    getAllSession: async (): Promise<number> => {
+        const response = await axios.get(`${ENDPOINT}/total-sessions`);
         return response.data;
     },
 

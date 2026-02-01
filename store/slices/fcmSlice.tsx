@@ -20,6 +20,8 @@ interface FcmNotificationPayload {
     customerRating?: number; // Đánh giá của khách
     message?: string;       // Nội dung hiển thị thêm
     [key: string]: any;     // Các field linh động khác từ Backend
+    ratingValue?: number; 
+    comment?: string;
 }
 
 interface FcmState {

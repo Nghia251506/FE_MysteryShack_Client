@@ -11,6 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { loginUser, clearError } from '@/store/features/authSlice';
+import { UserService } from '@/services/userService';
 import { useAppDispatch } from '@/hooks/useAppRedux';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -65,7 +66,16 @@ export default function LoginPage() {
     if (loginUser.fulfilled.match(resultAction)) {
       const loggedInUser = resultAction.payload.user;
       const role = loggedInUser?.role || "CUSTOMER";
-
+      // --- LOGIC MỚI: Tự động bật trạng thái cho Reader ---
+    if (role === "READER") {
+      try {
+        // Gọi hàm toggleStatus đã định nghĩa
+        await UserService.toggleStatus(); 
+        console.log("Reader is now Online");
+      } catch (error) {
+        console.error("Lỗi tự động bật trạng thái:", error);
+      }
+    }
       if (role === "READER" || role === "ADMIN") {
         router.push("/readerdashboard");
       } else {

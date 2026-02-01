@@ -9,7 +9,9 @@ export interface User {
   verified?: boolean;
   active: boolean;
   qrCode: string;
-  // Các field mở rộng cho Reader
-//   tags?: string[];
-//   reviewsCount?: number;
+}
+
+export interface MatchingRequest {
+  excludeIds: number[];
+  currentCustomerId: number;
 }

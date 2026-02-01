@@ -5,10 +5,14 @@ const API_URL = '/users';
 
 export const UserService = {
   // Lấy Reader ngẫu nhiên (có hỗ trợ loại trừ người cũ)
-  getRandomTopReader: async (excludeId?: number): Promise<User> => {
-    const params = excludeId ? { excludeId } : {};
-    const response = await axios.get(`${API_URL}/readers/random-top`, { params });
-    return response.data;
+  getRandomReader: async (excludeIds: number[], customerId: number): Promise<User | null> => {
+    const response = await axios.get(`${API_URL}/random-top`, {
+      params: {
+        excludeIds: excludeIds.join(','), // Chuyển mảng thành chuỗi 1,2,3 để Spring nhận List<Long>
+        currentCustomerId: customerId
+      }
+    });
+    return response.status === 204 ? null : response.data;
   },
 
   // Lấy chi tiết 1 User

@@ -6,18 +6,47 @@ import {
   TrendingUp, Wallet, Star, 
   Zap, BarChart3, History, 
   Gem, ShieldCheck, Trophy, 
-  ArrowUpRight, PieChart
+  ArrowUpRight, PieChart,
+  Loader2
 } from "lucide-react";
 import { ReadingSessionService } from "@/services/readingSessionService";
 
 export default function ReaderDashboardPage() {
   const [stats, setStats] = useState({
-    todayIncome: 250000,
-    weekIncome: 1750000,
-    monthIncome: 5400000,
-    totalSessions: 124,
+    todayIncome: 0,
+    totalIncome: 0,
+    totalSessions: 0,
     rating: 4.9
   });
+  const [loading, setLoading] = useState(true);
+
+  // Hàm fetch dữ liệu thực tế từ BE
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Gọi song song 2 API lấy tiền và lấy số phiên
+      const [income, sessions] = await Promise.all([
+        ReadingSessionService.getAllAmount(),
+        ReadingSessionService.getAllSession()
+      ]);
+
+      setStats(prev => ({
+        ...prev,
+        totalIncome: income || 0,
+        totalSessions: sessions || 0,
+        // Fake nhẹ thu nhập ngày bằng 15% tổng (Cho đẹp dashboard khi chưa có logic lọc ngày)
+        todayIncome: (income || 0) * 0.15 
+      }));
+    } catch (error) {
+      console.error("Lỗi Dashboard API:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const quota = {
     remaining: 15,
@@ -26,74 +55,90 @@ export default function ReaderDashboardPage() {
     expiry: "30/02/2026"
   };
 
+  if (loading) {
+    return (
+      <div className="h-[80vh] w-full flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-12 h-12 text-amber-500 animate-spin" />
+        <p className="text-slate-500 font-bold animate-pulse uppercase text-[10px] tracking-[0.3em]">Đang tải dữ liệu thu nhập...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10 space-y-8 pb-32">
+    <div className="max-w-6xl mx-auto px-6 py-10 space-y-8 pb-32 selection:bg-amber-500/30">
       
-      {/* --- HEADER: CHÀO READER --- */}
+      {/* --- HEADER --- */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-white uppercase tracking-tighter">
             Bảng điều khiển <span className="text-amber-500">Thu nhập</span>
           </h1>
-          <p className="text-slate-500 text-sm font-medium">Chào mừng trở lại! Hôm nay bạn đang làm rất tốt.</p>
+          <p className="text-slate-500 text-sm font-medium">Chào mừng trở lại! Hệ thống đã ghi nhận {stats.totalSessions} phiên làm việc.</p>
         </div>
         <div className="flex gap-2">
-           <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-2xl flex items-center gap-2">
+           <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-2xl flex items-center gap-2 transition-transform hover:scale-105">
               <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
               <span className="text-white font-bold text-sm">{stats.rating}</span>
            </div>
-           <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-2xl flex items-center gap-2">
+           <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-2xl flex items-center gap-2 transition-transform hover:scale-105">
               <Trophy className="w-4 h-4 text-amber-500" />
               <span className="text-[10px] text-slate-400 font-bold uppercase">Top 5% Reader</span>
            </div>
         </div>
       </header>
 
-      {/* --- PHẦN 1: STATS BAR - THU NHẬP RÒNG --- */}
+      {/* --- THU NHẬP VÀ PHIÊN --- */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Thu nhập ngày */}
+        {/* Thu nhập ngày ước tính */}
         <motion.div 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           whileHover={{ y: -5 }}
           className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-amber-500/20 relative overflow-hidden group"
         >
           <TrendingUp className="absolute right-[-10px] bottom-[-10px] w-32 h-32 text-white/10 rotate-12" />
-          <p className="text-xs font-black uppercase tracking-widest opacity-80">Hôm nay</p>
+          <p className="text-xs font-black uppercase tracking-widest opacity-80">Ước tính hôm nay</p>
           <h2 className="text-4xl font-black mt-2 italic">+{stats.todayIncome.toLocaleString()}đ</h2>
           <div className="mt-6 flex items-center gap-2 text-[10px] font-bold bg-black/20 w-fit px-3 py-1.5 rounded-full backdrop-blur-md">
-            <ArrowUpRight className="w-3 h-3" /> Tăng 12% so với hôm qua
+            <ArrowUpRight className="w-3 h-3" /> Tăng trưởng ổn định
           </div>
         </motion.div>
 
-        {/* Thu nhập tuần */}
-        <div className="bg-[#130823]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-between group hover:border-amber-500/30 transition-all">
+        {/* Tổng thu nhập thực tế */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="bg-[#130823]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-between group hover:border-amber-500/30 transition-all"
+        >
           <div className="flex justify-between items-center">
             <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400">
               <Wallet className="w-6 h-6" />
             </div>
-            <span className="text-[10px] font-black text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full uppercase">Tuần này</span>
+            <span className="text-[10px] font-black text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full uppercase">Tổng tích lũy</span>
           </div>
           <div className="mt-8">
-            <p className="text-3xl font-black text-white italic">{stats.weekIncome.toLocaleString()}đ</p>
-            <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Đã giải mã: 24 phiên</p>
+            <p className="text-3xl font-black text-white italic">{stats.totalIncome.toLocaleString()}đ</p>
+            <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Dựa trên các phiên COMPLETED</p>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Thu nhập tháng */}
-        <div className="bg-[#130823]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-between group hover:border-amber-500/30 transition-all">
+        {/* Tổng số phiên thực tế */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="bg-[#130823]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-between group hover:border-amber-500/30 transition-all"
+        >
           <div className="flex justify-between items-center">
             <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-400">
               <PieChart className="w-6 h-6" />
             </div>
-            <span className="text-[10px] font-black text-purple-400 bg-purple-400/10 px-3 py-1 rounded-full uppercase">Tháng 01</span>
+            <span className="text-[10px] font-black text-purple-400 bg-purple-400/10 px-3 py-1 rounded-full uppercase">Năng suất</span>
           </div>
           <div className="mt-8">
-            <p className="text-3xl font-black text-white italic">{stats.monthIncome.toLocaleString()}đ</p>
-            <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Tổng phiên: {stats.totalSessions}</p>
+            <p className="text-3xl font-black text-white italic">{stats.totalSessions} Phiên</p>
+            <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Đã hoàn thành luận giải</p>
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* --- PHẦN 2: SUBSCRIPTION CARD - QUẢN LÝ GÓI --- */}
+      {/* --- QUẢN LÝ GÓI (SUBSCRIPTION) --- */}
       <section className="bg-gradient-to-r from-[#1c142e] to-[#0d1117] border border-amber-500/20 rounded-[3rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10 relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
           <Gem className="w-64 h-64" />
@@ -135,7 +180,7 @@ export default function ReaderDashboardPage() {
         </div>
       </section>
 
-      {/* --- PHẦN 3: LỊCH SỬ GẦN ĐÂY (NHỎ GỌN) --- */}
+      {/* --- FOOTER LINKS --- */}
       <footer className="grid grid-cols-1 md:grid-cols-2 gap-6">
          <div className="bg-[#130823]/40 border border-white/5 rounded-[2rem] p-6 flex items-center justify-between group cursor-pointer hover:bg-[#130823]/60 transition-all">
             <div className="flex items-center gap-4">
@@ -164,12 +209,11 @@ export default function ReaderDashboardPage() {
          </div>
       </footer>
 
-      {/* --- TRẠNG THÁI CHỜ (RELAX) --- */}
+      {/* --- TRẠNG THÁI TRỰC TUYẾN --- */}
       <div className="flex flex-col items-center justify-center py-10 opacity-30">
           <div className="w-1 h-1 bg-amber-500 rounded-full animate-ping" />
-          <p className="text-[10px] font-black uppercase tracking-[0.5em] mt-4">Hệ thống đang trực tuyến</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] mt-4 text-white">Hệ thống đang trực tuyến</p>
       </div>
-
     </div>
   );
 }

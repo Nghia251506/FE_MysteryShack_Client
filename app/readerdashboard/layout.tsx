@@ -124,12 +124,28 @@ export default function ReaderLayout({
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
+      // 1. Nếu là Reader, phải gọi tắt trạng thái ĐẦU TIÊN (khi vẫn còn Token)
+      if (user?.role === "READER") {
+        try {
+          await UserService.toggleStatus(); // Gọi hàm toggle của ông
+          console.log("Reader status turned OFF");
+        } catch (statusError) {
+          console.error("Không thể tắt trạng thái Reader:", statusError);
+        }
+      }
+
+      // 2. Sau đó mới gọi API logout của hệ thống
       await AuthService.logout();
-    } catch (e) {}
-    localStorage.clear();
-    dispatch(logout());
-    router.replace("/login");
-    setIsLoggingOut(false);
+      
+    } catch (e) {
+      console.error("Lỗi trong quá trình logout:", e);
+    } finally {
+      // 3. Cuối cùng mới dọn dẹp bộ nhớ và đẩy ra trang login
+      localStorage.clear();
+      dispatch(logout());
+      router.replace("/login");
+      setIsLoggingOut(false);
+    }
   };
 
   const navItems = [
