@@ -182,7 +182,7 @@ export default function ReaderLayout({
               priority
             />
             <span className="font-bold text-xl text-white">
-              Mystic<span className="text-amber-500">Tarot</span>
+              Mystic<span className="text-amber-500"> Tarot</span>
             </span>
           </Link>
         </div>
