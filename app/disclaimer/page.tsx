@@ -2,13 +2,16 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
 import { 
   ShieldAlert, Brain, Stethoscope, UserCheck, 
   Store, WifiOff, RefreshCw, ArrowRight 
 } from "lucide-react";
 import { motion } from "framer-motion";
+
+// --- IMPORT HEADER & FOOTER ĐỒNG BỘ ---
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import SocialFloating from "@/components/SocialFloating";
 
 export default function DisclaimerPage() {
   const router = useRouter();
@@ -19,8 +22,11 @@ export default function DisclaimerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-300 font-sans selection:bg-amber-500/30 overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-slate-300 font-sans selection:bg-amber-500/30 overflow-x-hidden flex flex-col relative">
       
+      {/* 1. HEADER ĐỒNG BỘ TOÀN HỆ THỐNG */}
+      <Header />
+
       {/* BACKGROUND EFFECTS */}
       <div className="fixed inset-0 pointer-events-none z-0">
           <div className="absolute top-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-purple-900/5 rounded-full blur-[120px]" />
@@ -28,36 +34,8 @@ export default function DisclaimerPage() {
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
       </div>
 
-      {/* HEADER */}
-      <nav className="sticky top-0 z-50 bg-[#050505]/90 backdrop-blur-md border-b border-white/5 px-6 py-3">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
-              <Link href="/" className="flex items-center gap-4 cursor-pointer group">
-                  <div className="relative w-[50px] h-[50px] flex items-center justify-center">
-                      <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full scale-75 group-hover:scale-105 transition-transform duration-700" />
-                      <Image 
-                        src="/logo.png" 
-                        alt="Mystic Tarot Logo" 
-                        width={50} 
-                        height={50} 
-                        className="relative z-10 transition-transform duration-500 group-hover:rotate-3 rounded-full"
-                      />
-                  </div>
-                  <span className="font-bold text-xl text-white tracking-tighter hidden sm:block">
-                    Mystic<span className="text-amber-500"> Tarot</span>
-                  </span>
-              </Link>
-              
-              <button 
-                onClick={() => router.push('/')}
-                className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
-              >
-                Về trang chủ
-              </button>
-          </div>
-      </nav>
-
       {/* MAIN CONTENT */}
-      <main className="relative z-10 max-w-5xl mx-auto px-6 py-16">
+      <main className="relative z-10 max-w-5xl mx-auto px-6 py-16 flex-grow">
         
         {/* HERO TITLE */}
         <motion.div 
@@ -67,13 +45,13 @@ export default function DisclaimerPage() {
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest mb-6">
                 <ShieldAlert className="w-4 h-4" /> Tuyên bố quan trọng
             </div>
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-3xl md:text-6xl font-black text-white mb-6 leading-tight tracking-tighter">
                 Miễn Trừ Trách Nhiệm <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-orange-400">
                     & Giới Hạn Dịch Vụ
                 </span>
             </h1>
-            <p className="text-slate-500 italic text-sm max-w-2xl mx-auto">
+            <p className="text-slate-500 italic text-sm max-w-2xl mx-auto leading-relaxed">
                 Vui lòng đọc kỹ các nội dung dưới đây trước khi sử dụng dịch vụ. Việc tiếp tục sử dụng Mystic Tarot đồng nghĩa với việc bạn đã hiểu và chấp nhận các tuyên bố này.
             </p>
         </motion.div>
@@ -81,134 +59,88 @@ export default function DisclaimerPage() {
         {/* CONTENT BLOCKS */}
         <div className="space-y-8">
 
-            {/* MỤC 1: BẢN CHẤT DỊCH VỤ */}
             <SectionBlock 
                 icon={Brain} 
                 title="1. Bản chất về nội dung và dịch vụ"
                 delay={0.1}
             >
                 <Article title="Tham vấn định hướng">
-                    Mọi nội dung, thông điệp và sự diễn giải trong các phiên kết nối giữa Reader và Khách hàng được xây dựng dựa trên các hệ thống biểu tượng, ký hiệu học và chiêm nghiệm tâm lý. Chúng tôi xác lập đây là dịch vụ hỗ trợ tinh thần và định hướng tư duy cá nhân.
+                    Mọi nội dung trong các phiên kết nối được xây dựng dựa trên các hệ thống biểu tượng và chiêm nghiệm tâm lý. Đây là dịch vụ hỗ trợ tinh thần và định hướng tư duy cá nhân.
                 </Article>
                 <Article title="Tính chủ quan">
-                    Người dùng hiểu và chấp nhận rằng các diễn giải mang tính chất chủ quan dựa trên chuyên môn của từng Reader. Mystic Tarot không cam kết về tính chính xác tuyệt đối, sự ứng nghiệm hay khả năng dự báo chính xác các sự kiện trong tương lai.
+                    Các diễn giải mang tính chất chủ quan dựa trên chuyên môn của từng Reader. Mystic Tarot không cam kết về tính chính xác tuyệt đối hay sự ứng nghiệm trong tương lai.
                 </Article>
             </SectionBlock>
 
-            {/* MỤC 2: GIỚI HẠN CHUYÊN MÔN */}
             <SectionBlock 
                 icon={Stethoscope} 
                 title="2. Giới hạn đối với các lời khuyên chuyên môn"
                 delay={0.2}
             >
-                <p className="mb-4 text-slate-400 italic">Nội dung cung cấp trên Mystic Tarot không thay thế và không có giá trị tương đương với các dịch vụ tư vấn chuyên môn sau:</p>
+                <p className="mb-4 text-slate-400 italic text-sm">Nội dung trên Mystic Tarot không thay thế các dịch vụ tư vấn chuyên môn sau:</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
-                        <strong className="text-red-400 block mb-2">Y tế & Sức khỏe</strong>
-                        <p className="text-sm">Chúng tôi không cung cấp chẩn đoán y khoa, lời khuyên điều trị bệnh lý hoặc tư vấn tâm thần chuyên sâu.</p>
+                    <div className="bg-white/[0.02] p-6 rounded-2xl border border-white/5 hover:border-red-500/20 transition-colors">
+                        <strong className="text-red-400 block mb-2 font-bold uppercase text-xs tracking-widest">Y tế & Sức khỏe</strong>
+                        <p className="text-sm text-slate-400">Chúng tôi không cung cấp chẩn đoán y khoa, lời khuyên điều trị bệnh lý hoặc tư vấn tâm thần chuyên sâu.</p>
                     </div>
-                    <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
-                        <strong className="text-amber-400 block mb-2">Pháp lý & Tài chính</strong>
-                        <p className="text-sm">Mọi thông tin liên quan đến quyết định đầu tư, quản lý tài sản hoặc các vấn đề tố tụng pháp lý chỉ mang tính chất tham khảo.</p>
+                    <div className="bg-white/[0.02] p-6 rounded-2xl border border-white/5 hover:border-amber-500/20 transition-colors">
+                        <strong className="text-amber-400 block mb-2 font-bold uppercase text-xs tracking-widest">Pháp lý & Tài chính</strong>
+                        <p className="text-sm text-slate-400">Mọi thông tin liên quan đến đầu tư hoặc pháp lý chỉ mang tính chất tham khảo cho góc nhìn cá nhân.</p>
                     </div>
-                </div>
-                <div className="mt-4 p-4 border-l-2 border-slate-600 bg-slate-900/30">
-                    <strong className="text-white">Khuyến nghị:</strong> Người dùng có nghĩa vụ tìm kiếm sự hỗ trợ từ các chuyên gia có bằng cấp và thẩm quyền pháp lý (Bác sĩ, Luật sư, Chuyên gia tài chính) trước khi đưa ra bất kỳ quyết định quan trọng nào trong các lĩnh vực này.
                 </div>
             </SectionBlock>
 
-            {/* MỤC 3: QUYỀN TỰ QUYẾT */}
             <SectionBlock 
                 icon={UserCheck} 
-                title="3. Quyền tự quyết và trách nhiệm của khách hàng"
+                title="3. Quyền tự quyết của khách hàng"
                 delay={0.3}
             >
                 <Article title="Quyền tự quyết tối cao">
-                    Khách hàng là chủ thể duy nhất giữ quyền đưa ra quyết định cuối cùng đối với mọi vấn đề cá nhân.
+                    Khách hàng là chủ thể duy nhất giữ quyền đưa ra quyết định cuối cùng đối với mọi vấn đề cá nhân của mình.
                 </Article>
                 <Article title="Miễn trừ trách nhiệm hệ quả">
-                    Mystic Tarot hoàn toàn miễn trừ trách nhiệm đối với bất kỳ thiệt hại trực tiếp hay gián tiếp, hữu hình hay vô hình (bao gồm nhưng không giới hạn ở: tổn thất tài chính, biến động tâm lý, đổ vỡ quan hệ) phát sinh từ việc Khách hàng lựa chọn hành động dựa trên nội dung tham vấn của Reader.
-                </Article>
-                <Article title="Đánh giá sự phù hợp">
-                    Khách hàng chịu trách nhiệm tự đánh giá mức độ phù hợp của thông tin tham vấn đối với hoàn cảnh riêng biệt của mình.
+                    Mystic Tarot miễn trừ trách nhiệm đối với bất kỳ thiệt hại nào phát sinh từ việc Khách hàng hành động dựa trên nội dung tham vấn của Reader.
                 </Article>
             </SectionBlock>
 
-            {/* MỤC 4: VAI TRÒ MARKETPLACE */}
             <SectionBlock 
                 icon={Store} 
-                title="4. Phân định vai trò Marketplace (Bên thứ ba)"
+                title="4. Vai trò Marketplace"
                 delay={0.4}
             >
-                <ul className="list-disc pl-5 space-y-3 text-slate-400">
-                    <li>
-                        <strong className="text-white">Tính độc lập của Reader:</strong> Reader trên Mystic Tarot là các đối tác độc lập, không phải là nhân viên, đại diện hay đại lý của Nền tảng. Mọi quan điểm và nội dung do Reader cung cấp thuộc về trách nhiệm cá nhân của phía đối tác.
-                    </li>
-                    <li>
-                        <strong className="text-white">Kiểm soát tương tác:</strong> Mystic Tarot đóng vai trò cung cấp hạ tầng kết nối kỹ thuật. Chúng tôi không can thiệp và không chịu trách nhiệm về các phát ngôn cá nhân mang tính chủ quan của Reader trong các phiên tư vấn thời gian thực.
-                    </li>
+                <ul className="list-disc pl-5 space-y-3 text-slate-400 text-sm">
+                    <li><strong className="text-white">Tính độc lập:</strong> Reader là đối tác độc lập, không phải nhân viên của Nền tảng.</li>
+                    <li><strong className="text-white">Hạ tầng:</strong> Chúng tôi cung cấp hạ tầng kết nối kỹ thuật, không can thiệp vào phát ngôn cá nhân thời gian thực của Reader.</li>
                 </ul>
             </SectionBlock>
 
-            {/* MỤC 5: RỦI RO KỸ THUẬT */}
             <SectionBlock 
                 icon={WifiOff} 
-                title="5. Rủi ro về giao dịch và kỹ thuật"
+                title="5. Rủi ro kỹ thuật"
                 delay={0.5}
             >
-                <Article title="Giao dịch ngoài hệ thống">
-                    Mystic Tarot từ chối mọi trách nhiệm bảo vệ quyền lợi hoặc xử lý khiếu nại trong trường hợp Người dùng và Reader tự ý thiết lập các giao dịch, thỏa thuận hoặc trao đổi thông tin bên ngoài sự kiểm soát của Nền tảng.
-                </Article>
                 <Article title="Sự cố khách quan">
-                    Chúng tôi không cam kết dịch vụ sẽ luôn không bị gián đoạn hoặc không có lỗi kỹ thuật do các yếu tố bất khả kháng (sự cố đường truyền mạng, máy chủ toàn cầu).
+                    Chúng tôi không cam kết dịch vụ luôn không bị gián đoạn do các yếu tố bất khả kháng như sự cố máy chủ toàn cầu hoặc đường truyền mạng.
                 </Article>
-            </SectionBlock>
-
-            {/* MỤC 6: CẬP NHẬT */}
-            <SectionBlock 
-                icon={RefreshCw} 
-                title="6. Sự thay đổi và quyền cập nhật"
-                delay={0.6}
-            >
-                <p className="text-slate-400">
-                    Mystic Tarot bảo lưu quyền sửa đổi, cập nhật hoặc tạm dừng bất kỳ phần nào của dịch vụ và nội dung trên website để phù hợp với định hướng phát triển và quy định của pháp luật Việt Nam tại từng thời điểm mà không cần thông báo trước.
-                </p>
             </SectionBlock>
 
         </div>
 
-        {/* CTA */}
+        {/* CTA QUAY LẠI TRANG CHỦ */}
         <div className="mt-20 text-center">
             <button 
                 onClick={() => router.push('/')}
-                className="px-8 py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 font-bold rounded-full transition-all flex items-center gap-2 mx-auto"
+                className="group relative px-10 py-4 bg-white/5 border border-white/10 hover:border-amber-500/50 text-slate-300 font-black rounded-2xl transition-all flex items-center gap-3 mx-auto uppercase text-sm tracking-tighter shadow-2xl"
             >
-                Quay lại trang chủ <ArrowRight className="w-4 h-4" />
+                Tôi đã hiểu và quay lại trang chủ <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform text-amber-500" />
             </button>
         </div>
 
       </main>
 
-      {/* FOOTER */}
-      <footer className="border-t border-white/5 bg-black/40 py-12 mt-20 relative z-10">
-          <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-              <Link href="/" className="flex items-center gap-3 group">
-                  <Image 
-                    src="/logo.png" 
-                    alt="Mystic Tarot Logo" 
-                    width={40} 
-                    height={40} 
-                    className="rounded-full shadow-md shadow-amber-500/10"
-                  />
-                  <span className="font-bold text-white">Mystic Tarot © 2026</span>
-              </Link>
-              <div className="flex gap-8 text-sm text-slate-500">
-                  <Link href="/terms" className="hover:text-amber-400 transition-colors">Điều khoản</Link>
-                  <span className="text-amber-500">Miễn trừ trách nhiệm</span>
-                  <Link href="/contact" className="hover:text-amber-400 transition-colors">Liên hệ</Link>
-              </div>
-          </div>
-      </footer>
+      {/* 2. FOOTER ĐỒNG BỘ */}
+      <Footer />
+      <SocialFloating/>
     </div>
   );
 }
@@ -221,13 +153,13 @@ const SectionBlock = ({ icon: Icon, title, children, delay }: { icon: any, title
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
         transition={{ delay, duration: 0.5 }}
-        className="bg-[#130823]/50 border border-white/10 rounded-3xl p-8 backdrop-blur-sm hover:border-amber-500/20 transition-colors"
+        className="bg-[#130823]/40 border border-white/5 rounded-[2.5rem] p-8 md:p-10 backdrop-blur-sm hover:bg-[#130823]/60 transition-all duration-500"
     >
-        <div className="flex items-center gap-4 mb-6 pb-4 border-b border-white/5">
-            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-amber-400 shrink-0">
-                <Icon className="w-5 h-5" />
+        <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/5">
+            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-amber-500 shrink-0 shadow-inner border border-white/5">
+                <Icon className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-bold text-white">{title}</h2>
+            <h2 className="text-2xl font-bold text-white tracking-tight">{title}</h2>
         </div>
         <div className="space-y-6">
             {children}
@@ -237,8 +169,10 @@ const SectionBlock = ({ icon: Icon, title, children, delay }: { icon: any, title
 
 const Article = ({ title, children }: { title: string, children: React.ReactNode }) => (
     <div className="space-y-2">
-        <h3 className="text-base font-bold text-slate-200">{title}</h3>
-        <p className="text-slate-400 text-sm leading-relaxed text-justify">
+        <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" /> {title}
+        </h3>
+        <p className="text-slate-400 text-sm leading-relaxed text-justify pl-4 border-l border-white/5">
             {children}
         </p>
     </div>

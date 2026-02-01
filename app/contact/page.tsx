@@ -6,28 +6,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { 
   Sparkles, MapPin, Phone, Mail, 
-  Facebook, Instagram, Send, 
-  CheckCircle2 
+  Send, CheckCircle2, ArrowRight 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// --- CUSTOM TIKTOK ICON (Vì Lucide có thể chưa hỗ trợ bản này) ---
-const TikTokIcon = ({ className }: { className?: string }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-  </svg>
-);
+// --- IMPORT CÁC COMPONENT ĐỒNG BỘ ---
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import SocialFloating from '@/components/SocialFloating';
 
-// --- CẤU HÌNH GOOGLE FORM ---
+// --- CẤU HÌNH GOOGLE FORM (Giữ nguyên logic của ông) ---
 const GOOGLE_FORM_ACTION_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfpe1TxgGEv7x94eUYMd0Y4INGNeY1QbY815jUqOvnfOFMikQ/formResponse";
 
 const ENTRY_IDS = {
@@ -81,8 +69,11 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-200 font-sans selection:bg-amber-500/30 overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-slate-200 font-sans selection:bg-amber-500/30 overflow-x-hidden flex flex-col relative">
       
+      {/* 1. HEADER CHUẨN HỆ THỐNG */}
+      <Header />
+
       {/* BACKGROUND EFFECTS */}
       <div className="fixed inset-0 pointer-events-none z-0">
           <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-900/10 rounded-full blur-[120px]" />
@@ -90,241 +81,158 @@ export default function ContactPage() {
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
       </div>
 
-      {/* HEADER */}
-      <nav className="sticky top-0 z-50 bg-[#050505]/80 backdrop-blur-md border-b border-white/5 px-6 py-3">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
-              <Link href="/" className="flex items-center gap-4 cursor-pointer group">
-                  <div className="relative w-[60px] h-[60px] flex items-center justify-center">
-                      <div className="absolute inset-0 bg-amber-500/30 blur-xl rounded-full scale-75 group-hover:scale-105 transition-transform duration-700" />
-                      <Image 
-                        src="/logo.png" 
-                        alt="Mystic Tarot Logo" 
-                        width={60} 
-                        height={60} 
-                        className="relative z-10 transition-transform duration-500 group-hover:rotate-3 rounded-full shadow-lg shadow-amber-500/20"
-                      />
-                  </div>
-                  <span className="font-bold text-2xl text-white tracking-tighter hidden sm:block">
-                    Mystic<span className="text-amber-500">Tarot</span>
-                  </span>
-              </Link>
-              <button 
-                onClick={() => router.push('/tarot-draw')}
-                className="px-6 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-full transition-all text-sm shadow-lg backdrop-blur-sm"
-              >
-                Bắt đầu ngay
-              </button>
-          </div>
-      </nav>
-
       {/* MAIN CONTENT */}
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-20">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-20 flex-grow">
         
-        {/* HERO */}
-        <div className="text-center mb-16">
+        {/* HERO SECTION */}
+        <div className="text-center mb-20">
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest mb-6"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest mb-6"
             >
-                <Sparkles className="w-4 h-4" /> Kết nối với chúng tôi
+                <Sparkles className="w-3.5 h-3.5" /> Kết nối tâm linh
             </motion.div>
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-5xl md:text-6xl font-bold text-white mb-6 tracking-tight"
+              className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter leading-[1.1]"
             >
-                Chúng tôi luôn ở đây để <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-purple-400">
-                    lắng nghe câu chuyện của bạn
-                </span>
+                Lắng nghe <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-purple-400 italic">câu chuyện</span> <br />
+                của riêng bạn
             </motion.h1>
-            <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                Dù bạn cần hỗ trợ về dịch vụ, hợp tác hay chỉ đơn giản là muốn chia sẻ trải nghiệm, hãy gửi tin nhắn cho Mystic Tarot.
+            <p className="text-slate-400 text-lg max-w-2xl mx-auto font-light leading-relaxed italic">
+                "Dù là trăn trở về định mệnh hay một ý tưởng hợp tác, Mystic Tarot luôn ở đây để đồng hành cùng bạn."
             </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
             
-            {/* LEFT COLUMN: INFO CARD */}
+            {/* LEFT COLUMN: INFO CARDS */}
             <motion.div 
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
-                className="lg:col-span-5 space-y-8"
+                className="lg:col-span-5 space-y-6"
             >
-                {/* Contact Info Card */}
-                <div className="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] relative overflow-hidden group hover:border-amber-500/30 transition-colors">
-                    <div className="absolute top-0 right-0 p-20 bg-amber-500/5 blur-[80px] rounded-full group-hover:bg-amber-500/10 transition-colors" />
+                <div className="bg-white/[0.02] border border-white/5 p-10 rounded-[3rem] relative overflow-hidden group hover:border-amber-500/20 transition-all duration-500">
+                    <div className="absolute top-0 right-0 p-24 bg-amber-500/5 blur-[100px] rounded-full group-hover:bg-amber-500/10 transition-colors" />
                     
-                    <h3 className="text-2xl font-bold text-white mb-8">Thông tin liên hệ</h3>
+                    <h3 className="text-2xl font-black text-white mb-10 uppercase tracking-tighter">Thông tin liên hệ</h3>
                     
-                    <div className="space-y-6 relative z-10">
-                        <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center border border-white/10 text-amber-500 shrink-0">
-                                <Mail className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Email hỗ trợ</p>
-                                <a href="mailto:tranvunamgiang98@gmail.com" className="text-white text-lg font-medium hover:text-amber-400 transition-colors">tranvunamgiang98@gmail.com</a>
-                            </div>
-                        </div>
-
-                        <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center border border-white/10 text-purple-500 shrink-0">
-                                <Phone className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Hotline</p>
-                                <p className="text-white text-lg font-medium">090 123 4567 (8:00 - 22:00)</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center border border-white/10 text-green-500 shrink-0">
-                                <MapPin className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Văn phòng</p>
-                                <p className="text-white text-base font-medium leading-relaxed">
-                                    Thành phố Hồ Chí Minh,<br />
-                                    Việt Nam
-                                </p>
-                            </div>
-                        </div>
+                    <div className="space-y-8 relative z-10">
+                        <ContactInfoItem 
+                            icon={Mail} 
+                            label="Email hỗ trợ" 
+                            value="mystictarot@mystictarots.xyz" 
+                            link="mailto:mystictarot@mystictarots.xyz"
+                            color="amber"
+                        />
+                        <ContactInfoItem 
+                            icon={Phone} 
+                            label="Hotline" 
+                            value="0862273012" 
+                            subValue="(8:00 - 22:00 hàng ngày)"
+                            color="purple"
+                        />
+                        <ContactInfoItem 
+                            icon={MapPin} 
+                            label="Văn phòng" 
+                            value="Thành phố Hồ Chí Minh, Việt Nam" 
+                            color="green"
+                        />
                     </div>
+                </div>
 
-                    <div className="mt-10 pt-8 border-t border-white/10">
-                        <p className="text-sm text-slate-500 mb-4 font-bold">Mạng xã hội</p>
-                        <div className="flex gap-4">
-                            {/* FACEBOOK */}
-                            <a 
-                                href="https://www.facebook.com/giangtran1808/" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="w-10 h-10 rounded-full bg-white/5 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-all text-slate-400 border border-white/5 hover:border-transparent hover:-translate-y-1"
-                            >
-                                <Facebook className="w-5 h-5" />
-                            </a>
-
-                            {/* INSTAGRAM */}
-                            <a 
-                                href="https://www.instagram.com/tarotbycafenha/" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="w-10 h-10 rounded-full bg-white/5 hover:bg-pink-600 hover:text-white flex items-center justify-center transition-all text-slate-400 border border-white/5 hover:border-transparent hover:-translate-y-1"
-                            >
-                                <Instagram className="w-5 h-5" />
-                            </a>
-
-                            {/* TIKTOK */}
-                            <a 
-                                href="https://www.tiktok.com/@leoaslan98" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="w-10 h-10 rounded-full bg-white/5 hover:bg-black hover:text-white flex items-center justify-center transition-all text-slate-400 border border-white/5 hover:border-white/20 hover:-translate-y-1"
-                            >
-                                <TikTokIcon className="w-5 h-5" />
-                            </a>
-                        </div>
-                    </div>
+                {/* Card phụ kích thích đặt lịch */}
+                <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-amber-600/20 to-transparent border border-amber-500/10">
+                    <h4 className="text-white font-bold mb-2">Bạn cần xem bài gấp?</h4>
+                    <p className="text-slate-400 text-sm mb-6">Hãy sử dụng tính năng rút bài trực tuyến để nhận thông điệp ngay lập tức.</p>
+                    <Link href="/tarot-draw" className="text-amber-500 text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all">
+                        Rút bài ngay <ArrowRight className="w-4 h-4" />
+                    </Link>
                 </div>
             </motion.div>
 
-            {/* RIGHT COLUMN: FORM */}
+            {/* RIGHT COLUMN: CONTACT FORM */}
             <motion.div 
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
                 className="lg:col-span-7"
             >
-                <div className="bg-[#130823]/80 border border-white/10 p-8 md:p-10 rounded-[2.5rem] backdrop-blur-xl relative">
-                    {/* Success Modal Overlay */}
+                <div className="bg-[#0a0a0a] border border-white/5 p-8 md:p-12 rounded-[3.5rem] backdrop-blur-xl relative shadow-2xl">
                     <AnimatePresence>
                         {isSuccess && (
                             <motion.div 
                                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                className="absolute inset-0 z-20 bg-[#130823] rounded-[2.5rem] flex flex-col items-center justify-center text-center p-8"
+                                className="absolute inset-0 z-20 bg-[#050505] rounded-[3.5rem] flex flex-col items-center justify-center text-center p-8"
                             >
-                                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-6 border border-green-500/30">
-                                    <CheckCircle2 className="w-10 h-10 text-green-500" />
+                                <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center mb-8 border border-green-500/20 animate-bounce">
+                                    <CheckCircle2 className="w-12 h-12 text-green-500" />
                                 </div>
-                                <h3 className="text-2xl font-bold text-white mb-2">Gửi thành công!</h3>
-                                <p className="text-slate-400 max-w-sm mb-8">Cảm ơn bạn đã liên hệ. Đội ngũ Mystic Tarot sẽ phản hồi bạn trong thời gian sớm nhất.</p>
+                                <h3 className="text-3xl font-black text-white mb-4 uppercase tracking-tighter">Gửi thành công!</h3>
+                                <p className="text-slate-400 max-w-sm mb-10 font-light">Cảm ơn bạn. Đội ngũ Mystic Tarot đã tiếp nhận thông tin và sẽ phản hồi qua Email trong vòng 24h.</p>
                                 <button 
                                     onClick={() => setIsSuccess(false)}
-                                    className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all"
+                                    className="px-10 py-4 bg-white/5 hover:bg-white/10 text-white font-black rounded-2xl transition-all border border-white/10 uppercase text-xs tracking-widest"
                                 >
-                                    Gửi tin nhắn khác
+                                    Gửi thêm tin nhắn
                                 </button>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
-                    <h3 className="text-2xl font-bold text-white mb-6">Gửi tin nhắn trực tuyến</h3>
+                    <h3 className="text-2xl font-black text-white mb-8 uppercase tracking-tighter">Gửi tin nhắn trực tuyến</h3>
                     
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Họ và tên</label>
-                                <input 
-                                    type="text" 
-                                    name="name"
-                                    required
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:bg-black/60 transition-all"
-                                    placeholder="Nhập tên của bạn"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Email</label>
-                                <input 
-                                    type="email" 
-                                    name="email"
-                                    required
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:bg-black/60 transition-all"
-                                    placeholder="name@example.com"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase ml-1">Chủ đề</label>
-                            <input 
-                                type="text" 
-                                name="subject"
-                                required
-                                value={formData.subject}
-                                onChange={handleChange}
-                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:bg-black/60 transition-all"
-                                placeholder="VD: Hỗ trợ booking, Hợp tác..."
+                            <FormInput 
+                                label="Họ và tên" 
+                                name="name" 
+                                placeholder="Nhập tên của bạn" 
+                                value={formData.name} 
+                                onChange={handleChange} 
+                            />
+                            <FormInput 
+                                label="Email liên hệ" 
+                                name="email" 
+                                type="email"
+                                placeholder="name@example.com" 
+                                value={formData.email} 
+                                onChange={handleChange} 
                             />
                         </div>
 
+                        <FormInput 
+                            label="Chủ đề cần hỗ trợ" 
+                            name="subject" 
+                            placeholder="VD: Hợp tác, Lỗi thanh toán, Booking..." 
+                            value={formData.subject} 
+                            onChange={handleChange} 
+                        />
+
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase ml-1">Nội dung tin nhắn</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Nội dung chi tiết</label>
                             <textarea 
                                 name="message"
                                 required
                                 value={formData.message}
                                 onChange={handleChange}
                                 rows={5}
-                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:bg-black/60 transition-all resize-none"
-                                placeholder="Hãy chia sẻ chi tiết vấn đề của bạn..."
+                                className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-white placeholder-slate-700 focus:outline-none focus:border-amber-500/30 focus:bg-transparent transition-all resize-none font-light"
+                                placeholder="Hãy chia sẻ vấn đề của bạn để chúng tôi hỗ trợ tốt nhất..."
                             />
                         </div>
 
                         <button 
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-amber-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full py-5 bg-white text-black font-black text-sm uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
                         >
-                            {isSubmitting ? 'Đang gửi...' : (
-                                <>Gửi tin nhắn <Send className="w-5 h-5" /></>
+                            {isSubmitting ? 'Đang truyền tin...' : (
+                                <>Gửi tin nhắn <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" /></>
                             )}
                         </button>
                     </form>
@@ -334,26 +242,48 @@ export default function ContactPage() {
 
       </main>
 
-      {/* FOOTER */}
-      <footer className="border-t border-white/5 bg-black/40 py-12 mt-20 relative z-10">
-          <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-              <Link href="/" className="flex items-center gap-3 group">
-                  <Image 
-                    src="/logo.png" 
-                    alt="Mystic Tarot Logo" 
-                    width={40} 
-                    height={40} 
-                    className="rounded-full shadow-md shadow-amber-500/10 group-hover:scale-110 transition-transform"
-                  />
-                  <span className="font-bold text-white group-hover:text-amber-400 transition-colors">Mystic Tarot © 2025</span>
-              </Link>
-              <div className="flex gap-8 text-sm text-slate-500">
-                  <a href="#" className="hover:text-amber-400 transition-colors">Điều khoản</a>
-                  <a href="#" className="hover:text-amber-400 transition-colors">Bảo mật</a>
-                  <a href="#" className="hover:text-amber-400 transition-colors">Liên hệ</a>
-              </div>
-          </div>
-      </footer>
+      {/* 2. FOOTER CHUẨN HỆ THỐNG */}
+      <Footer />
+
+      {/* 3. SOCIAL MEDIA TỎA SÁNG */}
+      <SocialFloating />
     </div>
   );
 }
+
+// --- HELPER COMPONENTS ---
+
+const ContactInfoItem = ({ icon: Icon, label, value, subValue, link, color }: any) => {
+    const colors: any = {
+        amber: "text-amber-500 bg-amber-500/10",
+        purple: "text-purple-500 bg-purple-500/10",
+        green: "text-green-500 bg-green-500/10"
+    };
+    return (
+        <div className="flex items-start gap-5">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border border-white/5 shrink-0 ${colors[color]}`}>
+                <Icon className="w-6 h-6" />
+            </div>
+            <div>
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">{label}</p>
+                {link ? (
+                    <a href={link} className="text-white text-lg font-bold hover:text-amber-400 transition-colors">{value}</a>
+                ) : (
+                    <p className="text-white text-lg font-bold">{value}</p>
+                )}
+                {subValue && <p className="text-slate-500 text-xs mt-1 italic font-light">{subValue}</p>}
+            </div>
+        </div>
+    );
+};
+
+const FormInput = ({ label, ...props }: any) => (
+    <div className="space-y-2">
+        <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">{label}</label>
+        <input 
+            required
+            {...props}
+            className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-white placeholder-slate-700 focus:outline-none focus:border-amber-500/30 focus:bg-transparent transition-all font-light"
+        />
+    </div>
+);

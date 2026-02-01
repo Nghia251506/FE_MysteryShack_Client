@@ -65,7 +65,6 @@ export default function ReaderLayout({
 
     // Đăng ký lắng nghe thông báo Foreground
     const unsubscribe = onMessage(messaging, (payload) => {
-      console.log("Nhận thông báo mới (Foreground):", payload);
 
       // 1. QUAN TRỌNG: Đẩy dữ liệu vào Redux để ModalFCMGlobal có thể bắt được và hiển thị
       if (payload.data) {
@@ -135,7 +134,7 @@ export default function ReaderLayout({
 
   const navItems = [
     {
-      name: "Yêu cầu",
+      name: "Tổng quan",
       icon: Inbox,
       href: "/readerdashboard",
       active: pathname === "/readerdashboard",
