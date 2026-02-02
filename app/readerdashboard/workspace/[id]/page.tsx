@@ -280,7 +280,6 @@ export default function WorkspacePage() {
                     <Wand2 className="w-5 h-5 text-amber-400"/> Số tiền cần thanh toán
                   </h3>
                   <div className="bg-black/40 rounded-[1.5rem] border border-white/5 overflow-hidden focus-within:border-purple-500/30 transition-all shadow-inner">
-                    <EditorToolbar />
                     <input 
                       type="number"
                       step={10000}

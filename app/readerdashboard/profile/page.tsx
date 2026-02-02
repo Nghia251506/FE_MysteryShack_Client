@@ -117,13 +117,6 @@ export default function ReaderProfilePage() {
       base64 = base64.replace(/\s/g, "");
 
       setFormData((prev) => ({ ...prev, paymentQr: base64 }));
-
-      // Đừng click vào link trong console nữa, hãy log độ dài thôi
-      console.log("Độ dài chuỗi chuẩn:", base64.length);
-      console.log(
-        "Ký tự cuối (phải là == hoặc chữ cái sạch):",
-        base64.slice(-10),
-      );
     };
   };
 
@@ -132,9 +125,6 @@ export default function ReaderProfilePage() {
 
     // Lấy giá trị QR hiện tại từ state
     const currentQr = formData.paymentQr;
-
-    // LOG KIỂM TRA LẦN CUỐI TRƯỚC KHI BẮN ĐI
-    console.log("Chuỗi chuẩn bị gửi đi (10 ký tự cuối):", currentQr.slice(-10));
 
     const payload = {
       fullName: formData.fullName,

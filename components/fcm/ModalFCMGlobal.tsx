@@ -142,6 +142,28 @@ export const ModalFCMGlobal = () => {
             >
               CHẤP NHẬN NGAY
             </button>
+            <button
+              onClick={async () => {
+                try {
+                  stopSound(); // 3. Tắt nhạc NGAY KHI bấm chấp nhận
+                  if (!sessionId) {
+                    toast.error("Không có sessionId hợp lệ.");
+                    return;
+                  }
+                  await ReadingSessionService.reject(sessionId);
+                  toast.success("Đã từ chối yêu cầu!");
+                  handleClose();
+                  router.push(`/readerdashboard/`);
+                } catch (error) {
+                  console.error("Lỗi khi từ chối session:", error);
+                  toast.error("Không thể từ chối yêu cầu.");
+                  handleClose();
+                }
+              }}
+              className="mt-6 w-full bg-red-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-red-200 hover:bg-red-600 transition-all"
+            >
+              TỪ CHỐI YÊU CẦU
+            </button>
           </div>
         );
 
