@@ -1,5 +1,5 @@
 import axios from '@/lib/axios';
-import { User } from '../types/user';
+import { User, UserUpdateDto } from '../types/user';
 
 const API_URL = '/users';
 
@@ -28,4 +28,8 @@ export const UserService = {
       throw error;
     }
   },
+  updateProfile: async (id: number, userData: UserUpdateDto): Promise<User> => {
+    const response = await axios.put(`${API_URL}/${id}`, userData);
+    return response.data;
+  }
 };

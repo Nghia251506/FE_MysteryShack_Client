@@ -19,6 +19,7 @@ export const InterpretationService = {
     interpretation2: string;
     interpretation3: string;
     advice: string;
+    amount: number;
   }) => {
     return await axios.post(`${API_URL}/submit/${sessionId}`, data);
   },

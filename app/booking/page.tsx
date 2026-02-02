@@ -590,7 +590,7 @@ export default function BookingRequestPage() {
                     : "5.0"}
                 </div>
                 <div className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold">
-                  {matchedReader?.matchScore || 98}% Tương thích
+                  {matchedReader?.eloScore || 98} Điểm tín nhiệm
                 </div>
               </div>
               <div className="bg-slate-900/50 rounded-xl p-6 mb-8 text-left max-w-xl mx-auto border border-slate-700/50">

@@ -25,6 +25,18 @@ export const fetchRandomReader = createAsyncThunk(
   }
 );
 
+export const updateUserProfile = createAsyncThunk(
+  'user/updateProfile',
+  async ({ id, userData }: { id: number; userData: any }, { rejectWithValue }) => {
+    try {
+      const data = await UserService.updateProfile(id, userData);
+      return data; // Trả về User đã cập nhật từ BE
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || "Không thể cập nhật hồ sơ");
+    }
+  }
+);
+
 const getInitialUser = (): User | null => {
   if (typeof window !== "undefined") {
     const saved = localStorage.getItem("currentUser");
@@ -107,6 +119,26 @@ export const userSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
         state.matchedReader = null; // Reset nếu lỗi để UI không hiển thị sai
+      })
+
+      // --- XỬ LÝ UPDATE PROFILE ---
+      .addCase(updateUserProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUserProfile.fulfilled, (state, action: PayloadAction<User>) => {
+        state.loading = false;
+        state.user = action.payload; // Ghi đè user mới vào state
+        state.error = null;
+        
+        // Cập nhật lại LocalStorage để đồng bộ
+        if (typeof window !== "undefined") {
+          localStorage.setItem("currentUser", JSON.stringify(action.payload));
+        }
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });

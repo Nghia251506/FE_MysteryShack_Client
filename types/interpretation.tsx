@@ -15,6 +15,7 @@ export interface InterpretationDTO {
   advice?: string;
   status: InterpretationStatus;
   createdAt?: string; 
+  amount?: number;
   updatedAt?: string;
 }
 
@@ -25,6 +26,7 @@ export interface InterpretationSubmitRequest {
   interpretation3: string;
   advice: string;
   qrPayment: string;
+  amount: number;
 }
 
 export interface InterpretationResponse extends InterpretationSubmitRequest {

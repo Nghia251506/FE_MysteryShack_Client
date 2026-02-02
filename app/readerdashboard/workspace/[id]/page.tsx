@@ -54,6 +54,7 @@ export default function WorkspacePage() {
   const [cardInputs, setCardInputs] = useState<Record<number, string>>({});
   const [summary, setSummary] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [amount, setAmount] = useState(0);
   const [isSent, setIsSent] = useState(false);
   const [timeLeft, setTimeLeft] = useState(3600);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
@@ -157,6 +158,7 @@ export default function WorkspacePage() {
         interpretation2: cardInputs[activeRequest.cards[1]?.id] || "",
         interpretation3: cardInputs[activeRequest.cards[2]?.id] || "",
         advice: summary,
+        amount: activeRequest.amount,
         qrPayment: activeRequest.qrPayment,
       };
       await InterpretationService.submit(activeRequest.id, payload);
@@ -270,6 +272,22 @@ export default function WorkspacePage() {
                       onChange={(e) => setSummary(e.target.value)} 
                       className="w-full h-48 bg-transparent border-none p-6 outline-none text-slate-200 text-base leading-relaxed resize-none placeholder:text-slate-700 font-medium" 
                       placeholder="Đúc kết thông điệp cuối cùng cho khách hàng..." 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
+                    <Wand2 className="w-5 h-5 text-amber-400"/> Số tiền cần thanh toán
+                  </h3>
+                  <div className="bg-black/40 rounded-[1.5rem] border border-white/5 overflow-hidden focus-within:border-purple-500/30 transition-all shadow-inner">
+                    <EditorToolbar />
+                    <input 
+                      type="number"
+                      step={10000}
+                      value={amount.toString()} 
+                      onChange={(e) => setAmount(Number(e.target.value))} 
+                      className="w-full h-48 bg-transparent border-none p-6 outline-none text-slate-200 text-base leading-relaxed resize-none placeholder:text-slate-700 font-medium" 
+                      placeholder="Số tiền cần thanh toán cho phiên này" 
                     />
                   </div>
                 </div>

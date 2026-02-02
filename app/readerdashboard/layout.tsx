@@ -24,6 +24,8 @@ import { ModalFCMGlobal } from "@/components/fcm/ModalFCMGlobal";
 import { messaging } from "@/lib/firebaseConfig";
 import { onMessage } from "firebase/messaging";
 import { receiveNotification } from "@/store/slices/fcmSlice";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function ReaderLayout({
   children,
@@ -185,6 +187,8 @@ export default function ReaderLayout({
 
       {/* Modal nổ ra ở tầng cao nhất của App */}
       <ModalFCMGlobal />
+      {/* Toast nổ ra ở tầng cao nhất của App */}
+      <ToastContainer/>
       {/* SIDEBAR DESKTOP */}
       <aside className="hidden lg:flex w-64 bg-[#130823]/60 backdrop-blur-xl border-r border-white/5 flex-col h-screen sticky top-0 z-50">
         <div className="p-6">

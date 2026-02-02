@@ -21,6 +21,7 @@ import { Topic } from "@/types/topic";
 import { Question } from "@/types/topicQuestion";
 import { shuffleDeck } from "@/services/tarotService";
 import { AuthService } from "@/services/authService"; // Import AuthService
+import Link from "next/link";
 
 // --- 1. ĐỊNH NGHĨA TYPE ---
 interface LocalTarotCard {
@@ -360,9 +361,9 @@ export default function TarotDrawPage() {
 
       {mounted && user && (
         <div className="absolute top-4 right-4 z-50">
-          <button onClick={handleLogoutClick} className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm shadow-lg font-bold">
-            <LogOut className="w-4 h-4" /><span className="text-sm">Đăng xuất</span>
-          </button>
+          <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm shadow-lg font-bold">
+            <LogOut className="w-4 h-4" /><span className="text-sm">Quay lại trang chủ</span>
+          </Link>
         </div>
       )}
 

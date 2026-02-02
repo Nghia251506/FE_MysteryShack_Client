@@ -16,6 +16,9 @@ import { logout } from "@/store/features/authSlice";
 import { LogoutModal } from "@/components/LogoutModal";
 import { HistoryService } from "@/services/historyService";
 import { AuthService } from "@/services/authService";
+import { toast } from "react-toastify";
+import SocialFloating from "@/components/SocialFloating";
+import Header from "@/components/Header";
 
 // --- GIỮ NGUYÊN HELPERS CỦA ÔNG ---
 const getCardDetail = (id: number) => {
@@ -110,6 +113,7 @@ export default function UserProfilePage() {
         try {
             setLoading(true);
             const response = await HistoryService.getRecentHistory();
+            console.log("Response lịch sử gần đây:", response);
             const data = Array.isArray(response) ? response : [];
             setAllRecentSessions(data.map(item => transformData(item)));
         } catch (error) {
@@ -150,32 +154,35 @@ export default function UserProfilePage() {
             case 'COMPLETED': return <span className="px-2.5 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Hoàn thành</span>;
             case 'IN_PROGRESS': return <span className="px-2.5 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><Sparkles className="w-3 h-3" /> Đang giải</span>;
             case 'CANCELED': return <span className="px-2.5 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><XCircle className="w-3 h-3" /> Đã hủy</span>;
+            case 'ACCEPTED': return <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><XCircle className="w-3 h-3" /> Reader đã nhận</span>;
+            case 'PENDING' : return <span className="px-2.5 py-0.5 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><Clock className="w-3 h-3" /> Chờ duyệt</span>;
             default: return <span className="px-2.5 py-0.5 bg-slate-500/20 text-slate-400 border border-slate-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><Clock className="w-3 h-3" /> Chờ duyệt</span>;
         }
     };
 
     if (!isMounted) return null;
     if (!user) { router.push("/login"); return null; }
+    const handleDisableClick = (e: React.MouseEvent) => {
+        if(currentItems.map(item => item.status).includes("ACCEPTED")) {
+            toast.error("Reader đang nhập luận giải, bạn vui lòng chờ cho đến khi Reader gửi thông báo cho bạn hoặc sau khoảng 1 tiếng nữa!");
+        }
+        return e.preventDefault();
+    };
 
     return (
         <div className="min-h-screen bg-[#050505] text-slate-200 font-sans relative">
+            {/* 1. GHÉP HEADER VÀO TRƯỚC */}
+            <Header />
+
+            {/* 2. GHÉP SOCIAL FLOATING */}
+            <SocialFloating />
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-purple-900/10 rounded-full blur-[120px]" />
                 <div className="absolute bottom-0 left-0 w-[30vw] h-[30vw] bg-amber-900/10 rounded-full blur-[100px]" />
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
             </div>
 
-            <nav className="sticky top-0 z-50 bg-[#050505]/80 backdrop-blur-md border-b border-white/5 px-6 py-4">
-                <div className="max-w-6xl mx-auto flex justify-between items-center">
-                    <div onClick={() => router.push('/')} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-                        <Sparkles className="w-6 h-6 text-amber-500" />
-                        <span className="font-bold text-xl text-white">MysteryShack<span className="text-amber-500">Tarot</span></span>
-                    </div>
-                    <button onClick={() => router.push('/tarot-draw')} className="px-5 py-2 bg-gradient-to-r from-amber-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-amber-500/20 hover:scale-105 transition-all text-sm flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" /> Đặt câu hỏi mới
-                    </button>
-                </div>
-            </nav>
+            
 
             <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -209,8 +216,8 @@ export default function UserProfilePage() {
                     <div className="lg:col-span-8">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                             <h2 className="text-3xl font-bold text-white tracking-tight">Tổng quan <span className="text-amber-400">Năng Lượng</span></h2>
-                            <button onClick={() => router.push(user.role === 'READER' ? '/readerdashboard/history' : '/history')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-bold transition-all group">
-                                <HistoryIcon className="w-4 h-4 text-amber-500" /> Lịch sử đầy đủ <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            <button onClick={() => router.push('/tarot-draw')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-bold transition-all group">
+                                 Rút bài ngay <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </button>
                         </div>
 
@@ -229,7 +236,7 @@ export default function UserProfilePage() {
                                                 <div
                                                     key={session.id}
                                                     // SỬA TẠI ĐÂY: Nhảy sang trang theo request.id
-                                                    onClick={() => router.push(`/booking/result?sessionId=${session.requestId}`)}
+                                                    onClick={(e) => session.status === "ACCEPTED" ? handleDisableClick(e) : router.push(`/booking/result?sessionId=${session.requestId}`)}
                                                     className="bg-[#1a1025]/80 border border-white/5 rounded-2xl p-5 hover:border-amber-500/30 transition-all cursor-pointer group relative overflow-hidden active:scale-[0.98]"
                                                 >
                                                     <div className="flex justify-between items-start mb-2">

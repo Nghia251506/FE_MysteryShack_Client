@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import SocialFloating from "@/components/SocialFloating";
+import Header from "@/components/Header";
 
 // --- HELPERS (Giữ nguyên) ---
 const getCardDetail = (id: number) => {
@@ -56,11 +58,11 @@ export default function HistoryPage() {
   }, [user, token, isMounted]);
 
   useEffect(() => { setCurrentPage(1); }, [filter]);
-
+  const API_URL = `${process.env.NEXT_PUBLIC_API_URL}`;
   const fetchHistory = async () => {
     try {
         setLoading(true);
-        const res = await axios.get('http://localhost:8080/api/v1/histories/my-history', {
+        const res = await axios.get(`${API_URL}/v1/histories/my-history`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const dataList = Array.isArray(res.data) ? res.data : (res.data.content || []);
@@ -109,6 +111,8 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 p-4 md:p-8 relative overflow-hidden">
       <div className="max-w-5xl mx-auto relative z-10">
+        <Header/>
+        <SocialFloating />
         {/* Header & Filter (Giữ nguyên UI của bạn) */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
             <div>
@@ -146,9 +150,9 @@ export default function HistoryPage() {
                                     </div>
                                     <h3 className="text-white font-bold text-lg mb-1">{session.question}</h3>
                                 </div>
-                                <button onClick={() => setSelectedSession(session)} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-bold rounded-xl transition-all">
+                                <Link href={`/booking/result?sessionId=${session.id}`} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-bold rounded-xl transition-all">
                                     <Eye className="w-4 h-4" /> Chi tiết
-                                </button>
+                                </Link>
                             </div>
                         </div>
                     ))}
