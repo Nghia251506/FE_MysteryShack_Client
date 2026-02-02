@@ -12,6 +12,7 @@ import {
   Award,
   Clock,
   MessageSquare,
+  Sparkles,
 } from "lucide-react";
 
 // Import các Component
@@ -186,26 +187,33 @@ export default function InterpretationResultPage() {
             ))}
           </div>
 
-          <div className="p-8 md:p-12 bg-black/30 border-t border-white/5">
-            <div className="space-y-12 mb-16">
-              {[
-                data?.interpretation1,
-                data?.interpretation2,
-                data?.interpretation3,
-              ].map(
-                (text, i) =>
-                  text && (
-                    <div key={i} className="flex gap-8">
-                      <span className="text-5xl font-serif text-purple-900/40 font-bold">
-                        0{i + 1}
-                      </span>
-                      <p className="text-slate-300 leading-[1.8] text-lg font-light whitespace-pre-wrap">
-                        {text}
-                      </p>
-                    </div>
-                  ),
-              )}
-            </div>
+          
+            <div className="p-8 md:p-12 bg-black/30 border-t border-white/5 space-y-12">
+            {[data?.interpretation1, data?.interpretation2, data?.interpretation3].map((text, i) => text && (
+              <div key={i} className="flex gap-8 group">
+                <span className="text-5xl font-serif text-purple-900/40 font-bold leading-none transition-colors group-hover:text-purple-600/40">
+                  0{i + 1}
+                </span>
+                <div className="space-y-2">
+                  <div className="h-px w-8 bg-purple-500/30 mb-4" />
+                  <p className="text-slate-300 leading-[1.8] text-lg font-light font-sans tracking-wide whitespace-pre-wrap first-letter:text-2xl first-letter:font-serif">
+                    {text}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {data?.advice && (
+              <div className="mt-16 p-10 rounded-[2.5rem] bg-gradient-to-br from-amber-500/[0.07] to-transparent border border-amber-500/10 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Sparkles className="w-12 h-12 text-amber-500" />
+                </div>
+                <h4 className="text-amber-500 font-black uppercase text-[10px] tracking-[0.4em] mb-6">Lời khuyên tâm linh</h4>
+                <p className="text-slate-100 italic font-serif text-2xl leading-[1.6] relative z-10 antialiased">
+                  {data.advice}
+                </p>
+              </div>
+            )}
 
             {/* Thanh toán QR */}
             {data?.status !== "COMPLETED" && data?.status !== 2 && (
