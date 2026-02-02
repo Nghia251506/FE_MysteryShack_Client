@@ -382,7 +382,7 @@ export default function ReaderProfilePage() {
                 />
               ) : (
                 <p className="text-slate-400 leading-relaxed italic text-lg whitespace-pre-line px-2">
-                  {formData.bio ||
+                  {user?.bio ||
                     "Người này rất bí ẩn, chưa để lại lời giới thiệu nào..."}
                 </p>
               )}
@@ -400,7 +400,7 @@ export default function ReaderProfilePage() {
                       QR Thanh Toán
                     </h3>
                     <p className="text-xs text-slate-500 font-bold">
-                      Dùng để nhận Tip sau khi xem bài
+                      Dùng để nhận thanh toán sau khi xem bài
                     </p>
                   </div>
                 </div>

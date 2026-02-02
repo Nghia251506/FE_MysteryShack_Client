@@ -1,50 +1,34 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Clock, User, Calendar, Sparkles, QrCode, Send, 
-  Bold, Italic, Wand2, CheckCircle2, DollarSign, Timer, ArrowLeft, Loader2 
+  Clock, User, Calendar, Sparkles, Send, 
+  Wand2, CheckCircle2, DollarSign, ArrowLeft, Loader2,
+  Banknote, ShieldCheck, Hourglass, AlertCircle
 } from "lucide-react";
 import { ReadingSessionService } from "@/services/readingSessionService";
 import { InterpretationService } from "@/services/interpretationService";
 import { toast } from "react-hot-toast";
 import { EditorToolbar } from "@/components/EditorToolbar";
 
-// --- HELPERS TỪ SOURCE CŨ ---
+// --- HELPERS CARD DETAIL ---
 const getCardDetail = (id: number) => {
   const safeId = Number(id);
   const getImg = (prefix: string, num: number) => `https://www.sacred-texts.com/tarot/pkt/img/${prefix}${num.toString().padStart(2, '0')}.jpg`;
-  
   if (safeId <= 22) {
     const majors = ["The Fool", "The Magician", "The High Priestess", "The Empress", "The Emperor", "The Hierophant", "The Lovers", "The Chariot", "Strength", "The Hermit", "Wheel of Fortune", "Justice", "The Hanged Man", "Death", "Temperance", "The Devil", "The Tower", "The Star", "The Moon", "The Sun", "Judgement", "The World"];
     return { name: majors[safeId - 1] || `Major #${safeId}`, img: getImg("ar", safeId - 1) };
   }
-  
   const suits = [{ name: "Wands", code: "wa" }, { name: "Cups", code: "cu" }, { name: "Swords", code: "sw" }, { name: "Pentacles", code: "pe" }];
   const minorIndex = safeId - 23; 
   const suitIndex = Math.floor(minorIndex / 14); 
   const rankIndex = minorIndex % 14;
   const ranks = ["Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Page", "Knight", "Queen", "King"];
-  
   if (suitIndex < 4) return { name: `${ranks[rankIndex]} of ${suits[suitIndex].name}`, img: getImg(suits[suitIndex].code, rankIndex + 1) };
   return { name: `Card #${safeId}`, img: "https://placehold.co/150x250?text=?" };
 };
-
-// const getVietQR = (amount: number, content: string) => 
-//   `https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}`;
-
-// const EditorToolbar = () => (
-//   <div className="flex items-center gap-1 p-2 border-b border-white/5 bg-white/5 text-slate-400 rounded-t-xl select-none">
-//     <button className="p-1.5 hover:bg-white/10 rounded hover:text-white transition-colors"><Bold className="w-4 h-4" /></button>
-//     <button className="p-1.5 hover:bg-white/10 rounded hover:text-white transition-colors"><Italic className="w-4 h-4" /></button>
-//     <div className="w-px h-4 bg-white/10 mx-2"></div>
-//     <button className="flex items-center gap-1 text-xs text-purple-300 bg-purple-500/20 px-2 py-1 rounded-md border border-purple-500/30 hover:bg-purple-500/30 transition-colors ml-auto">
-//       <Wand2 className="w-3 h-3" /> AI Gợi ý
-//     </button>
-//   </div>
-// );
 
 export default function WorkspacePage() {
   const { id } = useParams();
@@ -53,32 +37,20 @@ export default function WorkspacePage() {
   const [activeRequest, setActiveRequest] = useState<any>(null);
   const [cardInputs, setCardInputs] = useState<Record<number, string>>({});
   const [summary, setSummary] = useState("");
+  const [amount, setAmount] = useState<number>(0);
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [amount, setAmount] = useState(0);
-  const [isSent, setIsSent] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(3600);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
 
-  // --- LOGIC TRANSFORM DATA (ĐÃ FIX LỖI RENDER OBJECT) ---
-  const transformData = (item: any) => {
-    let rawCreatedAt = item.createdAt || item.created_at || item.timestamp || new Date().toISOString();
-    
-    let querentName = item.customer?.fullName || item.fullName || "Khách ẩn danh";
-    if (item.note && (querentName === "Khách ẩn danh" || querentName === "customer")) {
-      if (item.note.includes("KH:")) {
-        querentName = item.note.split("KH:")[1].split("-")[0].trim();
-      }
-    }
+  // --- TIME STATES ---
+  const [timeLeft, setTimeLeft] = useState<number>(3600);
+  const [isTimeUp, setIsTimeUp] = useState(false);
 
-    // FIX: Bóc tách text từ object question để tránh lỗi React child
-    let questionText = "Không có câu hỏi cụ thể";
-    if (typeof item.question === 'string') {
-      questionText = item.question;
-    } else if (typeof item.question === 'object' && item.question !== null) {
-      questionText = item.question.questionText || item.question.content || "Yêu cầu xem Tarot";
-    } else if (item.questionName) {
-      questionText = item.questionName;
-    }
+  const transformData = useCallback((item: any) => {
+    const acceptedAt = item.acceptedAt || item.accepted_at;
+    const querentName = item.customer?.fullName || item.fullName || "Khách ẩn danh";
+    let questionText = item.question?.questionText || item.question?.content || "Yêu cầu xem Tarot";
 
     let cards: any[] = [];
     try {
@@ -96,61 +68,99 @@ export default function WorkspacePage() {
           };
         });
       }
-    } catch (e) { console.error("Transform cards error", e); }
+    } catch (e) { console.error(e); }
 
     return {
       id: item.id,
       querentName,
-      topic: item.question.topic.name || "Luận giải Tarot",
-      question: questionText, // Bây giờ luôn là string
+      topic: item.question?.topic?.name || "Luận giải Tarot",
+      question: questionText,
       birthDate: item.customer?.birthDate ? new Date(item.customer.birthDate).toLocaleDateString('vi-VN') : "N/A",
-      timestamp: new Date(rawCreatedAt).toLocaleString('vi-VN'),
       cards,
-      amount: item.amount || 50000,
-      rawCreatedAt,
-      qrPayment:item.reader?.qrCode,
+      status: item.status,
+      acceptedAt: acceptedAt,
     };
-  };
+  }, []);
 
   useEffect(() => {
-    const loadDetail = async () => {
+    const initWorkspace = async () => {
       try {
+        setLoading(true);
         const response: any = await ReadingSessionService.getById(id as string);
-        if (response) {
-          const transformed = transformData(response);
-          setActiveRequest(transformed);
-          if (response.status === 'WAITING_PAYMENT' || response.status === 'COMPLETED') {
-            setIsSent(true);
+        const transformed = transformData(response);
+        setActiveRequest(transformed);
+
+        // Check thời gian (Yêu cầu 1)
+        if (transformed.acceptedAt) {
+          const startTime = new Date(transformed.acceptedAt).getTime();
+          const endTime = startTime + (60 * 60 * 1000); 
+          const diff = Math.floor((endTime - Date.now()) / 1000);
+
+          if (diff <= 0) {
+            setTimeLeft(0);
+            setIsTimeUp(true);
+            if (transformed.status !== 'COMPLETED') setIsReadOnly(true);
+          } else {
+            setTimeLeft(diff);
           }
         }
+
+        // Fill data nếu đã có (Yêu cầu 2)
+        try {
+          const oldData = await InterpretationService.getView(id as string);
+          if (oldData && (oldData.advice || oldData.interpretation1)) {
+            const savedInputs: Record<number, string> = {};
+            transformed.cards.forEach((card: any, idx: number) => {
+              savedInputs[card.id] = oldData[`interpretation${idx + 1}`] || "";
+            });
+            setCardInputs(savedInputs);
+            setSummary(oldData.advice || "");
+            setAmount(oldData.amount || 0);
+            setIsReadOnly(true);
+          }
+        } catch (e) { console.log("New session"); }
+
       } catch (err) {
-        toast.error("Không tìm thấy phiên làm việc này");
+        toast.error("Không tìm thấy phiên làm việc");
         router.push("/readerdashboard");
+      } finally {
+        setLoading(false);
       }
     };
-    if (id) loadDetail();
-  }, [id, router]);
+    if (id) initWorkspace();
+  }, [id, transformData, router]);
 
+  // COUNTDOWN TICKER
   useEffect(() => {
-    if (!activeRequest || isSent) return;
-    const tick = () => {
-      const startTime = new Date(activeRequest.rawCreatedAt).getTime();
-      const limitTime = startTime + (60 * 60 * 1000); 
-      const remaining = Math.max(0, Math.floor((limitTime - Date.now()) / 1000));
-      setTimeLeft(remaining);
-      if (remaining <= 0) toast.error("Đã hết thời gian luận giải!");
-    };
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [activeRequest, isSent]);
+    if (isReadOnly || isTimeUp || !activeRequest?.acceptedAt || activeRequest.status === 'COMPLETED') return;
+
+    const timer = setInterval(() => {
+      const startTime = new Date(activeRequest.acceptedAt).getTime();
+      const endTime = startTime + (60 * 60 * 1000);
+      const diff = Math.floor((endTime - Date.now()) / 1000);
+
+      if (diff <= 0) {
+        setTimeLeft(0);
+        setIsTimeUp(true);
+        setIsReadOnly(true);
+        clearInterval(timer);
+      } else {
+        setTimeLeft(diff);
+        if (diff === 900) toast("Chỉ còn 15 phút!", { icon: '⏳' });
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activeRequest, isReadOnly, isTimeUp]);
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${m.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleSubmit = async () => {
-    if (!activeRequest) return;
-    if (Object.keys(cardInputs).length < activeRequest.cards.length || !summary) {
-      toast.error("Vui lòng nhập đủ luận giải cho các lá bài và lời khuyên!");
-      return;
-    }
+    if (!activeRequest || isReadOnly) return;
     setIsSubmitting(true);
     try {
       const payload = {
@@ -158,191 +168,143 @@ export default function WorkspacePage() {
         interpretation2: cardInputs[activeRequest.cards[1]?.id] || "",
         interpretation3: cardInputs[activeRequest.cards[2]?.id] || "",
         advice: summary,
-        amount: activeRequest.amount,
-        qrPayment: activeRequest.qrPayment,
+        amount: amount,
       };
       await InterpretationService.submit(activeRequest.id, payload);
-      toast.success("Gửi kết quả thành công!");
-      setIsSent(true);
-    } catch (e) {
-      toast.error("Gửi kết quả thất bại.");
-    } finally {
-      setIsSubmitting(false);
-    }
+      toast.success("Đã gửi!");
+      setIsReadOnly(true);
+      setActiveRequest((p:any) => ({...p, status: 'WAITING_PAYMENT'}));
+    } catch (e) { toast.error("Lỗi gửi."); } finally { setIsSubmitting(false); }
   };
-  // console.log(activeRequest)
+
   const handleConfirmPayment = async () => {
     setConfirmingPayment(true);
     try {
       await InterpretationService.confirmPayment(activeRequest.id);
-      toast.success("Xác nhận thành công!");
-      router.push("/readerdashboard/history");
-    } catch (e) {
-      toast.error("Xác nhận thất bại.");
-    } finally {
-      setConfirmingPayment(false);
-    }
+      toast.success("Thành công!");
+      setActiveRequest((p:any) => ({...p, status: 'COMPLETED'}));
+    } catch (e) { toast.error("Lỗi xác nhận."); } finally { setConfirmingPayment(false); }
   };
 
-  if (!activeRequest) return (
-    <div className="flex flex-col items-center justify-center h-screen bg-[#050505] space-y-4">
-      <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
-      <div className="text-slate-400 font-mono tracking-widest text-xs uppercase">Kết nối tín hiệu...</div>
-    </div>
-  );
+  if (loading) return <div className="h-screen bg-[#050505] flex items-center justify-center text-amber-500 animate-pulse font-black">LOADING...</div>;
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 pb-32 relative z-10">
-      <AnimatePresence mode="wait">
-        {!isSent ? (
-          <motion.div key="editor" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-8">
-            {/* Header */}
-            <div className="bg-[#130823]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-2xl">
-              <div className="flex-1">
-                <button onClick={() => router.push("/readerdashboard")} className="flex items-center gap-2 text-slate-500 hover:text-amber-500 text-xs mb-4 transition-all group">
-                  <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform"/> Quay về Dashboard
-                </button>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="px-3 py-1 rounded-full text-[10px] font-black bg-amber-500/10 text-amber-400 border border-amber-500/20 tracking-tighter uppercase">Phiên: #{activeRequest.id}</span>
-                  <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-widest"><Clock className="w-3 h-3"/> {activeRequest.timestamp}</span>
-                </div>
-                <h2 className="text-3xl font-black text-white mb-2 tracking-tight">{activeRequest.topic}</h2>
-                <div className="flex flex-wrap gap-4 text-sm text-slate-400 font-medium">
-                  <span className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-lg border border-white/5"><User className="w-4 h-4 text-purple-400"/> {activeRequest.querentName}</span>
-                  <span className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-lg border border-white/5"><Calendar className="w-4 h-4 text-blue-400"/> {activeRequest.birthDate}</span>
-                </div>
-                <div className="mt-4 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl italic text-slate-300 text-sm">
-                   "{activeRequest.question}"
-                </div>
-              </div>
-              <div className="flex flex-col items-center px-8 py-5 bg-gradient-to-b from-white/5 to-transparent rounded-[2rem] border border-white/10 min-w-[160px]">
-                <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Thời gian còn lại</span>
-                <div className={`text-3xl font-mono font-black ${timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-amber-500'}`}>
-                  {Math.floor(timeLeft/60).toString().padStart(2,'0')}:{(timeLeft%60).toString().padStart(2,'0')}
-                </div>
-              </div>
-            </div>
-
-            {/* Main Editor */}
-            <div className="bg-[#130823]/60 backdrop-blur-xl border border-white/10 rounded-[3rem] p-10 space-y-12 shadow-2xl">
-              {activeRequest.cards.map((card: any, index: number) => (
-                <div key={card.id} className="flex flex-col lg:flex-row gap-10 pb-12 border-b border-white/5 last:border-0 last:pb-0">
-                  <div className="w-full lg:w-56 shrink-0 flex flex-col items-center">
-                    <div className="relative group">
-                      <div className="absolute -inset-2 bg-gradient-to-b from-amber-500/20 to-purple-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <img 
-                        src={card.img} 
-                        className={`w-44 h-72 object-cover rounded-xl border-2 border-white/10 shadow-2xl relative z-10 transition-all duration-500 group-hover:scale-105 group-hover:border-amber-500/50 ${card.isReversed ? 'rotate-180' : ''}`} 
-                        alt={card.name} 
-                      />
-                      {card.isReversed && (
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg">LÁ NGƯỢC</div>
-                      )}
-                    </div>
-                    <div className="mt-6 text-center">
-                      <span className="text-[10px] font-black text-amber-500/60 uppercase tracking-[0.2em]">Lá bài thứ {index + 1}</span>
-                      <h3 className="text-white font-black text-lg mt-1 tracking-tight uppercase">{card.name}</h3>
-                    </div>
-                  </div>
-                  <div className="flex-grow flex flex-col">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-2 flex items-center gap-2">
-                      <Sparkles className="w-3 h-3 text-amber-500"/> Nội dung luận giải
-                    </label>
-                    <div className="flex-grow flex flex-col bg-black/40 rounded-[1.5rem] border border-white/5 overflow-hidden focus-within:border-amber-500/30 transition-all shadow-inner">
-                      <EditorToolbar />
-                      <textarea 
-                        value={cardInputs[card.id] || ""} 
-                        onChange={(e) => setCardInputs({...cardInputs, [card.id]: e.target.value})} 
-                        className="w-full h-48 bg-transparent border-none p-6 outline-none text-slate-200 text-base leading-relaxed resize-none placeholder:text-slate-700 placeholder:italic font-medium" 
-                        placeholder={`Nhập thông điệp sâu sắc từ lá ${card.name}...`} 
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              <div className="pt-10 border-t border-white/10">
-                <div className="space-y-4">
-                  <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
-                    <Wand2 className="w-5 h-5 text-amber-400"/> Lời khuyên tổng quát
-                  </h3>
-                  <div className="bg-black/40 rounded-[1.5rem] border border-white/5 overflow-hidden focus-within:border-purple-500/30 transition-all shadow-inner">
-                    <EditorToolbar />
-                    <textarea 
-                      value={summary} 
-                      onChange={(e) => setSummary(e.target.value)} 
-                      className="w-full h-48 bg-transparent border-none p-6 outline-none text-slate-200 text-base leading-relaxed resize-none placeholder:text-slate-700 font-medium" 
-                      placeholder="Đúc kết thông điệp cuối cùng cho khách hàng..." 
-                    />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
-                    <Wand2 className="w-5 h-5 text-amber-400"/> Số tiền cần thanh toán
-                  </h3>
-                  <div className="bg-black/40 rounded-[1.5rem] border border-white/5 overflow-hidden focus-within:border-purple-500/30 transition-all shadow-inner">
-                    <input 
-                      type="number"
-                      step={10000}
-                      value={amount.toString()} 
-                      onChange={(e) => setAmount(Number(e.target.value))} 
-                      className="w-full h-48 bg-transparent border-none p-6 outline-none text-slate-200 text-base leading-relaxed resize-none placeholder:text-slate-700 font-medium" 
-                      placeholder="Số tiền cần thanh toán cho phiên này" 
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Bar */}
-            <div className="fixed bottom-8 left-0 lg:left-64 right-0 z-40 px-6 flex justify-center">
-              <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="bg-[#1a1025]/90 border border-white/10 p-3 pl-8 rounded-[2rem] flex items-center gap-8 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5">
-                <div className="flex items-center gap-4">
-                  <div className="flex -space-x-2">
-                    {[1,2,3].map(i => (
-                      <div key={i} className={`w-3 h-3 rounded-full border border-black ${Object.keys(cardInputs).length >= i ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-slate-800'}`}></div>
-                    ))}
-                  </div>
-                  <span className="text-slate-300 text-xs font-black uppercase tracking-widest">
-                    Tiến độ: {Object.keys(cardInputs).length}/{activeRequest.cards.length} LÁ
-                  </span>
-                </div>
-                <button 
-                  onClick={handleSubmit} 
-                  disabled={isSubmitting} 
-                  className="bg-gradient-to-r from-amber-600 to-orange-600 px-10 py-4 rounded-2xl text-white font-black uppercase text-xs tracking-[0.2em] flex items-center gap-3 hover:scale-105 transition-all disabled:opacity-50"
-                >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin"/> : <Send className="w-4 h-4"/>}
-                  GỬI KẾT QUẢ
-                </button>
-              </motion.div>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div key="success" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center min-h-[75vh]">
-            <div className="bg-[#130823]/80 backdrop-blur-2xl border border-green-500/20 rounded-[4rem] p-16 text-center shadow-2xl relative overflow-hidden">
-              <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-green-500/20 relative">
-                <CheckCircle2 className="w-12 h-12 text-green-400 relative z-10" />
-                <div className="absolute inset-0 bg-green-500/20 blur-2xl rounded-full animate-pulse"></div>
-              </div>
-              <h2 className="text-5xl font-black text-white mb-4 tracking-tighter uppercase">Gửi Thành Công!</h2>
-              <p className="text-slate-400 text-lg mb-12 max-w-md mx-auto font-medium">Thông điệp đã được gửi. Hãy xác nhận sau khi nhận thanh toán.</p>
-              <div className="flex flex-col gap-4">
-                <button 
-                  onClick={handleConfirmPayment} 
-                  disabled={confirmingPayment} 
-                  className="px-12 py-5 bg-gradient-to-r from-green-600 to-emerald-600 hover:scale-105 text-white font-black rounded-[2rem] transition-all flex items-center gap-3 mx-auto shadow-2xl active:scale-95 disabled:opacity-50 uppercase tracking-widest text-sm"
-                >
-                  {confirmingPayment ? <Loader2 className="w-5 h-5 animate-spin"/> : <DollarSign className="w-5 h-5" />}
-                  Xác Nhận Đã Nhận Tiền
-                </button>
-                <button onClick={() => router.push("/readerdashboard")} className="text-slate-500 hover:text-white font-bold text-xs uppercase tracking-widest transition-colors mt-4">
-                  Quay lại Dashboard sau
-                </button>
-              </div>
-            </div>
+    <div className="max-w-6xl mx-auto px-6 py-8 pb-40 relative z-10">
+      
+      {/* MODAL CHỈ HIỆN KHI HẾT GIỜ MÀ CHƯA COMPLETED */}
+      <AnimatePresence>
+        {isTimeUp && activeRequest.status !== 'COMPLETED' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-6 text-center">
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="bg-[#1a0b2e] border border-red-500/30 p-12 rounded-[3rem] max-w-md w-full">
+              <Hourglass className="w-12 h-12 text-red-500 mx-auto mb-6 animate-pulse" />
+              <h3 className="text-3xl font-black text-white mb-4 uppercase">Hết thời gian!</h3>
+              <p className="text-slate-400 mb-8 font-medium">Bạn đã quá giới hạn 1 tiếng để thực hiện luận giải.</p>
+              <button onClick={() => router.push("/readerdashboard")} className="w-full py-4 bg-red-600 text-white font-black rounded-2xl uppercase text-xs">Quay về Dashboard</button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <div className="space-y-8">
+        {/* HEADER */}
+        <div className="bg-[#130823]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+          <div className="flex-1">
+            <button onClick={() => router.push("/readerdashboard")} className="text-slate-500 text-xs mb-4 flex items-center gap-2 hover:text-amber-500 transition-colors"><ArrowLeft className="w-3 h-3"/> Quay về</button>
+            <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic">{activeRequest.topic}</h2>
+            <div className="mt-2 flex gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                <span>{activeRequest.querentName}</span>
+                <span>•</span>
+                <span>{activeRequest.birthDate}</span>
+            </div>
+          </div>
+          
+          {/* COUNTDOWN: CHỈ HIỆN KHI ĐANG LÀM (CHƯA COMPLETED) */}
+          {activeRequest.status !== 'COMPLETED' && !isReadOnly && (
+            <div className="px-10 py-6 bg-white/5 rounded-[2.5rem] border border-white/10 text-center relative overflow-hidden">
+              <span className="text-[10px] text-slate-500 font-black uppercase mb-2 block">Thời hạn còn lại</span>
+              <div className={`text-4xl font-mono font-black ${timeLeft < 600 ? 'text-red-500 animate-shake' : 'text-amber-500'}`}>
+                {formatTime(timeLeft)}
+              </div>
+              {timeLeft < 600 && <div className="absolute inset-0 bg-red-600/5 animate-pulse" />}
+            </div>
+          )}
+          {activeRequest.status === 'COMPLETED' && (
+            <div className="px-10 py-6 bg-green-500/5 rounded-[2.5rem] border border-green-500/20 text-center">
+               <ShieldCheck className="w-10 h-10 text-green-500 mx-auto mb-2" />
+               <span className="text-[10px] text-green-500 font-black uppercase tracking-widest">ĐÃ HOÀN TẤT</span>
+            </div>
+          )}
+        </div>
+
+        {/* EDITOR SECTION */}
+        <div className="bg-[#130823]/60 backdrop-blur-xl border border-white/10 rounded-[3.5rem] p-12 space-y-16 shadow-2xl">
+          {activeRequest.cards.map((card: any, index: number) => (
+            <div key={card.id} className="flex flex-col lg:flex-row gap-12 pb-16 border-b border-white/5 last:border-0 last:pb-0">
+              <div className="w-full lg:w-56 shrink-0 flex flex-col items-center">
+                <img src={card.img} className={`w-48 h-72 object-cover rounded-2xl border-2 border-white/10 ${card.isReversed ? 'rotate-180' : ''}`} alt={card.name} />
+                <h3 className="text-white font-black text-lg mt-6 uppercase text-center">{card.name}</h3>
+              </div>
+              <div className="flex-grow">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex gap-2 italic"><Sparkles className="w-3 h-3 text-amber-500"/> Giải mã quẻ bài</label>
+                <div className={`bg-black/40 rounded-[2rem] border transition-all ${isReadOnly ? 'border-green-500/10' : 'border-white/5'} overflow-hidden`}>
+                  {!isReadOnly && <EditorToolbar />}
+                  <textarea value={cardInputs[card.id] || ""} readOnly={isReadOnly} onChange={(e) => setCardInputs({...cardInputs, [card.id]: e.target.value})} className="w-full h-48 bg-transparent p-8 outline-none text-slate-200 text-lg leading-relaxed font-medium" placeholder="Nhập luận giải..." />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* SUMMARY & MONEY */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 pt-10 border-t border-white/10">
+            <div className="lg:col-span-2 space-y-6">
+              <h3 className="text-2xl font-black text-white flex gap-3 uppercase italic"><Wand2 className="w-6 h-6 text-amber-400"/> Lời khuyên</h3>
+              <div className={`bg-black/40 rounded-[2.5rem] border ${isReadOnly ? 'border-green-500/10' : 'border-white/5'} overflow-hidden`}>
+                {!isReadOnly && <EditorToolbar />}
+                <textarea value={summary} readOnly={isReadOnly} onChange={(e) => setSummary(e.target.value)} className="w-full h-48 bg-transparent p-8 outline-none text-slate-200 text-lg leading-relaxed font-medium" placeholder="Đúc kết thông điệp..." />
+              </div>
+            </div>
+            <div className="space-y-6">
+              <h3 className="text-2xl font-black text-white flex gap-3 uppercase italic"><Banknote className="w-6 h-6 text-green-400"/> Chi phí</h3>
+              <div className={`p-10 rounded-[3rem] border ${isReadOnly ? 'bg-green-500/5 border-green-500/20' : 'bg-black/40 border-white/5 focus-within:border-amber-500/50'}`}>
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500"><DollarSign className="w-8 h-8" /></div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Thanh toán (VNĐ)</p>
+                    <input type="number" value={amount || ""} readOnly={isReadOnly} onChange={(e) => setAmount(Number(e.target.value))} className="bg-transparent border-none outline-none text-3xl font-black text-white w-full tracking-tighter" placeholder="0" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FOOTER ACTION BAR */}
+      <div className="fixed bottom-10 left-0 lg:left-64 right-0 z-40 px-6 flex justify-center">
+        <AnimatePresence>
+          {!isReadOnly && (
+            <motion.div initial={{ y: 50 }} animate={{ y: 0 }} className="bg-[#1a1025]/90 border border-white/10 p-4 px-10 rounded-[3rem] flex items-center gap-10 shadow-2xl backdrop-blur-3xl">
+              <span className="text-slate-300 text-xs font-black uppercase tracking-widest">{Object.keys(cardInputs).length}/{activeRequest.cards.length} LÁ XONG</span>
+              <button onClick={handleSubmit} disabled={isSubmitting} className="bg-amber-600 px-10 py-4 rounded-2xl text-white font-black uppercase text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-amber-900/20">{isSubmitting ? <Loader2 className="animate-spin"/> : "GỬI KẾT QUẢ"}</button>
+            </motion.div>
+          )}
+          {isReadOnly && activeRequest.status !== 'COMPLETED' && (
+            <motion.div initial={{ y: 50 }} animate={{ y: 0 }} className="bg-[#0a1a12]/90 border border-green-500/20 p-4 px-12 rounded-[3rem] flex items-center gap-8 shadow-2xl backdrop-blur-3xl">
+              <span className="text-white text-xs font-bold italic">Chờ nhận thanh toán...</span>
+              <button onClick={handleConfirmPayment} disabled={confirmingPayment} className="bg-green-600 px-10 py-4 rounded-2xl text-white font-black uppercase text-xs hover:scale-105 active:scale-95 transition-all">XÁC NHẬN TIỀN VỀ</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <style jsx global>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-4px) rotate(-1deg); }
+          75% { transform: translateX(4px) rotate(1deg); }
+        }
+        .animate-shake { animation: shake 0.2s infinite; }
+      `}</style>
     </div>
   );
 }

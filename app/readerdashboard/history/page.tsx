@@ -9,12 +9,16 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
+
+
 
 const STATUS_FILTERS = [
   { label: "Tất cả", value: "ALL" },
   { label: "Chờ thanh toán", value: "WAITING_PAYMENT" },
   { label: "Hoàn thành", value: "COMPLETED" },
   { label: "Đã từ chối", value: "CANCELED" },
+  { label: "Đang xử lý", value: "PROCESSING" },
 ];
 
 export default function HistoryPage() {
@@ -25,6 +29,7 @@ export default function HistoryPage() {
   const [processingId, setProcessingId] = useState<string | number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
+  const router = useRouter();
 
   // --- LOGIC TRANSFORM DATA TỪ SOURCE CŨ ---
   const transformHistoryItem = (item: any) => {
@@ -89,6 +94,12 @@ export default function HistoryPage() {
       setProcessingId(null);
     }
   };
+
+  const handleClickDetail = (sessionId: string | number) => {
+    // Xử lý khi người dùng nhấn vào nút chi tiết (nếu cần)
+    router.push(`/readerdashboard/workspace/${sessionId}`);
+    console.log("Chi tiết lịch sử ID:", sessionId);
+  }
 
   const filteredHistory = history.filter(item => {
     const searchLower = searchTerm.toLowerCase();
@@ -179,7 +190,7 @@ export default function HistoryPage() {
                       className="group hover:bg-white/[0.03] transition-all"
                     >
                       <td className="px-8 py-6">
-                        <div className="font-mono text-sm text-amber-500 font-black mb-1">#{item.requestId}</div>
+                        <div className="font-mono text-sm text-amber-500 font-black mb-1">#{item.request.id}</div>
                         <div className="text-slate-500 text-[10px] flex items-center gap-1 font-medium"><Calendar className="w-3 h-3"/> {item.dateFormatted}</div>
                       </td>
                       <td className="px-8 py-6">
@@ -207,9 +218,9 @@ export default function HistoryPage() {
                             </button>
                           )}
                           <div className="text-right mr-2 hidden md:block">
-                            <div className="text-xs font-black text-slate-200">{(item.amount || 50000).toLocaleString()}đ</div>
+                            <div className="text-xs font-black text-slate-200">{(item.request.amount || 0).toLocaleString()}đ</div>
                           </div>
-                          <button className="p-2.5 rounded-xl bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 border border-white/5 transition-all active:scale-90">
+                          <button onClick={() => handleClickDetail(item.request.id)} className="p-2.5 rounded-xl bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 border border-white/5 transition-all active:scale-90">
                             <ExternalLink className="w-4 h-4"/>
                           </button>
                         </div>
@@ -221,7 +232,7 @@ export default function HistoryPage() {
                     <td colSpan={4} className="py-32 text-center">
                       <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex flex-col items-center opacity-20">
                         <Filter className="w-16 h-16 mb-4 text-slate-400" />
-                        <p className="text-slate-300 text-lg font-bold tracking-widest uppercase">Không tìm thấy linh hồn nào</p>
+                        <p className="text-slate-300 text-lg font-bold tracking-widest uppercase">Không tìm thấy lịch sử trải bài nào</p>
                         <p className="text-slate-500 text-sm mt-2">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
                       </motion.div>
                     </td>
