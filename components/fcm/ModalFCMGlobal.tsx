@@ -153,7 +153,6 @@ export const ModalFCMGlobal = () => {
                   await ReadingSessionService.reject(sessionId);
                   toast.success("Đã từ chối yêu cầu!");
                   handleClose();
-                  router.push(`/readerdashboard/`);
                 } catch (error) {
                   console.error("Lỗi khi từ chối session:", error);
                   toast.error("Không thể từ chối yêu cầu.");
