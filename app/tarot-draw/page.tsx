@@ -599,7 +599,14 @@ export default function TarotDrawPage() {
                 </div>
 
                 {step === "picking" && selectedIndices.length === 3 && (
-                  <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="fixed bottom-8 z-30">
+                  <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="fixed bottom-8 z-30 flex gap-4 items-center">
+                    <button
+                      onClick={() => setSelectedIndices([])}
+                      className="flex items-center gap-2 px-1 py-1 text-sm font-bold text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Hủy chọn</span>
+                    </button>
                     <button
                       onClick={handleConfirmSelection}
                       className="px-10 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg rounded-full shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-105 transition-transform flex items-center gap-2 animate-bounce"

@@ -454,6 +454,7 @@ export default function RegisterPage() {
                     Tôi đồng ý với{" "}
                     <Link
                       href="/terms"
+                      target="_blank"
                       className="text-amber-500 hover:underline"
                     >
                       Điều khoản sử dụng
@@ -461,6 +462,7 @@ export default function RegisterPage() {
                     và{" "}
                     <Link
                       href="/privacy"
+                      target="_blank"
                       className="text-amber-500 hover:underline"
                     >
                       Chính sách bảo mật
