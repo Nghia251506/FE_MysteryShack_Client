@@ -14,6 +14,7 @@ import {
   BellRing,
   ShieldAlert,
   Sparkles,
+  ClipboardCheck, FileQuestion, BookOpen, PenTool
 } from "lucide-react";
 import { logout } from "@/store/features/authSlice";
 import { RootState } from "@/store/store";
@@ -206,6 +207,12 @@ export default function ReaderLayout({
       href: "/readerdashboard/profile",
       active: pathname === "/readerdashboard/profile",
     },
+    {
+      name: "Bài kiểm tra",
+      icon: ClipboardCheck,
+      href: "/readerdashboard/take-test",
+      active: pathname === "/readerdashboard/take-test",
+    },
   ];
 
   if (!mounted) return null;
@@ -219,7 +226,7 @@ export default function ReaderLayout({
       {/* SIDEBAR DESKTOP */}
       <aside className="hidden lg:flex w-64 bg-[#130823]/60 backdrop-blur-xl border-r border-white/5 flex-col h-screen sticky top-0 z-50">
         <div className="p-6">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/readerdashboard" className="flex items-center gap-3">
             <Image
               src="/logo.png"
               alt="Logo"
