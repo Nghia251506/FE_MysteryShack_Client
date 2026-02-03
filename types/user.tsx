@@ -1,4 +1,6 @@
 export interface User {
+  createdAt: string | number | Date;
+  isBlocked: boolean;
   id: number;
   username: string;
   fullName: string;

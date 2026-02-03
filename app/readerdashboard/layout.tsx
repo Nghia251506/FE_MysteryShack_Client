@@ -12,6 +12,8 @@ import {
   Power,
   LayoutDashboard,
   BellRing,
+  ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 import { logout } from "@/store/features/authSlice";
 import { RootState } from "@/store/store";
@@ -24,8 +26,8 @@ import { ModalFCMGlobal } from "@/components/fcm/ModalFCMGlobal";
 import { messaging } from "@/lib/firebaseConfig";
 import { onMessage } from "firebase/messaging";
 import { receiveNotification } from "@/store/slices/fcmSlice";
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function ReaderLayout({
   children,
@@ -46,7 +48,40 @@ export default function ReaderLayout({
     if (user) setIsActive(!!user.active);
   }, [user]);
 
+  // --- LOGIC KIỂM TRA TRẠNG THÁI READER ---
   const handleToggleStatus = async () => {
+    if (user?.isBlocked) {
+      const createdAt = user.createdAt
+        ? new Date(user.createdAt).getTime()
+        : Date.now();
+      const now = Date.now();
+      const isNewUser = now - createdAt < 24 * 60 * 60 * 1000;
+
+      if (isNewUser) {
+        // Reader mới: Dùng Toast cho nhẹ nhàng
+        toast.custom((t) => (
+          <div
+            className={`${t.visible ? "animate-enter" : "animate-leave"} max-w-md w-full bg-[#1c112d] border border-amber-500/30 p-4 rounded-2xl shadow-2xl flex items-center gap-4`}
+          >
+            <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
+            <p className="text-xs text-slate-200">
+              Bạn cần hoàn thành bài test năng lực để kích hoạt quyền nhận
+              khách!
+            </p>
+          </div>
+        ));
+      } else {
+        // Reader cũ: "Bắn" notification vào Redux để nổ ModalFCMGlobal
+        dispatch(
+          receiveNotification({
+            type: "READER_ACCOUNT_BLOCKED",
+            message: "Tài khoản bị khóa",
+          }),
+        );
+      }
+      return;
+    }
+
     if (isToggling) return;
     setIsToggling(true);
     try {
@@ -62,20 +97,15 @@ export default function ReaderLayout({
       setIsToggling(false);
     }
   };
+
   useEffect(() => {
     if (!mounted || !messaging) return;
 
-    // Đăng ký lắng nghe thông báo Foreground
     const unsubscribe = onMessage(messaging, (payload) => {
-
-      // 1. QUAN TRỌNG: Đẩy dữ liệu vào Redux để ModalFCMGlobal có thể bắt được và hiển thị
       if (payload.data) {
-        // Lưu ý: Đảm bảo ông đã import receiveNotification từ fcmSlice ở trên đầu file nhé
-        // Nếu chưa import được thì dùng: dispatch({ type: "fcm/receiveNotification", payload: payload.data });
         dispatch(receiveNotification(payload.data));
       }
 
-      // 2. Hiển thị Toast Custom (Giữ nguyên giao diện đẹp của ông)
       toast.custom(
         (t) => (
           <div
@@ -90,10 +120,14 @@ export default function ReaderLayout({
                 </div>
                 <div className="ml-3 flex-1">
                   <p className="text-sm font-bold text-white">
-                    {payload.notification?.title || payload.data?.customerName || "Yêu cầu mới!"}
+                    {payload.notification?.title ||
+                      payload.data?.customerName ||
+                      "Yêu cầu mới!"}
                   </p>
                   <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-                    {payload.notification?.body || payload.data?.message || "Bạn có một phiên Tarot mới đang chờ luận giải."}
+                    {payload.notification?.body ||
+                      payload.data?.message ||
+                      "Bạn có một phiên Tarot mới đang chờ luận giải."}
                   </p>
                 </div>
               </div>
@@ -114,7 +148,6 @@ export default function ReaderLayout({
         { duration: 6000 },
       );
 
-      // 3. Phát tiếng chuông
       const audio = new Audio("/sounds/notification.mp3");
       audio.play().catch(() => {
         console.log("Trình duyệt chặn autoplay audio");
@@ -123,26 +156,21 @@ export default function ReaderLayout({
 
     return () => unsubscribe();
   }, [mounted, router, dispatch]);
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      // 1. Nếu là Reader, phải gọi tắt trạng thái ĐẦU TIÊN (khi vẫn còn Token)
-      if (user?.role === "READER") {
+      if (user?.role === "READER" && !user?.isBlocked) {
         try {
-          await UserService.toggleStatus(); // Gọi hàm toggle của ông
-          console.log("Reader status turned OFF");
+          await UserService.toggleStatus();
         } catch (statusError) {
           console.error("Không thể tắt trạng thái Reader:", statusError);
         }
       }
-
-      // 2. Sau đó mới gọi API logout của hệ thống
       await AuthService.logout();
-      
     } catch (e) {
       console.error("Lỗi trong quá trình logout:", e);
     } finally {
-      // 3. Cuối cùng mới dọn dẹp bộ nhớ và đẩy ra trang login
       localStorage.clear();
       dispatch(logout());
       router.replace("/login");
@@ -182,13 +210,10 @@ export default function ReaderLayout({
 
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 flex flex-col lg:flex-row relative">
-      {/* Khởi tạo lắng nghe FCM */}
       <FCMInitializer />
-
-      {/* Modal nổ ra ở tầng cao nhất của App */}
       <ModalFCMGlobal />
-      {/* Toast nổ ra ở tầng cao nhất của App */}
-      <ToastContainer/>
+      <ToastContainer theme="dark" />
+
       {/* SIDEBAR DESKTOP */}
       <aside className="hidden lg:flex w-64 bg-[#130823]/60 backdrop-blur-xl border-r border-white/5 flex-col h-screen sticky top-0 z-50">
         <div className="p-6">
@@ -206,6 +231,7 @@ export default function ReaderLayout({
             </span>
           </Link>
         </div>
+
         <nav className="flex-grow px-4 space-y-2 mt-4">
           {navItems.map((item) => (
             <Link
@@ -217,6 +243,7 @@ export default function ReaderLayout({
             </Link>
           ))}
         </nav>
+
         <div className="p-4 m-4 mt-auto space-y-3">
           <button
             onClick={handleToggleStatus}
@@ -245,11 +272,17 @@ export default function ReaderLayout({
               <p className="text-sm font-bold text-white truncate">
                 {user?.fullName || "Reader"}
               </p>
-              <p
-                className={`text-[10px] font-bold uppercase ${isActive ? "text-green-400" : "text-slate-500"}`}
-              >
-                {isActive ? "Trực tuyến" : "Ngoại tuyến"}
-              </p>
+              {user?.isBlocked ? (
+                <p className="text-[10px] font-bold uppercase text-red-500 animate-pulse">
+                  Bị khóa/Chờ duyệt
+                </p>
+              ) : (
+                <p
+                  className={`text-[10px] font-bold uppercase ${isActive ? "text-green-400" : "text-slate-500"}`}
+                >
+                  {isActive ? "Trực tuyến" : "Ngoại tuyến"}
+                </p>
+              )}
             </div>
           </div>
 
@@ -264,37 +297,34 @@ export default function ReaderLayout({
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
       <main className="flex-grow min-h-screen pb-24 lg:pb-0">{children}</main>
 
-      {/* BOTTOM NAV MOBILE */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[#130823]/95 backdrop-blur-md border-t border-white/10 px-4 py-3 shadow-2xl">
-        <div className="flex justify-around items-center">
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex flex-col items-center gap-1 ${item.active ? "text-amber-500" : "text-slate-500"}`}
-            >
-              <item.icon className="w-6 h-6" />
-              <span className="text-[10px] font-medium">{item.name}</span>
-            </Link>
-          ))}
-          <button
-            onClick={handleToggleStatus}
-            className={`flex flex-col items-center gap-1 ${isActive ? "text-green-400" : "text-slate-500"}`}
+      {/* MOBILE NAV (Tương tự logic Sidebar) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[#130823]/95 backdrop-blur-md border-t border-white/10 px-4 py-3 shadow-2xl flex justify-around items-center">
+        {navItems.map((item) => (
+          <Link
+            key={item.name}
+            href={item.href}
+            className={`flex flex-col items-center gap-1 ${item.active ? "text-amber-500" : "text-slate-500"}`}
           >
-            <Power className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Trạng thái</span>
-          </button>
-          <button
-            onClick={handleLogout}
-            className="flex flex-col items-center gap-1 text-red-400/70"
-          >
-            <LogOut className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Thoát</span>
-          </button>
-        </div>
+            <item.icon className="w-6 h-6" />
+            <span className="text-[10px] font-medium">{item.name}</span>
+          </Link>
+        ))}
+        <button
+          onClick={handleToggleStatus}
+          className={`flex flex-col items-center gap-1 ${user?.isBlocked ? "text-red-500" : isActive ? "text-green-400" : "text-slate-500"}`}
+        >
+          <Power className="w-6 h-6" />
+          <span className="text-[10px] font-medium">Trạng thái</span>
+        </button>
+        <button
+          onClick={handleLogout}
+          className="flex flex-col items-center gap-1 text-red-400/70"
+        >
+          <LogOut className="w-6 h-6" />
+          <span className="text-[10px] font-medium">Thoát</span>
+        </button>
       </div>
     </div>
   );

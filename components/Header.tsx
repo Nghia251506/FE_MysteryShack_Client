@@ -116,7 +116,7 @@ export default function Header() {
                 Đăng Nhập
               </Link>
               <Link
-                href="/login"
+                href="/register"
                 className="text-sm font-bold text-white px-5 py-2.5 hover:text-amber-500 transition-colors"
               >
                 Đăng ký

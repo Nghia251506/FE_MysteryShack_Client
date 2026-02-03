@@ -319,6 +319,39 @@ export const ModalFCMGlobal = () => {
             </button>
           </div>
         );
+        case "READER_ACCOUNT_BLOCKED":
+        return (
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-red-200">
+              <span className="text-4xl">⚖️</span>
+            </div>
+            <h3 className="text-xl font-bold text-red-600 tracking-tight">
+              Kết nối tạm gián đoạn
+            </h3>
+            
+            <div className="mt-4 bg-red-50/50 p-5 rounded-2xl border border-red-100 relative text-left">
+               <div className="absolute -top-2 left-4 bg-white px-2 text-[10px] text-red-500 font-bold uppercase">
+                Thông điệp từ hệ thống
+              </div>
+              <p className="text-gray-700 text-sm leading-relaxed italic">
+                "Năng lượng của bạn hiện đang được tạm giữ để cân bằng lại. Cánh cửa nhận khách tạm thời đóng để Admin giải quyết các khiếu nại hoặc kiểm tra định kỳ."
+              </p>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              <p className="text-xs text-slate-500 px-2">
+                Vui lòng kiên nhẫn đợi Admin phản hồi phán quyết cuối cùng. Khi mọi thứ sáng tỏ, bạn sẽ tiếp tục hành trình dẫn lối.
+              </p>
+              
+              <button
+                onClick={handleClose}
+                className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-200 uppercase"
+              >
+                Đã ghi nhận
+              </button>
+            </div>
+          </div>
+        );
 
       default:
         return (

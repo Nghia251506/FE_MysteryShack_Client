@@ -5,7 +5,7 @@ import authReducer from './features/authSlice'; // Đảm bảo đường dẫn 
 import userReducer from './slices/userSlice';
 import fcmReducer from "./slices/fcmSlice";
 import historyRecucer from './slices/historySlice';
-import ratingReducer from './slices/historySlice';
+import ratingReducer from './slices/ratingSlice';
 
 export const store = configureStore({
   reducer: {

@@ -14,6 +14,16 @@ export const ReadingSessionService = {
         const response = await axios.get(`${ENDPOINT}/total-sessions`);
         return response.data;
     },
+    getProcessingSession: async (readerId: number): Promise<ReadingSession | null> => {
+        try {
+            // Khi cộng chuỗi thế này, JS tự ép số thành chuỗi để gửi đi
+            const response = await axios.get(`${ENDPOINT}/reader/${readerId}`);
+            return response.data; 
+        } catch (error) {
+            console.error("Lỗi khi lấy phiên đang xử lý:", error);
+            return null;
+        }
+    },
 
     // 2. Tạo mới (User gửi request từ trang Tarot Draw)
     create: async (data: any, token: string | null, p0: any): Promise<ReadingSession> => {
