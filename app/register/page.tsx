@@ -136,6 +136,17 @@ export default function RegisterPage() {
       return setValidationError("Mật khẩu xác nhận không khớp.");
     if (!formData.agreeToTerms)
       return setValidationError("Vui lòng đồng ý với điều khoản sử dụng.");
+    
+    // Kiểm tra ngày sinh
+    const selectedDate = new Date(formData.birthDate);
+    const now = new Date();
+
+    if (selectedDate > now) {
+      const errorMsg = "Ngày sinh không được lớn hơn ngày hiện tại.";
+      setValidationError(errorMsg);
+      showToast(errorMsg, "error");
+      return;
+    }
 
     try {
       const resultAction = await dispatch(
@@ -289,6 +300,7 @@ export default function RegisterPage() {
                       id="birthDate"
                       type="date"
                       value={formData.birthDate}
+                      max={new Date().toISOString().split("T")[0]}
                       onChange={(e) =>
                         setFormData({ ...formData, birthDate: e.target.value })
                       }
