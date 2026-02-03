@@ -28,6 +28,7 @@ import { onMessage } from "firebase/messaging";
 import { receiveNotification } from "@/store/slices/fcmSlice";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { updateUser } from "@/store/features/authSlice";
 
 export default function ReaderLayout({
   children,
@@ -50,49 +51,50 @@ export default function ReaderLayout({
 
   // --- LOGIC KIỂM TRA TRẠNG THÁI READER ---
   const handleToggleStatus = async () => {
-    if (user?.isBlocked) {
-      const createdAt = user.createdAt
-        ? new Date(user.createdAt).getTime()
-        : Date.now();
-      const now = Date.now();
-      const isNewUser = now - createdAt < 24 * 60 * 60 * 1000;
-
-      if (isNewUser) {
-        // Reader mới: Dùng Toast cho nhẹ nhàng
-        toast.custom((t) => (
-          <div
-            className={`${t.visible ? "animate-enter" : "animate-leave"} max-w-md w-full bg-[#1c112d] border border-amber-500/30 p-4 rounded-2xl shadow-2xl flex items-center gap-4`}
-          >
-            <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
-            <p className="text-xs text-slate-200">
-              Bạn cần hoàn thành bài test năng lực để kích hoạt quyền nhận
-              khách!
-            </p>
-          </div>
-        ));
-      } else {
-        // Reader cũ: "Bắn" notification vào Redux để nổ ModalFCMGlobal
-        dispatch(
-          receiveNotification({
-            type: "READER_ACCOUNT_BLOCKED",
-            message: "Tài khoản bị khóa",
-          }),
-        );
-      }
-      return;
-    }
-
     if (isToggling) return;
     setIsToggling(true);
+
     try {
+      // GỌI THẲNG TOGGLE STATUS
       const data = await UserService.toggleStatus();
+      // Giả sử BE của ông nếu bị Block sẽ trả về lỗi 403 hoặc 400 kèm message
+
       if (data && data.newStatus !== undefined) {
         dispatch(updateActiveStatus(data.newStatus));
         setIsActive(data.newStatus);
         toast.success(data.message);
       }
-    } catch (error) {
-      toast.error("Lỗi cập nhật trạng thái");
+    } catch (error: any) {
+      // Thêm : any vào đây để bypass kiểm tra của TS
+      // HOẶC dùng cách chuyên nghiệp hơn bên dưới:
+      const axiosError = error as any;
+      const errorMsg = axiosError.response?.data?.message;
+
+      if (
+        axiosError.response?.status === 403 ||
+        errorMsg?.includes("blocked")
+      ) {
+        // Lấy user từ Redux (đã có sẵn trong component của ông)
+        const createdAt = user?.createdAt
+          ? new Date(user.createdAt).getTime()
+          : Date.now();
+        const isNewUser = Date.now() - createdAt < 24 * 60 * 60 * 1000;
+
+        if (isNewUser) {
+          toast.error(
+            "Tài khoản đang chờ duyệt bài test hoặc Admin phê duyệt!",
+          );
+        } else {
+          dispatch(
+            receiveNotification({
+              type: "READER_ACCOUNT_BLOCKED",
+              message: "Tài khoản bị khóa do khiếu nại hoặc vi phạm.",
+            }),
+          );
+        }
+      } else {
+        toast.error("Lỗi cập nhật trạng thái");
+      }
     } finally {
       setIsToggling(false);
     }

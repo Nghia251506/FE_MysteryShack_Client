@@ -99,10 +99,25 @@ const authSlice = createSlice({
       }
     },
 
-    updateUser: (state, action: PayloadAction<User>) => {
-      state.user = action.payload;
+    updateUser: (state, action: PayloadAction<Partial<User>>) => {
+      if (state.user) {
+        // Merge dữ liệu cũ và mới để tránh mất các trường khác
+        state.user = { ...state.user, ...action.payload };
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('currentUser', JSON.stringify(state.user));
+        }
+      }
+    },
+
+    // Thêm một action chuyên để đồng bộ lại toàn bộ từ Server
+    syncUserFromStorage: (state) => {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('currentUser', JSON.stringify(action.payload));
+        const userJson = localStorage.getItem('currentUser');
+        if (userJson) {
+          state.user = JSON.parse(userJson);
+          state.isAuthenticated = !!localStorage.getItem('accessToken');
+        }
       }
     },
 
