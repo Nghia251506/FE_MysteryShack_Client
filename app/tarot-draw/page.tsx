@@ -628,12 +628,28 @@ export default function TarotDrawPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4 md:px-0">
                   {selectedIndices.map(idx => shuffledDeck[idx]).map((card, idx) => (
                     <motion.div key={idx} initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: idx * 0.2 }} className="bg-[#130823]/80 border border-white/10 rounded-3xl p-6 text-center shadow-xl relative overflow-hidden" >
-                      <div className={`absolute top-4 right-4 text-xs font-bold px-2 py-1 rounded border ${card.isReversed ? 'bg-red-900/50 border-red-500 text-red-300' : 'bg-green-900/50 border-green-500 text-green-300'}`}>
-                        {card.isReversed ? <span className="flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Ngược</span> : "Xuôi"}
-                      </div>
                       <div className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden mb-5 shadow-2xl bg-[#1e1b2e]">
-                        <img src={card.imageUrl} alt={card.nameVi} className={`w-full h-full object-cover ${card.isReversed ? 'rotate-180' : ''}`} />
+    
+                      {/* BADGE: Giữ nguyên style cũ nhưng thêm z-10 và đưa vào đây */}
+                      <div className={`absolute top-4 right-4 z-10 text-xs font-bold px-2 py-1 rounded border shadow-lg ${
+                        card.isReversed 
+                          ? 'bg-red-900/50 border-red-500 text-red-300' 
+                          : 'bg-green-900/50 border-green-500 text-green-300'
+                      }`}>
+                        {card.isReversed ? (
+                          <span className="flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Ngược</span>
+                        ) : (
+                          "Xuôi"
+                        )}
                       </div>
+
+                      {/* ẢNH LÁ BÀI */}
+                      <img 
+                        src={card.imageUrl} 
+                        alt={card.nameVi} 
+                        className={`w-full h-full object-cover ${card.isReversed ? 'rotate-180' : ''}`} 
+                      />
+                    </div>
                       <h3 className="text-xl font-bold text-white mb-1">{card.nameVi}</h3>
                     </motion.div>
                   ))}
