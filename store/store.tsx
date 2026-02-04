@@ -6,6 +6,7 @@ import userReducer from './slices/userSlice';
 import fcmReducer from "./slices/fcmSlice";
 import historyRecucer from './slices/historySlice';
 import ratingReducer from './slices/ratingSlice';
+import subcriptionReducer from './slices/subscriptionSlice'
 
 export const store = configureStore({
   reducer: {
@@ -15,6 +16,7 @@ export const store = configureStore({
     fcm: fcmReducer,
     history: historyRecucer,
     rating: ratingReducer,
+    subscription: subcriptionReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
