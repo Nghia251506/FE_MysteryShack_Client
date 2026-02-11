@@ -112,9 +112,18 @@ export default function PricingPage() {
 
                                 <div className="flex flex-col items-end">
                                     <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Trạng thái</div>
-                                    <div className="px-4 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-bold flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Đang kích hoạt
-                                    </div>
+
+                                    {currentSub?.status === 'ACTIVE' ? (
+                                        /* UI cho trạng thái Đang kích hoạt */
+                                        <div className="px-4 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-bold flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Đang kích hoạt
+                                        </div>
+                                    ) : (
+                                        /* UI cho trạng thái Hết hạn hoặc khác (PENDING, EXPIRED...) */
+                                        <div className="px-4 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-full text-xs font-bold flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-rose-500 rounded-full" /> Đã hết hạn
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -129,7 +138,7 @@ export default function PricingPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Lượt tiếp khách/ngày</div>
+                                    <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Lượt tiếp khách/tháng</div>
                                     <div className="flex items-center gap-3">
                                         <Zap className="w-5 h-5 text-amber-500" />
                                         <span className="text-xl font-bold text-white">{currentSub.remainingJobs} / 20</span>
@@ -161,63 +170,70 @@ export default function PricingPage() {
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-12 overflow-hidden"
+                            // Chú ý: Bỏ overflow-hidden ở đây để badge không bị cắt
+                            className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-12"
                         >
-                            {packages.map((pkg: any, idx: number) => (
+                            {[...packages].sort((a: any, b: any) => a.price - b.price).map((pkg: any, idx: number) => (
                                 <motion.div
                                     key={pkg.id}
-                                    className={`relative group rounded-[2.5rem] p-8 transition-all duration-500 ${pkg.id === currentSub?.packages?.id
-                                        ? "bg-amber-500/10 border-2 border-amber-500"
-                                        : "bg-[#130823]/60 border border-white/5 hover:border-amber-500/30"
+                                    // Thêm flex flex-col và h-full để card cao bằng nhau và điều khiển được vị trí nút
+                                    className={`relative group rounded-[2.5rem] p-8 transition-all duration-500 flex flex-col h-full ${pkg.id === currentSub?.packages?.id
+                                            ? "bg-amber-500/10 border-2 border-amber-500 z-10"
+                                            : "bg-[#130823]/60 border border-white/5 hover:border-amber-500/30 z-0"
                                         }`}
                                 >
-                                    {/* Badge trạng thái */}
+                                    {/* Badge trạng thái - Dùng z-50 và đẩy lên -top-4 để nổi hẳn lên trên */}
                                     {pkg.id === currentSub?.packages?.id && (
-                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-black text-[9px] font-black px-3 py-1 rounded-full uppercase">
+                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-500 text-black text-[9px] font-black px-3 py-1 rounded-full uppercase shadow-[0_0_15px_rgba(245,158,11,0.5)] whitespace-nowrap">
                                             Gói hiện tại
                                         </div>
                                     )}
 
-                                    <div className="mb-6">
-                                        <h4 className="text-xl font-black text-white uppercase italic mb-1">{pkg.name}</h4>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-3xl font-black text-white">{pkg.price?.toLocaleString()}đ</span>
-                                            <span className="text-slate-500 text-[10px] font-bold uppercase">/{pkg.durationDays} ngày</span>
+                                    {/* Phần nội dung bọc trong flex-grow để đẩy nút xuống dưới */}
+                                    <div className="flex-grow">
+                                        <div className="mb-6">
+                                            <h4 className="text-xl font-black text-white uppercase italic mb-1">{pkg.name}</h4>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-3xl font-black text-white">{pkg.price?.toLocaleString()}đ</span>
+                                                <span className="text-slate-500 text-[10px] font-bold uppercase">/{pkg.durationDays} ngày</span>
+                                            </div>
+                                        </div>
+
+                                        {/* HIỂN THỊ DỮ LIỆU ĐỘNG */}
+                                        <div className="space-y-3 mb-8">
+                                            <FeatureItem text={`${pkg.maxJobsPerDay} lượt tiếp khách / tháng`} />
+
+                                            {pkg.benefits && typeof pkg.benefits === 'string' ? (
+                                                pkg.benefits
+                                                    .split(';')
+                                                    .map((item: string) => item.trim())
+                                                    .filter((item: string) => item.length > 0)
+                                                    .map((benefitText: string, i: number) => (
+                                                        <FeatureItem key={i} text={benefitText} />
+                                                    ))
+                                            ) : (
+                                                <>
+                                                    <FeatureItem text="Hỗ trợ ưu tiên 24/7" />
+                                                    <FeatureItem text="Ưu tiên hiển thị Profile" />
+                                                </>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* HIỂN THỊ DỮ LIỆU ĐỘNG TỪ pkg.benefit HOẶC API FIELDS */}
-                                    <div className="space-y-3 mb-8">
-                                        {/* 1. Hiển thị lượt tiếp khách từ field maxJobsPerDay có sẵn */}
-                                        <FeatureItem text={`${pkg.maxJobsPerDay} lượt tiếp khách / tháng`} />
-
-                                        {/* 2. Xử lý chuỗi benefits từ API */}
-                                        {pkg.benefits && typeof pkg.benefits === 'string' ? (
-                                            pkg.benefits
-                                                .split(';') // Tách chuỗi thành mảng dựa trên dấu chấm phẩy
-                                                .map((item: string) => item.trim()) // Loại bỏ khoảng trắng thừa
-                                                .filter((item: string) => item.length > 0) // Loại bỏ các chuỗi rỗng
-                                                .map((benefitText: string, i: number) => (
-                                                    <FeatureItem key={i} text={benefitText} />
-                                                ))
-                                        ) : (
-                                            /* Fallback: Nếu không có dữ liệu benefits */
-                                            <>
-                                                <FeatureItem text="Hỗ trợ ưu tiên 24/7" />
-                                                <FeatureItem text="Ưu tiên hiển thị Profile" />
-                                            </>
-                                        )}
-                                    </div>
-
+                                    {/* Nút bấm với mt-auto để luôn nằm dưới cùng */}
                                     <button
                                         onClick={() => handleSubscribe(pkg.id)}
                                         disabled={buyingId !== null}
-                                        className={`w-full py-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-3 ${pkg.id === currentSub?.packages?.id
-                                            ? "bg-transparent text-amber-500 border border-amber-500/50 hover:bg-amber-500 hover:text-black"
-                                            : "bg-white/5 text-white border border-white/10 hover:bg-white/10"
+                                        className={`mt-auto w-full py-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-3 ${pkg.id === currentSub?.packages?.id
+                                                ? "bg-transparent text-amber-500 border border-amber-500/50 hover:bg-amber-500 hover:text-black"
+                                                : "bg-white/5 text-white border border-white/10 hover:bg-white/10"
                                             }`}
                                     >
-                                        {buyingId === pkg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Chọn gói này"}
+                                        {buyingId === pkg.id ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            pkg.id === currentSub?.packages?.id ? "Gia hạn gói" : "Chọn gói này"
+                                        )}
                                     </button>
                                 </motion.div>
                             ))}
