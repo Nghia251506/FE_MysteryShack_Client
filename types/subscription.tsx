@@ -1,3 +1,5 @@
+import { VipPackage } from "./vipPackage";
+
 export enum SubscriptionStatus {
   ACTIVE = 'ACTIVE',
   EXPIRED = 'EXPIRED',
@@ -14,6 +16,7 @@ export interface Subscription {
   status: SubscriptionStatus;
   remainingJobs: number;
   createdAt: string;
+  packages: VipPackage[];
 }
 
 // DTO hứng từ API GET /api/subscriptions/current
@@ -40,4 +43,5 @@ export interface SubscriptionAdminResponse {
   endDate: string;
   remainingJobs: number;
   status: SubscriptionStatus;
+  package: VipPackage[];
 }

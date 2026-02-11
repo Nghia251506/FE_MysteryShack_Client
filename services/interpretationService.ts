@@ -1,6 +1,6 @@
-import axios from "axios";
+import axios from "@/lib/axios";
 
-const API_URL = `${process.env.NEXT_PUBLIC_API_URL}/v1/interpretations`;
+const API_URL = "/v1/interpretations";
 
 const getConfig = () => {
   const token = localStorage.getItem("accessToken");

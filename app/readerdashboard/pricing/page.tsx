@@ -1,61 +1,64 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { 
-    Check, 
-    Zap, 
-    Crown, 
-    Gem, 
-    Loader2, 
-    ArrowRight,
-    ShieldCheck,
-    Rocket
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    Check, Zap, Crown, Gem, Loader2, ArrowRight,
+    ShieldCheck, Rocket, Calendar, RefreshCcw, LayoutGrid
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/hooks/useAppRedux";
 import { toast } from "react-toastify";
-import { buyVip, fetchVipPackages } from "@/store/slices/subscriptionSlice";
+import {
+    buyVip,
+    fetchVipPackages,
+    fetchCurrentSubscription // Import cái Thunk mới của ông
+} from "@/store/slices/subscriptionSlice";
 
 export default function PricingPage() {
     const dispatch = useAppDispatch();
-    
+
     // 1. Lấy dữ liệu từ Redux
     const { user } = useAppSelector((state: any) => state.auth);
-    const { packages, loading: subLoading } = useAppSelector((state: any) => state.subscription);
-    
-    // Quản lý trạng thái loading riêng cho từng nút bấm
+    const {
+        packages,
+        currentSub, // Lấy gói hiện tại từ slice
+        loading: subLoading
+    } = useAppSelector((state: any) => state.subscription);
+
+    console.log(currentSub)
+
     const [buyingId, setBuyingId] = useState<number | null>(null);
+    const [showAllPackages, setShowAllPackages] = useState(false);
 
+    // 2. Logic kiểm tra gói còn hạn hay không
+    const hasActiveSub = currentSub &&
+        currentSub.status === 'ACTIVE' &&
+        new Date(currentSub.endDate) > new Date();
+
+    // 3. useEffect để fetch dữ liệu khi vào trang
     useEffect(() => {
-        if (packages.length === 0) {
-            dispatch(fetchVipPackages());
-        }
-    }, [dispatch, packages.length]);
+        // Lấy danh sách 3 gói mặc định
+        dispatch(fetchVipPackages());
 
-    // 2. Hàm xử lý Click "Kích hoạt"
+        // Nếu đã đăng nhập thì lấy thông tin gói của riêng Reader này
+        if (user) {
+            dispatch(fetchCurrentSubscription());
+        }
+    }, [dispatch, user]);
+
     const handleSubscribe = async (pkgId: number) => {
         if (!user) {
             toast.error("Vui lòng đăng nhập để tiếp tục!");
             return;
         }
-
         try {
             setBuyingId(pkgId);
-            
-            // QUAN TRỌNG: dispatch Thunk. 
-            // Hãy đảm bảo trong PaymentService, ông dùng params cho packageId
             const resultAction = await dispatch(buyVip(pkgId));
-            
-            // unwrapping để bắt lỗi hoặc lấy URL trực tiếp
-            const paymentUrl = await (resultAction as any).payload;
-
             if (buyVip.fulfilled.match(resultAction)) {
                 toast.success("Đang tạo liên kết thanh toán...");
-                // Chuyển hướng trình duyệt sang VNPay
                 window.location.href = resultAction.payload;
             } else {
-                const errorMsg = resultAction.payload as string;
-                toast.error(errorMsg || "Lỗi khởi tạo thanh toán");
+                toast.error(resultAction.payload as string || "Lỗi khởi tạo thanh toán");
             }
         } catch (error: any) {
             toast.error("Đã xảy ra lỗi không xác định");
@@ -68,84 +71,159 @@ export default function PricingPage() {
         return (
             <div className="h-screen w-full flex flex-col items-center justify-center bg-[#0d0415]">
                 <Loader2 className="w-10 h-10 text-amber-500 animate-spin mb-4" />
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Đang tải các đặc quyền...</p>
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Đang kiểm tra đặc quyền...</p>
             </div>
         );
     }
 
     return (
         <div className="min-h-screen bg-[#0d0415] py-20 px-6 relative overflow-hidden">
+            {/* Background Decor */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-amber-500/10 blur-[120px] rounded-full opacity-30" />
 
             <div className="max-w-6xl mx-auto relative z-10">
-                {/* Header Section */}
-                <div className="text-center mb-16">
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
+
+                {/* 1. DASHBOARD GÓI HIỆN TẠI - Thiết kế như một tấm thẻ Membership cao cấp */}
+                {hasActiveSub && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6"
+                        className="mb-12 bg-gradient-to-br from-[#1a1025] via-[#25163a] to-[#1a1025] border border-amber-500/40 rounded-[2.5rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden group"
                     >
-                        <Crown className="w-3 h-3" /> Đặc quyền Reader chuyên nghiệp
+                        {/* Hiệu ứng ánh kim chạy qua thẻ */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent -translate-x-full group-hover:translate-x-full duration-1000 transition-transform" />
+
+                        <div className="absolute -top-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Crown className="w-64 h-64 text-amber-500" />
+                        </div>
+
+                        <div className="relative z-10 flex flex-col gap-8">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                                <div>
+                                    <div className="flex items-center gap-2 text-amber-500 font-bold uppercase text-[10px] tracking-[0.3em] mb-3">
+                                        <div className="w-8 h-[1px] bg-amber-500" />
+                                        Thành viên Premium
+                                    </div>
+                                    <h2 className="text-4xl md:text-6xl font-black text-white uppercase italic leading-none">
+                                        {currentSub.packageName}
+                                    </h2>
+                                    <p className="mt-2 text-slate-400 font-medium">Xin chào, <span className="text-white">{currentSub.fullName}</span>. Bạn đang tận hưởng mọi đặc quyền cao cấp nhất.</p>
+                                </div>
+
+                                <div className="flex flex-col items-end">
+                                    <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Trạng thái</div>
+                                    <div className="px-4 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-bold flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Đang kích hoạt
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="h-[1px] bg-white/10 w-full" />
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+                                <div className="space-y-1">
+                                    <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Hạn sử dụng</div>
+                                    <div className="flex items-center gap-3">
+                                        <Calendar className="w-5 h-5 text-amber-500" />
+                                        <span className="text-xl font-bold text-white">{new Date(currentSub.endDate).toLocaleDateString('vi-VN')}</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Lượt tiếp khách/ngày</div>
+                                    <div className="flex items-center gap-3">
+                                        <Zap className="w-5 h-5 text-amber-500" />
+                                        <span className="text-xl font-bold text-white">{currentSub.remainingJobs} / 20</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-start md:justify-end gap-3">
+                                    <button
+                                        onClick={() => handleSubscribe(currentSub.packages.id)}
+                                        className="h-14 px-8 bg-amber-500 text-black font-black uppercase text-xs rounded-xl hover:bg-amber-400 hover:scale-105 transition-all shadow-lg shadow-amber-500/20 flex items-center gap-2"
+                                    >
+                                        <RefreshCcw className="w-4 h-4" /> Gia hạn gói
+                                    </button>
+                                    <button
+                                        onClick={() => setShowAllPackages(!showAllPackages)}
+                                        className={`h-14 w-14 flex items-center justify-center rounded-xl border transition-all ${showAllPackages ? 'bg-white text-black border-white' : 'bg-white/5 text-white border-white/10 hover:bg-white/10'}`}
+                                    >
+                                        <LayoutGrid className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </motion.div>
-                    <h1 className="text-5xl md:text-6xl font-black text-white italic tracking-tighter uppercase mb-6">
-                        Nâng cấp <span className="text-amber-500">năng lực</span>
-                    </h1>
-                </div>
+                )}
 
-                {/* Packages Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {packages.map((pkg: any, idx: number) => (
+                {/* 2. HEADER TIÊU ĐỀ & GRID GÓI - Chỉ hiện rõ khi chưa có gói hoặc khi user muốn Đổi gói */}
+                <AnimatePresence>
+                    {(!hasActiveSub || showAllPackages) && (
                         <motion.div
-                            key={pkg.id}
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                            className={`relative group rounded-[3rem] p-8 transition-all duration-500 ${
-                                idx === 1 
-                                ? "bg-gradient-to-b from-[#2a1b3d] to-[#130823] border-2 border-amber-500/50 scale-105 shadow-[0_0_50px_rgba(245,158,11,0.15)]" 
-                                : "bg-[#130823]/60 border border-white/5 hover:border-amber-500/30"
-                            }`}
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-12 overflow-hidden"
                         >
-                            <div className="mb-8">
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 ${
-                                    idx === 0 ? "bg-blue-500/10 text-blue-400" :
-                                    idx === 1 ? "bg-amber-500/10 text-amber-500" :
-                                    "bg-purple-500/10 text-purple-400"
-                                }`}>
-                                    {idx === 0 ? <Rocket className="w-7 h-7" /> : idx === 1 ? <Zap className="w-7 h-7" /> : <Gem className="w-7 h-7" />}
-                                </div>
-                                <h3 className="text-2xl font-black text-white uppercase italic tracking-tight mb-2">{pkg.name}</h3>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-4xl font-black text-white">{pkg.price?.toLocaleString()}đ</span>
-                                    <span className="text-slate-500 text-sm font-bold">/{pkg.durationDays} ngày</span>
-                                </div>
-                            </div>
+                            {packages.map((pkg: any, idx: number) => (
+                                <motion.div
+                                    key={pkg.id}
+                                    className={`relative group rounded-[2.5rem] p-8 transition-all duration-500 ${pkg.id === currentSub?.packages?.id
+                                        ? "bg-amber-500/10 border-2 border-amber-500"
+                                        : "bg-[#130823]/60 border border-white/5 hover:border-amber-500/30"
+                                        }`}
+                                >
+                                    {/* Badge trạng thái */}
+                                    {pkg.id === currentSub?.packages?.id && (
+                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-black text-[9px] font-black px-3 py-1 rounded-full uppercase">
+                                            Gói hiện tại
+                                        </div>
+                                    )}
 
-                            <div className="space-y-4 mb-10">
-                                <FeatureItem text={`Tối đa ${pkg.maxJobsPerDay} khách/ngày`} />
-                                <FeatureItem text="Ưu tiên hiển thị" />
-                                <FeatureItem text={`Thời hạn: ${pkg.durationDays} ngày`} />
-                                {idx > 0 && <FeatureItem text="Huy hiệu Reader Gold" color="text-amber-500" />}
-                            </div>
+                                    <div className="mb-6">
+                                        <h4 className="text-xl font-black text-white uppercase italic mb-1">{pkg.name}</h4>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-3xl font-black text-white">{pkg.price?.toLocaleString()}đ</span>
+                                            <span className="text-slate-500 text-[10px] font-bold uppercase">/{pkg.durationDays} ngày</span>
+                                        </div>
+                                    </div>
 
-                            <button
-                                onClick={() => handleSubscribe(pkg.id)}
-                                disabled={buyingId !== null}
-                                className={`w-full py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-3 ${
-                                    idx === 1 
-                                    ? "bg-amber-500 text-black hover:bg-amber-400" 
-                                    : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
-                                }`}
-                            >
-                                {buyingId === pkg.id ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <>Kích hoạt ngay <ArrowRight className="w-4 h-4" /></>
-                                )}
-                            </button>
+                                    {/* HIỂN THỊ DỮ LIỆU ĐỘNG TỪ pkg.benefit HOẶC API FIELDS */}
+                                    <div className="space-y-3 mb-8">
+                                        {/* 1. Hiển thị lượt tiếp khách từ field maxJobsPerDay có sẵn */}
+                                        <FeatureItem text={`${pkg.maxJobsPerDay} lượt tiếp khách / tháng`} />
+
+                                        {/* 2. Xử lý chuỗi benefits từ API */}
+                                        {pkg.benefits && typeof pkg.benefits === 'string' ? (
+                                            pkg.benefits
+                                                .split(';') // Tách chuỗi thành mảng dựa trên dấu chấm phẩy
+                                                .map((item: string) => item.trim()) // Loại bỏ khoảng trắng thừa
+                                                .filter((item: string) => item.length > 0) // Loại bỏ các chuỗi rỗng
+                                                .map((benefitText: string, i: number) => (
+                                                    <FeatureItem key={i} text={benefitText} />
+                                                ))
+                                        ) : (
+                                            /* Fallback: Nếu không có dữ liệu benefits */
+                                            <>
+                                                <FeatureItem text="Hỗ trợ ưu tiên 24/7" />
+                                                <FeatureItem text="Ưu tiên hiển thị Profile" />
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={() => handleSubscribe(pkg.id)}
+                                        disabled={buyingId !== null}
+                                        className={`w-full py-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-3 ${pkg.id === currentSub?.packages?.id
+                                            ? "bg-transparent text-amber-500 border border-amber-500/50 hover:bg-amber-500 hover:text-black"
+                                            : "bg-white/5 text-white border border-white/10 hover:bg-white/10"
+                                            }`}
+                                    >
+                                        {buyingId === pkg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Chọn gói này"}
+                                    </button>
+                                </motion.div>
+                            ))}
                         </motion.div>
-                    ))}
-                </div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

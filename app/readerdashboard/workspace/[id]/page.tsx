@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Clock, User, Calendar, Sparkles, Send, 
   Wand2, CheckCircle2, DollarSign, ArrowLeft, Loader2,
-  Banknote, ShieldCheck, Hourglass, AlertCircle
+  Banknote, ShieldCheck, Hourglass, AlertCircle, Save
 } from "lucide-react";
 import { ReadingSessionService } from "@/services/readingSessionService";
 import { InterpretationService } from "@/services/interpretationService";
@@ -43,7 +43,6 @@ export default function WorkspacePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
 
-  // --- TIME STATES ---
   const [timeLeft, setTimeLeft] = useState<number>(3600);
   const [isTimeUp, setIsTimeUp] = useState(false);
 
@@ -82,6 +81,7 @@ export default function WorkspacePage() {
     };
   }, []);
 
+  // --- LOGIC 1: LOAD DỮ LIỆU & NHÁP ---
   useEffect(() => {
     const initWorkspace = async () => {
       try {
@@ -90,12 +90,11 @@ export default function WorkspacePage() {
         const transformed = transformData(response);
         setActiveRequest(transformed);
 
-        // Check thời gian (Yêu cầu 1)
+        // Check thời hạn
         if (transformed.acceptedAt) {
           const startTime = new Date(transformed.acceptedAt).getTime();
           const endTime = startTime + (60 * 60 * 1000); 
           const diff = Math.floor((endTime - Date.now()) / 1000);
-
           if (diff <= 0) {
             setTimeLeft(0);
             setIsTimeUp(true);
@@ -105,7 +104,7 @@ export default function WorkspacePage() {
           }
         }
 
-        // Fill data nếu đã có (Yêu cầu 2)
+        // Tải dữ liệu thật từ DB trước
         try {
           const oldData = await InterpretationService.getView(id as string);
           if (oldData && (oldData.advice || oldData.interpretation1)) {
@@ -117,8 +116,18 @@ export default function WorkspacePage() {
             setSummary(oldData.advice || "");
             setAmount(oldData.amount || 0);
             setIsReadOnly(true);
+          } else {
+            // Nếu chưa có dữ liệu DB, mới tải từ Nháp LocalStorage
+            const savedDraft = localStorage.getItem(`draft_session_${id}`);
+            if (savedDraft) {
+              const { cardInputs: dCard, summary: dSummary, amount: dAmount } = JSON.parse(savedDraft);
+              setCardInputs(dCard || {});
+              setSummary(dSummary || "");
+              setAmount(dAmount || 0);
+              toast("Đã khôi phục bản nháp chưa gửi!", { icon: '📝' });
+            }
           }
-        } catch (e) { console.log("New session"); }
+        } catch (e) { console.log("New session workflow"); }
 
       } catch (err) {
         toast.error("Không tìm thấy phiên làm việc");
@@ -129,6 +138,18 @@ export default function WorkspacePage() {
     };
     if (id) initWorkspace();
   }, [id, transformData, router]);
+
+  // --- LOGIC 2: AUTO-SAVE NHÁP (DEBOUNCE 1s) ---
+  useEffect(() => {
+    if (!id || isReadOnly || isSubmitting || loading) return;
+
+    const timer = setTimeout(() => {
+      const draftData = { cardInputs, summary, amount };
+      localStorage.setItem(`draft_session_${id}`, JSON.stringify(draftData));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [cardInputs, summary, amount, id, isReadOnly, isSubmitting, loading]);
 
   // COUNTDOWN TICKER
   useEffect(() => {
@@ -171,10 +192,14 @@ export default function WorkspacePage() {
         amount: amount,
       };
       await InterpretationService.submit(activeRequest.id, payload);
-      toast.success("Đã gửi!");
+      
+      // Xóa nháp khi gửi thành công
+      localStorage.removeItem(`draft_session_${id}`);
+      
+      toast.success("Đã gửi kết quả!");
       setIsReadOnly(true);
       setActiveRequest((p:any) => ({...p, status: 'WAITING_PAYMENT'}));
-    } catch (e) { toast.error("Lỗi gửi."); } finally { setIsSubmitting(false); }
+    } catch (e) { toast.error("Lỗi gửi bài."); } finally { setIsSubmitting(false); }
   };
 
   const handleConfirmPayment = async () => {
@@ -191,7 +216,6 @@ export default function WorkspacePage() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 pb-40 relative z-10">
       
-      {/* MODAL CHỈ HIỆN KHI HẾT GIỜ MÀ CHƯA COMPLETED */}
       <AnimatePresence>
         {isTimeUp && activeRequest.status !== 'COMPLETED' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-6 text-center">
@@ -206,7 +230,6 @@ export default function WorkspacePage() {
       </AnimatePresence>
 
       <div className="space-y-8">
-        {/* HEADER */}
         <div className="bg-[#130823]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
           <div className="flex-1">
             <button onClick={() => router.push("/readerdashboard")} className="text-slate-500 text-xs mb-4 flex items-center gap-2 hover:text-amber-500 transition-colors"><ArrowLeft className="w-3 h-3"/> Quay về</button>
@@ -218,7 +241,6 @@ export default function WorkspacePage() {
             </div>
           </div>
           
-          {/* COUNTDOWN: CHỈ HIỆN KHI ĐANG LÀM (CHƯA COMPLETED) */}
           {activeRequest.status !== 'COMPLETED' && !isReadOnly && (
             <div className="px-10 py-6 bg-white/5 rounded-[2.5rem] border border-white/10 text-center relative overflow-hidden">
               <span className="text-[10px] text-slate-500 font-black uppercase mb-2 block">Thời hạn còn lại</span>
@@ -236,7 +258,6 @@ export default function WorkspacePage() {
           )}
         </div>
 
-        {/* EDITOR SECTION */}
         <div className="bg-[#130823]/60 backdrop-blur-xl border border-white/10 rounded-[3.5rem] p-12 space-y-16 shadow-2xl">
           {activeRequest.cards.map((card: any, index: number) => (
             <div key={card.id} className="flex flex-col lg:flex-row gap-12 pb-16 border-b border-white/5 last:border-0 last:pb-0">
@@ -254,7 +275,6 @@ export default function WorkspacePage() {
             </div>
           ))}
 
-          {/* SUMMARY & MONEY */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 pt-10 border-t border-white/10">
             <div className="lg:col-span-2 space-y-6">
               <h3 className="text-2xl font-black text-white flex gap-3 uppercase italic"><Wand2 className="w-6 h-6 text-amber-400"/> Lời khuyên</h3>
@@ -279,12 +299,14 @@ export default function WorkspacePage() {
         </div>
       </div>
 
-      {/* FOOTER ACTION BAR */}
       <div className="fixed bottom-10 left-0 lg:left-64 right-0 z-40 px-6 flex justify-center">
         <AnimatePresence>
           {!isReadOnly && (
             <motion.div initial={{ y: 50 }} animate={{ y: 0 }} className="bg-[#1a1025]/90 border border-white/10 p-4 px-10 rounded-[3rem] flex items-center gap-10 shadow-2xl backdrop-blur-3xl">
-              <span className="text-slate-300 text-xs font-black uppercase tracking-widest">{Object.keys(cardInputs).length}/{activeRequest.cards.length} LÁ XONG</span>
+              <div className="flex flex-col items-start border-r border-white/10 pr-6">
+                 <span className="text-[10px] text-green-500 font-black flex items-center gap-1 animate-pulse"><Save className="w-3 h-3"/> AUTO SAVE</span>
+                 <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest">{Object.keys(cardInputs).length}/{activeRequest.cards.length} LÁ XONG</span>
+              </div>
               <button onClick={handleSubmit} disabled={isSubmitting} className="bg-amber-600 px-10 py-4 rounded-2xl text-white font-black uppercase text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-amber-900/20">{isSubmitting ? <Loader2 className="animate-spin"/> : "GỬI KẾT QUẢ"}</button>
             </motion.div>
           )}

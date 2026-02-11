@@ -17,6 +17,7 @@ import {
   PieChart,
   Loader2,
   Clock,
+  Link,
 } from "lucide-react";
 import { ReadingSessionService } from "@/services/readingSessionService";
 import { useAppDispatch, useAppSelector } from "@/hooks/useAppRedux";
@@ -33,7 +34,7 @@ export default function ReaderDashboardPage() {
   const { user } = useAppSelector((state: any) => state.auth);
   const ratingState = useAppSelector((state: any) => state.rating);
   // LẤY THÊM SUBSCRIPTION TỪ STORE
-  const { currentSub, loading: subLoading } = useAppSelector((state: any) => state.subscription);
+  const { currentSub, packages, loading: subLoading } = useAppSelector((state: any) => state.subscription);
 
   const rStats = ratingState.stats;
   const readerId = user?.id;
@@ -111,7 +112,7 @@ export default function ReaderDashboardPage() {
 
   // --- LOGIC DATA ĐỘNG CHO GÓI ---
   // Tính toán phần trăm dựa trên data thật hoặc default nếu chưa mua gói
-  const totalLimit = currentSub?.maxJobs || 1; // Tránh chia cho 0
+  const totalLimit = currentSub?.packages?.maxJobsPerDay || 1; // Tránh chia cho 0
   const remaining = currentSub?.remainingJobs ?? 0;
   const progressPercent = (remaining / totalLimit) * 100;
 
@@ -125,6 +126,7 @@ export default function ReaderDashboardPage() {
       </div>
     );
   }
+  console.log(currentSub)
   return (
     <div className="max-w-6xl mx-auto px-6 py-10 space-y-8 pb-32">
       {/* Header và Stats Section giữ nguyên UI của ông... */}
@@ -265,9 +267,9 @@ export default function ReaderDashboardPage() {
         <div className="flex flex-col items-center md:items-end gap-4 z-10 w-full md:w-80">
           <div className="w-full">
             <div className="flex justify-between text-[10px] font-black uppercase mb-3 text-white tracking-widest">
-              <span className="text-amber-500">Lượt nhận khách trong ngày</span>
+              <span className="text-amber-500">Lượt nhận khách trong tháng</span>
               <span>
-                {remaining} / {currentSub?.maxJobs || 0}
+                {remaining} / {currentSub?.packages?.maxJobsPerDay || 0}
               </span>
             </div>
             <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 shadow-inner">
@@ -290,18 +292,22 @@ export default function ReaderDashboardPage() {
 
       {/* Footer giữ nguyên... */}
       <footer className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
         <div className="bg-[#130823]/40 border border-white/5 rounded-[2rem] p-6 flex items-center justify-between group cursor-pointer hover:bg-white/5 hover:border-amber-500/40 transition-all shadow-md">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-amber-400 transition-colors">
-              <History className="w-6 h-6" />
+          {/* <Link href="/readerdashboard/history"> */}
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-amber-400 transition-colors">
+                <History className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white uppercase tracking-tight">Lịch sử thu nhập</h4>
+                <p className="text-[10px] text-slate-500 font-medium italic">Đối soát chi tiết các phiên đã xong</p>
+              </div>
             </div>
-            <div>
-              <h4 className="text-sm font-bold text-white uppercase tracking-tight">Lịch sử thu nhập</h4>
-              <p className="text-[10px] text-slate-500 font-medium italic">Đối soát chi tiết các phiên đã xong</p>
-            </div>
-          </div>
-          <ArrowUpRight className="w-5 h-5 text-slate-600 group-hover:text-amber-500 transition-colors" />
+            <ArrowUpRight className="w-5 h-5 text-slate-600 group-hover:text-amber-500 transition-colors" />
+          {/* </Link> */}
         </div>
+
         {/* Box thống kê hiệu suất giữ nguyên... */}
         <div className="bg-[#130823]/40 border border-white/5 rounded-[2rem] p-6 flex items-center justify-between group cursor-pointer hover:bg-white/5 hover:border-amber-500/40 transition-all shadow-md">
           <div className="flex items-center gap-4">
