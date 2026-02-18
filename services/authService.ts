@@ -3,6 +3,7 @@ import axios from "@/lib/axios";
 // để tự động gắn header 'Authorization: Bearer ...' khi có token.
 
 import { LoginRequest, RegisterRequest, AuthResponse } from "@/types/auth";
+import { verify } from "node:crypto";
 
 // Định nghĩa kiểu dữ liệu cho update info
 interface UpdateBookingInfoRequest {
@@ -46,5 +47,21 @@ export const AuthService = {
   updateBookingInfo: async (userId: number | string, data: UpdateBookingInfoRequest) => {
       const response = await axios.put(`/users/booking-info/${userId}`, data);
       return response.data;
+  },
+  verifyToken: async (token: string, userId: number) => {
+    try {
+      const response = await axios.post(`/auth/public/verify`, { token, userId });
+      return response.data; // Trả về thông tin người dùng nếu token hợp lệ
+    } catch (error) {
+      throw new Error("Token không hợp lệ hoặc đã hết hạn");
+    }
+  },
+  resendVerificationEmail: async (email: string) => {
+    try {
+      const response = await axios.post(`/auth/public/resend-verify`, { email });
+      return response.data; // Trả về thông báo thành công
+    } catch (error) {
+      throw new Error("Không thể gửi lại email xác nhận");
+    }
   }
 };

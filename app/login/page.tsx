@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SocialFloating from '@/components/SocialFloating';
+import { toast } from "react-toastify"
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,10 +31,22 @@ export default function LoginPage() {
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
-  
-  // Trạng thái cho hiệu ứng Coming Soon
+
+  // Trạng thái cho hiệu ứng Coming Soon (Giữ cho Facebook)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [methodName, setMethodName] = useState('');
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+// Hàm hiển thị thông báo nhanh (Nếu ông chưa có thư viện Toast)
+const showToast = (message: string, type: 'error' | 'success') => {
+  // Tạm thời dùng alert nếu chưa có component Toast, hoặc gọi hàm toast của ông
+  if (type === 'error') {
+    toast.error(message);
+  } else {
+    toast.success(message);
+  }
+};
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -50,6 +63,12 @@ export default function LoginPage() {
     return () => { dispatch(clearError()); };
   }, [isAuthenticated, user, router, callbackUrl, dispatch]);
 
+  // --- LOGIC LOGIN GOOGLE ---
+  const handleGoogleLogin = () => {
+    // Bay thẳng sang Backend để Google xử lý
+    window.location.href = "https://api.mystictarots.xyz/oauth2/authorization/google";
+  };
+
   const handleComingSoon = (method: string) => {
     setMethodName(method);
     setIsModalOpen(true);
@@ -57,25 +76,33 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.username || !formData.password) return;
+    if (!formData.username || !formData.password) {
+      setErrors({
+        username: !formData.username ? "Vui lòng nhập tên đăng nhập" : "",
+        password: !formData.password ? "Vui lòng nhập mật khẩu" : "",
+      });
+      return;
+    }
+
     const resultAction = await dispatch(loginUser({
       username: formData.username,
       passwordHash: formData.password,
     }));
 
+    // --- THÀNH CÔNG ---
     if (loginUser.fulfilled.match(resultAction)) {
       const loggedInUser = resultAction.payload.user;
       const role = loggedInUser?.role || "CUSTOMER";
-      // --- LOGIC MỚI: Tự động bật trạng thái cho Reader ---
-    if (role === "READER") {
-      try {
-        // Gọi hàm toggleStatus đã định nghĩa
-        await UserService.toggleStatus(); 
-        console.log("Reader is now Online");
-      } catch (error) {
-        console.error("Lỗi tự động bật trạng thái:", error);
+
+      if (role === "READER") {
+        try {
+          await UserService.toggleStatus();
+          console.log("Reader is now Online");
+        } catch (error) {
+          console.error("Lỗi tự động bật trạng thái:", error);
+        }
       }
-    }
+
       if (role === "READER" || role === "ADMIN") {
         router.push("/readerdashboard");
       } else {
@@ -86,18 +113,35 @@ export default function LoginPage() {
         }
       }
     }
+    // --- THẤT BẠI (THÊM ĐOẠN NÀY VÀO ĐÂY) ---
+    else if (loginUser.rejected.match(resultAction)) {
+      const serverError = resultAction.payload as any;
+
+      // Nếu BE trả về đúng cái chuỗi "Bad credentials"
+      if (serverError?.message === "Bad credentials") {
+        setErrors({
+          username: "Tên đăng nhập hoặc mật khẩu không chính xác",
+          password: " ", // Để trống hoặc dấu cách để ô password cũng hiện viền đỏ (nếu có logic border)
+        });
+        showToast("Đăng nhập thất bại, vui lòng kiểm tra lại thông tin đăng nhập!", "error");
+      } else {
+        // Các lỗi khác (ví dụ: Account locked, server down...)
+        const msg = typeof serverError === 'string' ? serverError : "Đã có lỗi xảy ra";
+        showToast(msg, "error");
+      }
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#0a0510] flex flex-col relative overflow-x-hidden font-sans">
-      
+
       <Header />
 
-      {/* --- MODAL KHẢI HUYỀN CHO SOCIAL LOGIN --- */}
+      {/* --- MODAL COMING SOON CHO FACEBOOK --- */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
               className="absolute inset-0 bg-[#050505]/95 backdrop-blur-xl"
@@ -105,20 +149,20 @@ export default function LoginPage() {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent" />
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.8, rotateX: -20 }}
               animate={{ opacity: 1, scale: 1, rotateX: 0 }}
               exit={{ opacity: 0, scale: 0.8, rotateX: 20 }}
               className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 p-10 rounded-[3rem] shadow-[0_0_100px_-20px_rgba(245,158,11,0.2)] text-center"
             >
               <div className="relative mb-6 flex justify-center">
-                <motion.div 
-                  animate={{ rotate: 360 }} 
+                <motion.div
+                  animate={{ rotate: 360 }}
                   transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                  className="absolute inset-0 border border-dashed border-amber-500/30 rounded-full scale-125" 
+                  className="absolute inset-0 border border-dashed border-amber-500/30 rounded-full scale-125"
                 />
                 <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20">
-                   <Moon className="w-8 h-8 text-amber-500 animate-pulse" />
+                  <Moon className="w-8 h-8 text-amber-500 animate-pulse" />
                 </div>
               </div>
 
@@ -127,7 +171,7 @@ export default function LoginPage() {
                 "Kết nối qua <span className="text-amber-400 font-bold">{methodName}</span> đang được các pháp sư thiết lập cổ trận. Hãy sử dụng phương thức truyền thống để đăng nhập vào cõi Mystic."
               </p>
 
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="w-full py-4 bg-white text-black font-black rounded-2xl hover:bg-amber-500 hover:text-white transition-all uppercase text-sm tracking-widest"
               >
@@ -174,6 +218,7 @@ export default function LoginPage() {
                       className="h-11 pl-10 bg-slate-950/50 border-white/10 text-slate-100 focus:border-amber-500/50 transition-all"
                       required
                     />
+                    {errors.username && <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.username}</p>}
                   </div>
                 </div>
 
@@ -191,6 +236,7 @@ export default function LoginPage() {
                       className="h-11 pl-10 pr-10 bg-slate-950/50 border-white/10 text-slate-100 focus:border-amber-500/50 transition-all"
                       required
                     />
+                    {errors.password && <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.password}</p>}
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-amber-400">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -207,15 +253,15 @@ export default function LoginPage() {
                 <div className="relative flex justify-center text-xs uppercase"><span className="bg-[#0f0a19] px-2 text-slate-500">Hoặc tiếp tục với</span></div>
               </div>
 
-              {/* --- NÚT SOCIAL LOGIN VỚI HIỆU ỨNG COMING SOON --- */}
+              {/* --- NÚT SOCIAL LOGIN ĐÃ THÔNG NÒNG --- */}
               <div className="grid grid-cols-2 gap-3 mb-6">
-                <Button 
-                  onClick={() => handleComingSoon('Google')}
+                <Button
+                  onClick={handleGoogleLogin}
                   variant="outline" className="h-10 border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition-all"
                 >
                   GOOGLE
                 </Button>
-                <Button 
+                <Button
                   onClick={() => handleComingSoon('Facebook')}
                   variant="outline" className="h-10 border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition-all"
                 >
@@ -234,7 +280,7 @@ export default function LoginPage() {
       </main>
 
       <Footer />
-      <SocialFloating/>
+      <SocialFloating />
     </div>
   );
 }

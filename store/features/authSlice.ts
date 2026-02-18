@@ -2,18 +2,13 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthService } from '@/services/authService';
 import { User, LoginRequest, RegisterRequest, AuthResponse } from '@/types/auth';
 
-// 1. Thêm isAuthenticated vào Interface
 interface AuthState {
   user: User | null;
   token: string | null;
-  isAuthenticated: boolean; // <--- THÊM DÒNG NÀY
+  isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
-}
-
-interface LoginResponse {
-  user: User;
-  token: string;
+  verificationStatus: 'idle' | 'loading' | 'success' | 'expired' | 'error';
 }
 
 const getInitialState = (): AuthState => {
@@ -24,49 +19,76 @@ const getInitialState = (): AuthState => {
       return {
         user: user ? JSON.parse(user) : null,
         token: token || null,
-        // 2. Tính toán trạng thái đăng nhập từ token
         isAuthenticated: !!token,
         loading: false,
         error: null,
+        verificationStatus: 'idle',
       };
     } catch (e) {
       console.error("Lỗi parse auth storage:", e);
     }
   }
-  return { user: null, token: null, isAuthenticated: false, loading: false, error: null };
+  return { user: null, token: null, isAuthenticated: false, loading: false, error: null, verificationStatus: 'idle' };
 };
 
 const initialState: AuthState = getInitialState();
 
+// 1. Thunk: Đăng nhập
 export const loginUser = createAsyncThunk<AuthResponse, LoginRequest, { rejectValue: string }>(
   'auth/login',
-  async (credentials, thunkAPI) => {
+  async (credentials, { rejectWithValue }) => {
     try {
       const response = await AuthService.login(credentials);
-      // Giả sử AuthService.login trả về dữ liệu đúng kiểu AuthResponse
-      return response; 
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error.response?.data?.message || 'Đăng nhập thất bại');
+      return response;
+    } catch (err: any) {
+      if (err.response && err.response.data) {
+        return rejectWithValue(err.response.data);
+      }
+      return rejectWithValue("Đã xảy ra lỗi hệ thống");
     }
   }
 );
 
+// 2. Thunk: Đăng ký (Đã bỏ tự động Login để chờ Verify)
 export const registerUser = createAsyncThunk(
   'auth/register',
-  async (data: RegisterRequest, thunkAPI) => {
+  async (data: RegisterRequest, { rejectWithValue }) => {
     try {
-      await AuthService.register(data);
-      const loginResponse = await AuthService.login({
-        username: data.username,
-        passwordHash: data.passwordHash // <--- Fix lỗi type password -> passwordHash
-      });
-      return {
-        user: loginResponse.user,
-        token: loginResponse.token
-      };
+      const response = await AuthService.register(data);
+      return response; // Trả về thông báo yêu cầu check mail
+    } catch (err: any) {
+      // TRỌNG TÂM Ở ĐÂY: 
+      // Nếu BE trả về lỗi (400, 401...), ta lấy data (Map lỗi) ném vào rejectWithValue
+      if (err.response && err.response.data) {
+        return rejectWithValue(err.response.data);
+      }
+      return rejectWithValue("Đã xảy ra lỗi hệ thống");
+    }
+  }
+);
+
+// 3. Thunk: Xác thực Token Email
+export const verifyEmail = createAsyncThunk(
+  'auth/verifyEmail',
+  async ({ token, userId }: { token: string; userId: number }, thunkAPI) => {
+    try {
+      const response = await AuthService.verifyToken(token, userId);
+      return response;
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Đăng ký thất bại';
-      return thunkAPI.rejectWithValue(message);
+      return thunkAPI.rejectWithValue(error.message || 'Xác thực thất bại');
+    }
+  }
+);
+
+// 4. Thunk: Gửi lại email xác thực
+export const resendVerification = createAsyncThunk(
+  'auth/resendVerification',
+  async (email: string, thunkAPI) => {
+    try {
+      const response = await AuthService.resendVerificationEmail(email);
+      return response;
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error.message || 'Gửi lại email thất bại');
     }
   }
 );
@@ -78,51 +100,38 @@ const authSlice = createSlice({
     loginSuccess: (state, action: PayloadAction<{ user: any; token: string }>) => {
       state.user = action.payload.user;
       state.token = action.payload.token;
-      state.isAuthenticated = true; // <--- Cập nhật thành true
+      state.isAuthenticated = true;
       state.loading = false;
       state.error = null;
-
       if (typeof window !== 'undefined') {
         localStorage.setItem('accessToken', action.payload.token);
         localStorage.setItem('currentUser', JSON.stringify(action.payload.user));
       }
     },
-
     logout: (state) => {
       state.user = null;
       state.token = null;
-      state.isAuthenticated = false; // <--- Cập nhật thành false
+      state.isAuthenticated = false;
       state.error = null;
+      state.verificationStatus = 'idle';
       if (typeof window !== 'undefined') {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('currentUser');
       }
     },
-
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
-        // Merge dữ liệu cũ và mới để tránh mất các trường khác
         state.user = { ...state.user, ...action.payload };
-        
         if (typeof window !== 'undefined') {
           localStorage.setItem('currentUser', JSON.stringify(state.user));
         }
       }
     },
-
-    // Thêm một action chuyên để đồng bộ lại toàn bộ từ Server
-    syncUserFromStorage: (state) => {
-      if (typeof window !== 'undefined') {
-        const userJson = localStorage.getItem('currentUser');
-        if (userJson) {
-          state.user = JSON.parse(userJson);
-          state.isAuthenticated = !!localStorage.getItem('accessToken');
-        }
-      }
-    },
-
     clearError: (state) => {
       state.error = null;
+    },
+    resetVerificationStatus: (state) => {
+      state.verificationStatus = 'idle';
     }
   },
   extraReducers: (builder) => {
@@ -136,7 +145,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
-        state.isAuthenticated = true; // <--- True khi login xong
+        state.isAuthenticated = true;
         if (typeof window !== 'undefined') {
           localStorage.setItem('accessToken', action.payload.token);
           localStorage.setItem('currentUser', JSON.stringify(action.payload.user));
@@ -144,26 +153,49 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.isAuthenticated = false;
         state.error = action.payload as string;
       })
+
       // Register
       .addCase(registerUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(registerUser.fulfilled, (state, action) => {
+      .addCase(registerUser.fulfilled, (state) => {
         state.loading = false;
-        state.user = action.payload.user; // Nên cập nhật user luôn sau khi đăng ký thành công
-        state.token = action.payload.token;
-        state.isAuthenticated = true;
+        // Đăng ký xong chưa cho isAuthenticated = true
       })
       .addCase(registerUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Verify Email
+      .addCase(verifyEmail.pending, (state) => {
+        state.verificationStatus = 'loading';
+      })
+      .addCase(verifyEmail.fulfilled, (state) => {
+        state.verificationStatus = 'success';
+      })
+      .addCase(verifyEmail.rejected, (state, action) => {
+        // Logic check nếu BE trả về mã expired thì set status tương ứng
+        state.verificationStatus = (action.payload as string).includes('hết hạn') ? 'expired' : 'error';
+      })
+
+      // Resend Verification
+      .addCase(resendVerification.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(resendVerification.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null; // Hoặc set 1 cái toast thành công
+      })
+      .addCase(resendVerification.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
   },
 });
 
-export const { logout, updateUser, clearError, loginSuccess } = authSlice.actions;
+export const { logout, updateUser, clearError, loginSuccess, resetVerificationStatus } = authSlice.actions;
 export default authSlice.reducer;
