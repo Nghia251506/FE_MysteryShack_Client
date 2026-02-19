@@ -94,7 +94,13 @@ export default function Header() {
                 className="flex items-center gap-2 group"
               >
                 <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-black font-black text-xs">
-                  {user.fullName?.charAt(0) || "U"}
+                  <Image
+                    src={user?.profilePicture || "/default-avatar.png"}
+                    alt="Avatar"
+                    width={8}
+                    height={8}
+                    className="rounded-full object-cover"
+                  />
                 </div>
                 <span className="text-sm font-bold text-white group-hover:text-amber-500 transition-colors">
                   {user.fullName}
@@ -177,13 +183,13 @@ export default function Header() {
                       key={link.href}
                       href={link.href}
                       className={`
-                flex items-center justify-between p-4 rounded-2xl border transition-all duration-300
-                ${
-                  pathname === link.href
-                    ? "bg-amber-500 border-amber-500 text-black shadow-[0_8px_20px_rgba(245,158,11,0.3)]"
-                    : "bg-white/[0.03] border-white/10 text-slate-300 hover:border-amber-500/50 hover:text-amber-500"
-                }
-              `}
+                        flex items-center justify-between p-4 rounded-2xl border transition-all duration-300
+                        ${
+                          pathname === link.href
+                            ? "bg-amber-500 border-amber-500 text-black shadow-[0_8px_20px_rgba(245,158,11,0.3)]"
+                            : "bg-white/[0.03] border-white/10 text-slate-300 hover:border-amber-500/50 hover:text-amber-500"
+                        }
+                      `}
                     >
                       <span className="text-[11px] font-black uppercase tracking-widest">
                         {link.name}
@@ -211,14 +217,16 @@ export default function Header() {
                         <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-black font-black shadow-[0_0_15px_rgba(245,158,11,0.4)]">
                           {user.fullName?.charAt(0) || "U"}
                         </div>
-                        <div className="max-w-[120px]">
-                          <p className="text-[9px] text-amber-500/60 uppercase font-black tracking-widest">
-                            Xin chào,
-                          </p>
-                          <p className="text-sm font-bold text-white truncate">
-                            {user.fullName || user.username}
-                          </p>
-                        </div>
+                        <Link href="/profile">
+                          <div className="max-w-[120px]">
+                            <p className="text-[9px] text-amber-500/60 uppercase font-black tracking-widest">
+                              Xin chào,
+                            </p>
+                            <p className="text-sm font-bold text-white truncate">
+                              {user.fullName || user.username}
+                            </p>
+                          </div>
+                        </Link>
                       </div>
                       <button
                         onClick={handleLogout}

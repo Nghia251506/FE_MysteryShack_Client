@@ -5,7 +5,7 @@ import { closeFcmModal } from "@/store/slices/fcmSlice";
 import { useRouter } from "next/navigation";
 import { ReadingSessionService } from "@/services/readingSessionService";
 import { toast } from "react-toastify";
-import { Star } from "lucide-react";
+import { Bell, Star } from "lucide-react";
 
 export const ModalFCMGlobal = () => {
   const { isModalOpen, currentNotification } = useAppSelector(
@@ -352,20 +352,128 @@ export const ModalFCMGlobal = () => {
             </div>
           </div>
         );
+        // 1. THÔNG BÁO BẢO TRÌ (MAINTENANCE)
+    case "MAINTENANCE":
+      return (
+        <div className="text-center">
+          <div className="w-20 h-20 bg-amber-100 rounded-3xl flex items-center justify-center mx-auto mb-4 rotate-3 shadow-sm border border-amber-200">
+            <span className="text-4xl">🛠️</span>
+          </div>
+          <h3 className="text-xl font-black text-amber-700 uppercase tracking-tighter">
+            Hệ thống bảo trì
+          </h3>
+          <div className="mt-4 bg-amber-50/50 p-4 rounded-2xl border border-amber-100">
+            <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line font-medium">
+              {message || "Chúng tôi đang nâng cấp hệ thống để mang lại trải nghiệm tốt hơn. Vui lòng quay lại sau ít phút!"}
+            </p>
+          </div>
+          <button
+            onClick={handleClose}
+            className="mt-6 w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-lg shadow-slate-200 hover:bg-black transition-all"
+          >
+            ĐÃ HIỂU
+          </button>
+        </div>
+      );
+
+    // 2. TÀI KHOẢN BỊ KHÓA (ACCOUNT_BLOCKED)
+    case "ACCOUNT_BLOCKED":
+      return (
+        <div className="text-center">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-lg">
+            <span className="text-4xl">🚫</span>
+          </div>
+          <h3 className="text-xl font-bold text-red-600">Truy cập bị từ chối</h3>
+          <p className="text-xs text-slate-400 mt-1 uppercase font-bold tracking-widest">Security Alert</p>
+          
+          <div className="mt-4 bg-red-50 p-4 rounded-2xl border border-red-100 text-left">
+            <p className="text-red-800 text-sm leading-relaxed italic">
+              "{message || "Tài khoản của bạn tạm thời bị khóa do vi phạm chính sách cộng đồng hoặc phát hiện hoạt động bất thường."}"
+            </p>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <button
+              onClick={() => {
+                handleClose();
+                router.push("/support"); // Link tới trang hỗ trợ nếu có
+              }}
+              className="w-full bg-red-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-red-100 hover:bg-red-700 transition-all"
+            >
+              LIÊN HỆ HỖ TRỢ
+            </button>
+            <button onClick={handleClose} className="text-slate-400 text-sm font-medium hover:text-slate-600 transition-colors">
+              Đóng
+            </button>
+          </div>
+        </div>
+      );
+
+    // 3. KHUYẾN MÃI / SỰ KIỆN (PROMOTION)
+    case "PROMOTION":
+      return (
+        <div className="text-center relative overflow-hidden">
+          {/* Decor một chút cho giống app xịn */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-50 rounded-full blur-3xl" />
+          
+          <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-100 -rotate-6">
+            <span className="text-5xl">🎁</span>
+          </div>
+          
+          <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-700">
+            Ưu Đãi Đặc Biệt!
+          </h3>
+          
+          <p className="mt-3 text-slate-600 font-medium px-2">
+            {message || "Bạn nhận được một món quà bất ngờ từ hệ thống. Khám phá ngay!"}
+          </p>
+
+          <button
+            onClick={() => {
+              handleClose();
+              if (currentNotification.link) router.push(currentNotification.link);
+            }}
+            className="mt-8 w-full bg-emerald-500 text-white py-4 rounded-2xl font-black tracking-wider shadow-lg shadow-emerald-200 hover:bg-emerald-600 hover:-translate-y-1 transition-all"
+          >
+            NHẬN QUÀ NGAY 🚀
+          </button>
+          
+          <button 
+            onClick={handleClose}
+            className="mt-4 text-slate-400 text-xs font-bold uppercase tracking-widest hover:text-emerald-500 transition-colors"
+          >
+            Để sau nhé
+          </button>
+        </div>
+      );
 
       default:
         return (
           <div className="text-center">
-            <h3 className="text-lg font-bold">Thông báo mới</h3>
-            <p className="mt-2 text-gray-600">
-              {message || "Bạn có một cập nhật mới từ hệ thống"}
+            {/* Icon mặc định cho các thông báo không xác định */}
+            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+              <Bell size={28} />
+            </div>
+
+            <h3 className="text-xl font-bold text-slate-800 tracking-tight">
+              Thông báo mới
+            </h3>
+            
+            <p className="mt-3 text-slate-500 text-sm leading-relaxed px-2">
+              {message || "Bạn có một cập nhật mới từ hệ thống. Vui lòng kiểm tra để không bỏ lỡ thông tin quan trọng."}
             </p>
+
             <button
               onClick={handleClose}
-              className="mt-6 w-full bg-gray-100 py-3 rounded-xl"
+              className="mt-8 w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-lg shadow-slate-200 hover:bg-black active:scale-[0.98] transition-all uppercase text-xs tracking-widest"
             >
-              Đóng
+              Đã ghi nhận
             </button>
+            
+            {/* Thêm một lựa chọn nhỏ bên dưới nếu cần */}
+            <p className="mt-4 text-[10px] text-slate-300 uppercase tracking-tighter">
+              System Notification
+            </p>
           </div>
         );
     }
