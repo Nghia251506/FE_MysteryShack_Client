@@ -36,8 +36,8 @@ export interface UserUpdateDto{
   phone?: string;
 }
 
-interface ReaderUser {
-
-
-
+export interface ProfileUpdateRequest {
+  fullName?: string;
+  profilePicture?: string;
+  birthDate?: Date;
 }

@@ -2,7 +2,7 @@ import axios from "@/lib/axios";
 // QUAN TRỌNG: Đảm bảo @/lib/axios đã được cấu hình Interceptor 
 // để tự động gắn header 'Authorization: Bearer ...' khi có token.
 
-import { LoginRequest, RegisterRequest, AuthResponse } from "@/types/auth";
+import { LoginRequest, RegisterRequest, AuthResponse, ChangPasswordRequest } from "@/types/auth";
 import { verify } from "node:crypto";
 
 // Định nghĩa kiểu dữ liệu cho update info
@@ -63,5 +63,21 @@ export const AuthService = {
     } catch (error) {
       throw new Error("Không thể gửi lại email xác nhận");
     }
-  }
+  },
+  forgotPassword: async (email: string) => {
+    try {
+      const response = await axios.post(`/auth/forgot-password?email=${email}`);
+      return response.data; // Trả về thông báo thành công
+    } catch (error) {
+      throw new Error("Không thể gửi email đặt lại mật khẩu");
+    }
+  },
+  changePassword: async (data: ChangPasswordRequest) => {
+    try {
+      const response = await axios.post(`/auth/reset-password`, data);
+      return response.data; // Trả về thông báo thành công
+    } catch (error) {
+      throw new Error("Không thể đổi mật khẩu");
+    }
+  },
 };

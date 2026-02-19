@@ -33,3 +33,10 @@ export interface AuthResponse {
   user: User;
   message?: string;
 }
+
+export interface ChangPasswordRequest {
+  email: string;
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}

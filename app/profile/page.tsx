@@ -1,286 +1,384 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-    Calendar, Mail, LogOut, Sparkles,
-    Clock, CheckCircle2, XCircle, ChevronRight,
-    Loader2, History as HistoryIcon, ArrowRight,
-    ChevronLeft, X
+  Calendar, Mail, LogOut, Loader2, ArrowRight, ChevronLeft,
+  ChevronRight, History as HistoryIcon, Edit3, Camera, Check, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/store/store";
 import { logout } from "@/store/features/authSlice";
+import { fetchAllMyHistories } from "@/store/slices/historySlice";
+import { updateCustomerProfile } from "@/store/slices/userSlice"; 
+import { AppwriteService } from "@/appwrite.config"; 
 import { LogoutModal } from "@/components/LogoutModal";
-import { HistoryService } from "@/services/historyService";
-import { AuthService } from "@/services/authService";
-import { toast } from "react-toastify";
 import SocialFloating from "@/components/SocialFloating";
 import Header from "@/components/Header";
-
-// --- GIỮ NGUYÊN HELPERS CỦA ÔNG ---
-const getCardDetail = (id: number) => {
-    const safeId = Number(id);
-    const getImg = (prefix: string, num: number) =>
-        `https://www.sacred-texts.com/tarot/pkt/img/${prefix}${num.toString().padStart(2, '0')}.jpg`;
-    if (safeId <= 22) {
-        const majors = ["The Fool", "The Magician", "The High Priestess", "The Empress", "The Emperor", "The Hierophant", "The Lovers", "The Chariot", "Strength", "The Hermit", "Wheel of Fortune", "Justice", "The Hanged Man", "Death", "Temperance", "The Devil", "The Tower", "The Star", "The Moon", "The Sun", "Judgement", "The World"];
-        return { name: majors[safeId - 1] || `Major #${safeId}`, img: getImg("ar", safeId - 1) };
-    }
-    const suits = [{ name: "Wands", code: "wa" }, { name: "Cups", code: "cu" }, { name: "Swords", code: "sw" }, { name: "Pentacles", code: "pe" }];
-    const minorIndex = safeId - 23; const suitIndex = Math.floor(minorIndex / 14); const rankIndex = minorIndex % 14;
-    const ranks = ["Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Page", "Knight", "Queen", "King"];
-    if (suitIndex < 4) return { name: `${ranks[rankIndex]} of ${suits[suitIndex].name}`, img: getImg(suits[suitIndex].code, rankIndex + 1) };
-    return { name: `Card #${safeId}`, img: "https://placehold.co/150x250?text=?" };
-};
-
-const getZodiac = (dateString: string | undefined) => {
-    if (!dateString) return "Bí ẩn";
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "Bí ẩn";
-    const day = date.getDate();
-    const month = date.getMonth() + 1;
-    if ((month == 1 && day <= 19) || (month == 12 && day >= 22)) return "Ma Kết";
-    if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) return "Bảo Bình";
-    if ((month == 2 && day >= 19) || (month == 3 && day <= 20)) return "Song Ngư";
-    if ((month == 3 && day >= 21) || (month == 4 && day <= 19)) return "Bạch Dương";
-    if ((month == 4 && day >= 20) || (month == 5 && day <= 20)) return "Kim Ngưu";
-    if ((month == 5 && day >= 21) || (month == 6 && day <= 21)) return "Song Tử";
-    if ((month == 6 && day >= 22) || (month == 7 && day <= 22)) return "Cự Giải";
-    if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) return "Sư Tử";
-    if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return "Xử Nữ";
-    if ((month == 9 && day >= 23) || (month == 10 && day <= 23)) return "Thiên Bình";
-    if ((month == 10 && day >= 24) || (month == 11 && day <= 21)) return "Bọ Cạp";
-    return "Nhân Mã";
-};
+import { AuthService } from "@/services/authService";
+import { toast } from "sonner";
+import Footer from "@/components/Footer";
 
 export default function UserProfilePage() {
-    const router = useRouter();
-    const dispatch = useDispatch<AppDispatch>();
-    const { user } = useSelector((state: RootState) => state.auth);
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
 
-    const [isMounted, setIsMounted] = useState(false);
-    const [allRecentSessions, setAllRecentSessions] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [showLogoutModal, setShowLogoutModal] = useState(false);
-    
-    // Bỏ state selectedSession vì không dùng modal nữa
+  // Dữ liệu từ Redux
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { 
+    allHistories, 
+    loading: allLoading,
+    totalPages,
+    currentPage,
+    totalElements 
+  } = useSelector((state: RootState) => state.history);
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 3;
+  const [isMounted, setIsMounted] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-    useEffect(() => { setIsMounted(true); }, []);
+  // --- STATE CHỈNH SỬA THÔNG TIN ---
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    fullName: "",
+    birthDate: "",
+    profilePicture: ""
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-    // --- GIỮ NGUYÊN LOGIC BIẾN ĐỔI DỮ LIỆU CỦA ÔNG ---
-    const transformData = (item: any) => {
-        const rawCards = item.request?.selectedCards || [];
-        const cards = rawCards.map((c: any) => {
-            const id = Number(c.cardId || 0);
-            const localInfo = getCardDetail(id);
-            return {
-                id,
-                name: c.nameVi || localInfo.name,
-                img: c.imageUrl || localInfo.img,
-                isReversed: c.reversed || false
-            };
-        });
+  // Load dữ liệu lần đầu
+  useEffect(() => {
+    setIsMounted(true);
+    if (user) {
+      // Gọi lịch sử trải bài trang đầu tiên
+      dispatch(fetchAllMyHistories({ page: 0, size: 6 }));
+      
+      // Đồng bộ dữ liệu User vào Form Edit
+      setEditForm({
+        fullName: user.fullName || "",
+        birthDate: user.birthDate ? new Date(user.birthDate).toISOString().split('T')[0] : "",
+        profilePicture: user.profilePicture || ""
+      });
+    }
+  }, [dispatch, user]);
 
-        const form = item.interpretationForm;
-        const messageText = form
-            ? `${form.interpretation1 || ""}\n\n${form.interpretation2 || ""}\n\n${form.interpretation3 || ""}\n\nLời khuyên: ${form.advice || ""}`.trim()
-            : "Kết quả đang được Reader chuẩn bị...";
+  // Xử lý phân trang
+  const handlePageChange = (newPage: number) => {
+    dispatch(fetchAllMyHistories({ page: newPage, size: 6 }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-        return {
-            ...item,
-            cards,
-            displayDate: item.createdAt ? new Date(item.createdAt).toLocaleDateString("vi-VN") : "N/A",
-            displayName: user?.role === "READER"
-                ? (item.customer?.fullName || "Khách hàng")
-                : (item.reader?.fullName || "Hệ thống Tarot"),
-            displayAvatar: user?.role === "READER"
-                ? (item.customer?.profilePicture)
-                : (item.reader?.profilePicture),
-            finalResult: messageText,
-            // Thêm ID để nhảy trang
-            requestId: item.request?.id
-        };
-    };
+  // --- XỬ LÝ UPLOAD ẢNH LÊN APPWRITE ---
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const fetchRecentSessions = async () => {
-        if (!user) return;
-        try {
-            setLoading(true);
-            const response = await HistoryService.getRecentHistory();
-            console.log("Response lịch sử gần đây:", response);
-            const data = Array.isArray(response) ? response : [];
-            setAllRecentSessions(data.map(item => transformData(item)));
-        } catch (error) {
-            console.error("Lỗi lấy dữ liệu profile:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Kiểm tra định dạng và dung lượng (Dưới 5MB)
+    if (!file.type.startsWith('image/')) {
+        toast.error("Vui lòng chọn định dạng hình ảnh!");
+        return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ảnh quá lớn, vui lòng chọn ảnh dưới 5MB");
+      return;
+    }
 
-    useEffect(() => {
-        if (isMounted && user) {
-            fetchRecentSessions();
-        }
-    }, [user, isMounted]);
+    setIsUploadingImage(true);
+    const toastId = toast.loading("Đang tải ảnh lên hệ thống...");
 
-    const currentItems = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return allRecentSessions.slice(start, start + itemsPerPage);
-    }, [allRecentSessions, currentPage]);
+    try {
+      // 1. Upload lên Appwrite
+      const uploadedUrl = await AppwriteService.uploadFile(file);
+      
+      // 2. Cập nhật link vào form tạm
+      setEditForm(prev => ({ ...prev, profilePicture: uploadedUrl }));
+      
+      toast.success("Tải ảnh thành công!", { id: toastId });
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Lỗi khi tải ảnh lên Appwrite", { id: toastId });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
-    const totalPages = Math.ceil(allRecentSessions.length / itemsPerPage);
-    
-    const handleConfirmLogout = async () => {
-        try {
-            await AuthService.logout();
-        } catch (error) {
-            console.error("Logout API error:", error);
-        } finally {
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("currentUser");
-            dispatch(logout()); 
-            router.push("/login");
-        }
-    };
+  // --- XỬ LÝ LƯU THÔNG TIN VỀ BACKEND ---
+  const handleSaveProfile = async () => {
+    if (!editForm.fullName.trim()) {
+      toast.error("Họ tên không được để trống");
+      return;
+    }
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'COMPLETED': return <span className="px-2.5 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Hoàn thành</span>;
-            case 'IN_PROGRESS': return <span className="px-2.5 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><Sparkles className="w-3 h-3" /> Đang giải</span>;
-            case 'CANCELED': return <span className="px-2.5 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><XCircle className="w-3 h-3" /> Đã hủy</span>;
-            case 'ACCEPTED': return <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><XCircle className="w-3 h-3" /> Reader đã nhận</span>;
-            case 'PENDING' : return <span className="px-2.5 py-0.5 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><Clock className="w-3 h-3" /> Chờ duyệt</span>;
-            default: return <span className="px-2.5 py-0.5 bg-slate-500/20 text-slate-400 border border-slate-500/30 rounded-full text-[10px] font-bold flex items-center gap-1"><Clock className="w-3 h-3" /> Chờ duyệt</span>;
-        }
-    };
+    setIsUpdating(true);
+    try {
+      // Gọi Thunk update hồ sơ Customer (đã có logic cập nhật LocalStorage trong Slice)
+      await dispatch(updateCustomerProfile(editForm as any)).unwrap();
+      
+      setIsEditing(false);
+      toast.success("Hồ sơ của bạn đã được cập nhật!");
+    } catch (error: any) {
+      toast.error(error || "Cập nhật thất bại!");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
-    if (!isMounted) return null;
-    if (!user) { router.push("/login"); return null; }
-    const handleDisableClick = (e: React.MouseEvent) => {
-        if(currentItems.map(item => item.status).includes("ACCEPTED")) {
-            toast.error("Reader đang nhập luận giải, bạn vui lòng chờ cho đến khi Reader gửi thông báo cho bạn hoặc sau khoảng 1 tiếng nữa!");
-        }
-        return e.preventDefault();
-    };
+  const handleConfirmLogout = async () => {
+    try {
+      await AuthService.logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("currentUser");
+      dispatch(logout());
+      router.push("/login");
+    }
+  };
 
-    return (
-        <div className="min-h-screen bg-[#050505] text-slate-200 font-sans relative">
-            {/* 1. GHÉP HEADER VÀO TRƯỚC */}
-            <Header />
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case "COMPLETED": return "text-green-400 bg-green-500/10 border-green-500/20";
+      case "CANCELED": return "text-red-400 bg-red-500/10 border-red-500/20";
+      case "IN_PROGRESS": return "text-blue-400 bg-blue-500/10 border-blue-500/20";
+      case "ACCEPTED": return "text-purple-400 bg-purple-500/10 border-purple-500/20";
+      default: return "text-amber-400 bg-amber-500/10 border-amber-500/20";
+    }
+  };
 
-            {/* 2. GHÉP SOCIAL FLOATING */}
-            <SocialFloating />
-            <div className="fixed inset-0 pointer-events-none">
-                <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-purple-900/10 rounded-full blur-[120px]" />
-                <div className="absolute bottom-0 left-0 w-[30vw] h-[30vw] bg-amber-900/10 rounded-full blur-[100px]" />
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-            </div>
+  if (!isMounted || !user) return null;
 
-            
+  return (
+    <div className="min-h-screen bg-[#050505] text-slate-200 font-sans relative pb-20">
+      <Header />
+      <SocialFloating />
+      
+      {/* Background Decor */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-purple-900/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-amber-900/5 rounded-full blur-[100px]" />
+      </div>
 
-            <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* CỘT TRÁI - GIỮ NGUYÊN UI */}
-                    <div className="lg:col-span-4 space-y-6">
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[#130823]/60 border border-white/10 rounded-[2.5rem] p-8 text-center backdrop-blur-xl shadow-2xl">
-                            <div className="w-28 h-28 mx-auto rounded-full p-1 bg-gradient-to-br from-amber-400 to-purple-600 mb-4">
-                                <img src={user.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.fullName}`} className="w-full h-full rounded-full border-4 border-[#130823] bg-[#1a1025] object-cover" alt="Avatar" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-white mb-1">{user.fullName}</h2>
-                            <p className="text-amber-500 text-sm font-medium flex items-center justify-center gap-1">
-                                <Sparkles className="w-3 h-3" /> Cung {getZodiac(user.birthDate)}
-                            </p>
-                            <div className="mt-8 space-y-4 text-left">
-                                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-                                    <Mail className="w-5 h-5 text-slate-400" />
-                                    <div className="overflow-hidden"><p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Email</p><p className="text-sm text-slate-200 truncate">{user.email}</p></div>
-                                </div>
-                                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-                                    <Calendar className="w-5 h-5 text-slate-400" />
-                                    <div><p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Ngày sinh</p><p className="text-sm text-slate-200">{user.birthDate ? new Date(user.birthDate).toLocaleDateString('vi-VN') : "N/A"}</p></div>
-                                </div>
-                            </div>
-                            <button onClick={() => setShowLogoutModal(true)} className="w-full mt-8 py-3 flex items-center justify-center gap-2 text-red-400 hover:bg-red-500/10 rounded-xl border border-red-500/20 transition-all font-bold text-sm">
-                                <LogOut className="w-4 h-4" /> Đăng xuất
-                            </button>
-                        </motion.div>
-                    </div>
+      <div className="max-w-7xl mx-auto px-4 py-8 relative z-10 mt-16 md:mt-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* CỘT TRÁI - THÔNG TIN USER */}
+          <div className="lg:col-span-4 xl:col-span-3">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              className="sticky top-28 space-y-6"
+            >
+              <div className="bg-[#130823]/60 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+                {!isEditing ? (
+                  <button onClick={() => setIsEditing(true)} className="absolute top-6 right-6 p-2 bg-white/5 hover:bg-white/10 rounded-full transition-all text-slate-400 hover:text-amber-500 z-20">
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <div className="absolute top-6 right-6 flex gap-2 z-20">
+                    <button 
+                        disabled={isUpdating || isUploadingImage}
+                        onClick={handleSaveProfile} 
+                        className="p-2 bg-green-500/20 hover:bg-green-500/40 rounded-full text-green-400 transition-all disabled:opacity-50"
+                    >
+                      {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    </button>
+                    <button onClick={() => setIsEditing(false)} className="p-2 bg-red-500/20 hover:bg-red-500/40 rounded-full text-red-400 transition-all">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
 
-                    {/* CỘT PHẢI - GIỮ NGUYÊN UI */}
-                    <div className="lg:col-span-8">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                            <h2 className="text-3xl font-bold text-white tracking-tight">Tổng quan <span className="text-amber-400">Năng Lượng</span></h2>
-                            <button onClick={() => router.push('/tarot-draw')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-bold transition-all group">
-                                 Rút bài ngay <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                            </button>
-                        </div>
-
-                        <div className="space-y-4 min-h-[400px]">
-                            {loading ? (
-                                <div className="flex flex-col items-center justify-center py-20 text-slate-500">
-                                    <Loader2 className="w-8 h-8 animate-spin mb-4 text-amber-500" /><p className="text-sm italic">Đang tải thông điệp vũ trụ...</p>
-                                </div>
-                            ) : currentItems.length === 0 ? (
-                                <div className="text-center py-16 bg-white/5 rounded-3xl border border-white/5 border-dashed"><p className="text-slate-500">Chưa có phiên luận giải nào gần đây.</p></div>
-                            ) : (
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+                
+                <div className="relative z-10 text-center">
+                  <div className="relative w-28 h-28 mx-auto mb-5">
+                    <div className="absolute inset-0 bg-amber-500 rounded-full blur-xl opacity-10" />
+                    <img
+                      src={editForm.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.fullName}`}
+                      className={`w-full h-full rounded-full border-2 border-white/10 p-1 object-cover relative z-10 bg-[#1a1025] transition-all duration-300 ${isUploadingImage ? 'grayscale blur-[2px]' : ''}`}
+                      alt="Avatar"
+                    />
+                    
+                    {/* Overlay Camera đổi ảnh */}
+                    {isEditing && (
+                        <label className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 rounded-full cursor-pointer border-2 border-dashed border-amber-500/30 hover:border-amber-500 transition-all">
+                            {isUploadingImage ? <Loader2 className="w-6 h-6 text-amber-500 animate-spin" /> : (
                                 <>
-                                    <AnimatePresence mode="wait">
-                                        <motion.div key={currentPage} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                                            {currentItems.map((session) => (
-                                                <div
-                                                    key={session.id}
-                                                    // SỬA TẠI ĐÂY: Nhảy sang trang theo request.id
-                                                    onClick={(e) => session.status === "ACCEPTED" ? handleDisableClick(e) : router.push(`/booking/result?sessionId=${session.requestId}`)}
-                                                    className="bg-[#1a1025]/80 border border-white/5 rounded-2xl p-5 hover:border-amber-500/30 transition-all cursor-pointer group relative overflow-hidden active:scale-[0.98]"
-                                                >
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-[10px] font-mono font-bold text-slate-500 bg-white/5 px-2 py-0.5 rounded">#{session.requestId}</span>
-                                                            {getStatusBadge(session.status)}
-                                                        </div>
-                                                        <span className="text-[10px] text-slate-500 font-bold">{session.displayDate}</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between mt-3">
-                                                        <div className="flex-1 pr-4">
-                                                            <h4 className="text-white font-bold text-lg group-hover:text-amber-400 transition-colors line-clamp-1">{session.request?.question?.topic?.name || "Luận giải Tarot"}</h4>
-                                                            <p className="text-slate-400 text-sm line-clamp-1 italic">"{session.request?.question?.questionText || "..."}"</p>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 text-amber-500 opacity-0 group-hover:opacity-100 transition-all">
-                                                            <span className="text-[10px] font-bold">CHI TIẾT</span>
-                                                            <ChevronRight className="w-4 h-4" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </motion.div>
-                                    </AnimatePresence>
-
-                                    {/* PHÂN TRANG - GIỮ NGUYÊN */}
-                                    {totalPages > 1 && (
-                                        <div className="flex justify-center items-center gap-2 mt-8">
-                                            <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="p-2 rounded-lg bg-white/5 text-slate-400 disabled:opacity-20 hover:text-white transition-all"><ChevronLeft className="w-4 h-4" /></button>
-                                            <div className="flex gap-1">
-                                                {[...Array(totalPages)].map((_, i) => (
-                                                    <button key={i} onClick={() => setCurrentPage(i + 1)} className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === i + 1 ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : 'bg-white/5 text-slate-500 hover:bg-white/10'}`}>{i + 1}</button>
-                                                ))}
-                                            </div>
-                                            <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="p-2 rounded-lg bg-white/5 text-slate-400 disabled:opacity-20 hover:text-white transition-all"><ChevronRight className="w-4 h-4" /></button>
-                                        </div>
-                                    )}
+                                    <Camera className="w-6 h-6 text-amber-500 mb-1" />
+                                    <span className="text-[8px] font-bold text-white uppercase">Đổi ảnh</span>
                                 </>
                             )}
-                        </div>
+                            <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                        </label>
+                    )}
+                  </div>
+                  
+                  {isEditing ? (
+                    <div className="space-y-3">
+                        <input 
+                            type="text"
+                            value={editForm.fullName}
+                            onChange={(e) => setEditForm({...editForm, fullName: e.target.value})}
+                            className="w-full bg-white/5 border border-amber-500/30 rounded-xl px-3 py-2 text-center text-white text-sm font-bold focus:outline-none focus:border-amber-500 transition-all"
+                            placeholder="Họ và tên"
+                        />
+                        <input 
+                            type="date"
+                            value={editForm.birthDate}
+                            onChange={(e) => setEditForm({...editForm, birthDate: e.target.value})}
+                            className="w-full bg-white/5 border border-amber-500/30 rounded-xl px-3 py-2 text-center text-white text-xs focus:outline-none focus:border-amber-500 transition-all"
+                        />
                     </div>
+                  ) : (
+                    <>
+                        <h2 className="text-2xl font-bold text-white mb-2">{user.fullName}</h2>
+                        <div className="flex items-center justify-center gap-2 text-amber-500/80 mt-4 mb-6">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span className="text-sm font-medium">
+                                {user.birthDate ? new Date(user.birthDate).toLocaleDateString('vi-VN') : "Chưa cập nhật"}
+                            </span>
+                        </div>
+                    </>
+                  )}
+                  
+                  <div className="space-y-3 mt-4">
+                    <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/5 opacity-70">
+                      <Mail className="w-4 h-4 text-slate-500" />
+                      <p className="text-xs text-slate-300 truncate font-medium">{user.email}</p>
+                    </div>
+                  </div>
+
+                  <button onClick={() => setShowLogoutModal(true)} className="w-full mt-8 py-3.5 flex items-center justify-center gap-2 text-red-400/70 hover:text-red-400 hover:bg-red-500/5 rounded-2xl transition-all font-bold text-xs uppercase tracking-widest border border-red-500/10">
+                    <LogOut className="w-4 h-4" /> Đăng xuất
+                  </button>
                 </div>
+              </div>
+
+              <div className="bg-[#130823]/40 border border-white/10 rounded-[2rem] p-6 text-center backdrop-blur-md">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-2">Tổng số trải bài</p>
+                <div className="flex items-baseline justify-center gap-1">
+                    <p className="text-4xl font-black text-white tracking-tighter">{totalElements || 0}</p>
+                    <p className="text-sm text-slate-500 font-bold uppercase">Phiên</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* CỘT PHẢI - NHẬT KÝ TRẢI BÀI */}
+          <div className="lg:col-span-8 xl:col-span-9 space-y-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight uppercase">
+                  Nhật ký <span className="text-amber-500">Trải bài</span>
+                </h1>
+                <p className="text-slate-500 text-sm mt-1">Lưu trữ năng lượng và thông điệp từ vũ trụ.</p>
+              </div>
+              <button onClick={() => router.push('/tarot-draw')} className="px-6 py-3 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-500 transition-colors flex items-center gap-2 shadow-lg">
+                Trải bài mới <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
 
-            <LogoutModal isOpen={showLogoutModal} onClose={() => setShowLogoutModal(false)} onConfirm={handleConfirmLogout} />
+            {allLoading ? (
+              <div className="h-[450px] flex flex-col items-center justify-center bg-white/[0.02] rounded-[3rem] border border-white/5 border-dashed">
+                <Loader2 className="w-10 h-10 animate-spin mb-4 text-amber-500" />
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Đang kết nối tâm linh...</p>
+              </div>
+            ) : allHistories && allHistories.length === 0 ? (
+                <div className="h-[400px] flex flex-col items-center justify-center bg-white/[0.02] rounded-[3rem] border border-white/5 border-dashed text-center px-6">
+                    <HistoryIcon className="w-12 h-12 text-slate-700 mb-4" />
+                    <p className="text-slate-500 font-medium">Bạn chưa có phiên trải bài nào.</p>
+                </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <AnimatePresence mode="popLayout">
+                  {allHistories.map((session: any, index: number) => (
+                    <motion.div
+                      key={session.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      onClick={() => router.push(`/booking/result?sessionId=${session.id}`)}
+                      className="group bg-[#130823]/40 border border-white/5 rounded-[2.5rem] p-7 hover:bg-[#1a1025] hover:border-amber-500/30 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between h-[280px]"
+                    >
+                      <div>
+                        <div className="flex justify-between items-start mb-6">
+                            <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusStyle(session.status)}`}>
+                                {session.status}
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                {new Date(session.createdAt).toLocaleDateString('vi-VN')}
+                            </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-white group-hover:text-amber-400 transition-colors line-clamp-2 leading-tight">
+                            {session.question?.topic?.name || "Phiên trải bài Tarot"}
+                        </h3>
+                        <p className="text-slate-500 text-sm mt-2 line-clamp-2 italic">
+                            "{session.question?.questionText || "Thông điệp từ những lá bài..."}"
+                        </p>
+                      </div>
+
+                      <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20 overflow-hidden">
+                                <img 
+                                    src={session.interpretationForm?.requestId?.reader?.profilePicture || `https://api.dicebear.com/7.x/bottts/svg?seed=${session.id}`} 
+                                    className="w-full h-full object-cover" 
+                                    alt="Reader"
+                                />
+                            </div>
+                            <div>
+                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Reader</p>
+                                <p className="text-sm font-bold text-slate-200">{session.interpretationForm?.requestId?.reader?.fullName || "Hệ thống"}</p>
+                            </div>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-black transition-all">
+                            <ChevronRight className="w-5 h-5" />
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* PHÂN TRANG */}
+            {!allLoading && totalPages > 1 && (
+              <div className="flex justify-center items-center gap-3 mt-12 bg-[#130823]/60 p-3 rounded-3xl w-fit mx-auto border border-white/10 backdrop-blur-xl">
+                <button
+                  disabled={currentPage === 0}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className="p-3 rounded-2xl bg-white/5 text-slate-400 disabled:opacity-10 hover:text-white transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                
+                <div className="flex items-center gap-2 px-4 font-mono">
+                  <span className="text-sm font-black text-white">{currentPage + 1}</span>
+                  <span className="text-slate-600">/</span>
+                  <span className="text-sm font-black text-slate-500">{totalPages}</span>
+                </div>
+
+                <button
+                  disabled={currentPage === totalPages - 1}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className="p-3 rounded-2xl bg-white/5 text-slate-400 disabled:opacity-10 hover:text-white transition-all"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-    );
+      </div>
+
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+      />
+      <Footer />
+    </div>
+  );
 }

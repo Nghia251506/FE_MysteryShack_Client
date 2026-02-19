@@ -23,3 +23,10 @@ export interface ReaderProfile {
   recentReviews: Review[];
   bookingPrice?: number; // Trường này BE trả thêm hoặc mặc định ở FE
 }
+
+export interface ReaderStatsDto {
+  totalSessions: number;
+  todayInCome: number;
+  monthIncome: number; 
+  totalIncome: number;
+}

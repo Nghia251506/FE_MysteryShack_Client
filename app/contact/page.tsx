@@ -139,7 +139,7 @@ export default function ContactPage() {
                         <ContactInfoItem 
                             icon={MapPin} 
                             label="Văn phòng" 
-                            value="Thành phố Hồ Chí Minh, Việt Nam" 
+                            value="Thành phố Hà Nội, Việt Nam" 
                             color="green"
                         />
                     </div>

@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthService } from '@/services/authService';
-import { User, LoginRequest, RegisterRequest, AuthResponse } from '@/types/auth';
+import { User, LoginRequest, RegisterRequest, AuthResponse, ChangPasswordRequest } from '@/types/auth';
 
 interface AuthState {
   user: User | null;
@@ -89,6 +89,31 @@ export const resendVerification = createAsyncThunk(
       return response;
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error.message || 'Gửi lại email thất bại');
+    }
+  }
+);
+
+// 5. Thunk: Quên mật khẩu
+export const forgotPassword = createAsyncThunk(
+  'auth/forgotPassword',
+  async (email: string, {rejectWithValue}) => {
+    try {      const response = await AuthService.forgotPassword(email);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Yêu cầu quên mật khẩu thất bại');
+    }
+  }
+);
+
+//6. Thunk: Đổi mật khẩu
+export const changePassword = createAsyncThunk(
+  'auth/changePassword',
+  async (data: ChangPasswordRequest, {rejectWithValue}) => { 
+    try {
+      const response = await AuthService.changePassword(data);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Đổi mật khẩu thất bại');
     }
   }
 );
@@ -191,6 +216,28 @@ const authSlice = createSlice({
         state.error = null; // Hoặc set 1 cái toast thành công
       })
       .addCase(resendVerification.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(forgotPassword.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(forgotPassword.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null; // Hoặc set 1 cái toast thành công
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        })
+      .addCase(changePassword.pending, (state) => {
+        state.loading = true;
+      }
+      ).addCase(changePassword.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null; // Hoặc set 1 cái toast thành công
+      })
+      .addCase(changePassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

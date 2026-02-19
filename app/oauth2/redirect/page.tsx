@@ -15,6 +15,7 @@ export default function OAuth2RedirectHandler() {
         const email = searchParams.get('email');
         const fullName = searchParams.get('fullName');
         const role = searchParams.get('role');
+        const birthDate = searchParams.get('birthDate');
 
         if (token && id) {
             // Đóng gói user y hệt cấu trúc Login thường trả về
@@ -23,14 +24,15 @@ export default function OAuth2RedirectHandler() {
                 email,
                 fullName,
                 role,
-                isVerified: true // OAuth2 mặc định là đã verify
+                isVerified: true, // OAuth2 mặc định là đã verify
+                birthDate: birthDate,
             };
 
             // 1. Đẩy vào Redux & LocalStorage (Hàm loginSuccess của ông đã cân hết rồi)
             dispatch(loginSuccess({ user: userData, token: token }));
 
             // 2. Chuyển hướng
-            router.push('/');
+            router.push('/profile');
         } else {
             router.push('/login?error=oauth2_failed');
         }

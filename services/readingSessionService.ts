@@ -1,5 +1,6 @@
 // Import từ thư mục gốc dùng alias @/
 import axios from "@/lib/axios";
+import { ReaderStatsDto } from "@/types/reader";
 import { ReadingSession, ReadingSessionDTO } from '@/types/readingSession';
 
 const ENDPOINT = '/v1/sessions';
@@ -18,11 +19,16 @@ export const ReadingSessionService = {
         try {
             // Khi cộng chuỗi thế này, JS tự ép số thành chuỗi để gửi đi
             const response = await axios.get(`${ENDPOINT}/reader/${readerId}`);
-            return response.data; 
+            return response.data;
         } catch (error) {
             console.error("Lỗi khi lấy phiên đang xử lý:", error);
             return null;
         }
+    },
+
+    getDashboardStats: async (): Promise<ReaderStatsDto> => {
+        const response = await axios.get(`/reader/statistics/dashboard`);
+        return response.data;
     },
 
     // 2. Tạo mới (User gửi request từ trang Tarot Draw)

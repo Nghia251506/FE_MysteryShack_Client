@@ -8,6 +8,7 @@ import historyRecucer from './slices/historySlice';
 import ratingReducer from './slices/ratingSlice';
 import subcriptionReducer from './slices/subscriptionSlice'
 import readerReducer from './slices/readerProfileSlice';
+import readerStatsReducer from './slices/readerStatsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -19,6 +20,7 @@ export const store = configureStore({
     rating: ratingReducer,
     subscription: subcriptionReducer,
     readerProfile: readerReducer,
+    readerStats:readerStatsReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
