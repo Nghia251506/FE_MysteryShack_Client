@@ -16,6 +16,7 @@ export default function OAuth2RedirectHandler() {
         const fullName = searchParams.get('fullName');
         const role = searchParams.get('role');
         const birthDate = searchParams.get('birthDate');
+        const profilePicture = searchParams.get('profilePicture');
 
         if (token && id) {
             // Đóng gói user y hệt cấu trúc Login thường trả về
@@ -26,6 +27,7 @@ export default function OAuth2RedirectHandler() {
                 role,
                 isVerified: true, // OAuth2 mặc định là đã verify
                 birthDate: birthDate,
+                profilePicture: profilePicture,
             };
 
             // 1. Đẩy vào Redux & LocalStorage (Hàm loginSuccess của ông đã cân hết rồi)
