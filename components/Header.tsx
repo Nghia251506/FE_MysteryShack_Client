@@ -97,8 +97,8 @@ export default function Header() {
                   <Image
                     src={user?.profilePicture || "/default-avatar.png"}
                     alt="Avatar"
-                    width={8}
-                    height={8}
+                    width={32}
+                    height={32}
                     className="rounded-full object-cover"
                   />
                 </div>
