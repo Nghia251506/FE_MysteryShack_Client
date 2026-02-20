@@ -383,7 +383,7 @@ export default function TarotDrawPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-200 font-sans overflow-hidden relative selection:bg-amber-500/30">
+    <div className="min-h-screen bg-[#050505] text-slate-200 font-sans relative selection:bg-amber-500/30">
 
       {/* BACKGROUND LAYER */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">

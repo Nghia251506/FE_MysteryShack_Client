@@ -228,7 +228,6 @@ export default function Header() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] text-center mb-2">Hỗ trợ trải nghiệm</p>
                     <Link
                       href="/login"
                       className="block w-full py-4 bg-white text-black text-center rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] transition-transform active:scale-95"

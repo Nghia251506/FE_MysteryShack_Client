@@ -7,25 +7,25 @@ const FONT_LINK = "https://fonts.googleapis.com/css2?family=Crimson+Pro:italic,w
 
 const storySlides = [
     {
-        image: "https://images.unsplash.com/photo-1578301978018-3005759f48f7?q=80&w=1200&auto=format&fit=crop",
+        image: "https://media.vietnamplus.vn/images/7255a701687d11cb8c6bbc58a6c807858c4156635311d5b65f47f0baf6bd6dbf1fd0d4162223ffc64fe8306b2c4c4d39a74f6b1bfe70b3203772c7979020cefa/tarot-1-9889.jpg",
         chapterTitle: "Nguồn Gốc",
         text: "Từ thuở xa xưa, 78 lá bài Tarot được sinh ra như những mảnh vỡ của linh hồn vũ trụ — mỗi lá mang một bí ẩn chưa ai giải mã trọn vẹn.",
         rune: "☽",
     },
     {
-        image: "https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?q=80&w=1200&auto=format&fit=crop",
+        image: "https://image.made-in-china.com/365f3j00LhbcQUFGqpqY/In-n-t-y-ch-nh-b-n-bu-n-b-b-i-Tarot-Oracle-b-i-to-n-huy-n-b-nh-m-nh-tr-ch-i-th-tr-ch-i-b-i-in-n-tr-ch-i-b-ng-ch-t-l-ng-cao.webp",
         chapterTitle: "Bộ Đại Bí Ẩn",
         text: "22 lá Major Arcana — những nguyên mẫu của nhân loại. Từ The Fool bước đi trên bờ vực, đến The World viên mãn trong vòng xoay vũ trụ.",
         rune: "✦",
     },
     {
-        image: "https://images.unsplash.com/photo-1531171673193-06cb5e032be6?q=80&w=1200&auto=format&fit=crop",
+        image: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjtahZzoYBoDws1TbP7Bzxlalg47eQ4On80V50Ucovct-aqb3BTpfSl33YR3KnDJHqW25wVrKpxhSvJ_2AW0YfM3h6oJtkpXDc1jvXQ71Pxmt44giex7gL8T-Lh5Fw9DChpNYKW_eIv/s1600/les4elements-jpg3.jpeg",
         chapterTitle: "Bốn Nguyên Tố",
         text: "Gươm, Cốc, Quyền trượng, Đồng tiền — bốn chất bài phản chiếu Khí, Nước, Lửa và Đất. Chúng là ngôn ngữ của thực tại.",
         rune: "⊕",
     },
     {
-        image: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1200&auto=format&fit=crop",
+        image: "https://media.istockphoto.com/id/1187328374/vi/anh/ph%C3%B9-th%E1%BB%A7y-s%E1%BB%AD-d%E1%BB%A5ng-m%E1%BB%99t-qu%E1%BA%A3-c%E1%BA%A7u-pha-l%C3%AA-%C4%91%E1%BB%83-d%E1%BB%B1-%C4%91o%C3%A1n-t%C6%B0%C6%A1ng-lai.jpg?s=170667a&w=0&k=20&c=n-HzL1pJ4APw70wmPu31eIfdS94XQEKg4_G1f2nSqq0=",
         chapterTitle: "Khoảnh Khắc Này",
         text: "Không có lá bài ngẫu nhiên. Vũ trụ đã sắp xếp để lá bài hôm nay xuất hiện đúng lúc bạn cần nghe điều đó nhất.",
         rune: "◈",
