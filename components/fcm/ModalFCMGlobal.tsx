@@ -33,14 +33,14 @@ export const ModalFCMGlobal = () => {
         toast.success(
           "✨ Đã tìm thấy Reader phù hợp! Đang chờ Reader xác nhận...",
         );
-        dispatch(closeFcmModal()); // Đóng modal ngay lập tức để không render phần dưới
+
         return;
       }
 
       // Toast báo lỗi khi không tìm thấy ai
-      if (type === "NO_READER_AVAILABLE") {
-        toast.error(
-          "😔 Hiện tại các Reader đều đang bận. Vui lòng thử lại sau!",
+      if (type === "SEARCHING_READER") {
+        toast.warning(
+          "😔 Hiện tại các Reader đều đang bận. Vui lòng chờ cho đến khi hệ thống tìm được Reader phù hợp với bạn!",
         );
         dispatch(closeFcmModal());
         return;
@@ -88,7 +88,7 @@ export const ModalFCMGlobal = () => {
 
   // BE đã check Role rồi nên ở đây chỉ cần check xem có data không thôi
   if (!isModalOpen || !currentNotification) return null;
-  const toastOnlyTypes = ["READER_MATCHED_SUCCESS", "NO_READER_AVAILABLE"];
+  const toastOnlyTypes = ["SEARCHING_READER"];
   if (toastOnlyTypes.includes(currentNotification.type)) return null;
 
   const handleClose = () => {
@@ -319,7 +319,7 @@ export const ModalFCMGlobal = () => {
             </button>
           </div>
         );
-        case "READER_ACCOUNT_BLOCKED":
+      case "READER_ACCOUNT_BLOCKED":
         return (
           <div className="text-center">
             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-red-200">
@@ -328,9 +328,9 @@ export const ModalFCMGlobal = () => {
             <h3 className="text-xl font-bold text-red-600 tracking-tight">
               Kết nối tạm gián đoạn
             </h3>
-            
+
             <div className="mt-4 bg-red-50/50 p-5 rounded-2xl border border-red-100 relative text-left">
-               <div className="absolute -top-2 left-4 bg-white px-2 text-[10px] text-red-500 font-bold uppercase">
+              <div className="absolute -top-2 left-4 bg-white px-2 text-[10px] text-red-500 font-bold uppercase">
                 Thông điệp từ hệ thống
               </div>
               <p className="text-gray-700 text-sm leading-relaxed italic">
@@ -342,7 +342,7 @@ export const ModalFCMGlobal = () => {
               <p className="text-xs text-slate-500 px-2">
                 Vui lòng kiên nhẫn đợi Admin phản hồi phán quyết cuối cùng. Khi mọi thứ sáng tỏ, bạn sẽ tiếp tục hành trình dẫn lối.
               </p>
-              
+
               <button
                 onClick={handleClose}
                 className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-200 uppercase"
@@ -352,100 +352,136 @@ export const ModalFCMGlobal = () => {
             </div>
           </div>
         );
-        // 1. THÔNG BÁO BẢO TRÌ (MAINTENANCE)
-    case "MAINTENANCE":
-      return (
-        <div className="text-center">
-          <div className="w-20 h-20 bg-amber-100 rounded-3xl flex items-center justify-center mx-auto mb-4 rotate-3 shadow-sm border border-amber-200">
-            <span className="text-4xl">🛠️</span>
+      // 1. THÔNG BÁO BẢO TRÌ (MAINTENANCE)
+      case "MAINTENANCE":
+        return (
+          <div className="text-center">
+            <div className="w-20 h-20 bg-amber-100 rounded-3xl flex items-center justify-center mx-auto mb-4 rotate-3 shadow-sm border border-amber-200">
+              <span className="text-4xl">🛠️</span>
+            </div>
+            <h3 className="text-xl font-black text-amber-700 uppercase tracking-tighter">
+              Hệ thống bảo trì
+            </h3>
+            <div className="mt-4 bg-amber-50/50 p-4 rounded-2xl border border-amber-100">
+              <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line font-medium">
+                {message || "Chúng tôi đang nâng cấp hệ thống để mang lại trải nghiệm tốt hơn. Vui lòng quay lại sau ít phút!"}
+              </p>
+            </div>
+            <button
+              onClick={handleClose}
+              className="mt-6 w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-lg shadow-slate-200 hover:bg-black transition-all"
+            >
+              ĐÃ HIỂU
+            </button>
           </div>
-          <h3 className="text-xl font-black text-amber-700 uppercase tracking-tighter">
-            Hệ thống bảo trì
-          </h3>
-          <div className="mt-4 bg-amber-50/50 p-4 rounded-2xl border border-amber-100">
-            <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line font-medium">
-              {message || "Chúng tôi đang nâng cấp hệ thống để mang lại trải nghiệm tốt hơn. Vui lòng quay lại sau ít phút!"}
-            </p>
-          </div>
-          <button
-            onClick={handleClose}
-            className="mt-6 w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-lg shadow-slate-200 hover:bg-black transition-all"
-          >
-            ĐÃ HIỂU
-          </button>
-        </div>
-      );
+        );
 
-    // 2. TÀI KHOẢN BỊ KHÓA (ACCOUNT_BLOCKED)
-    case "ACCOUNT_BLOCKED":
-      return (
-        <div className="text-center">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-lg">
-            <span className="text-4xl">🚫</span>
-          </div>
-          <h3 className="text-xl font-bold text-red-600">Truy cập bị từ chối</h3>
-          <p className="text-xs text-slate-400 mt-1 uppercase font-bold tracking-widest">Security Alert</p>
-          
-          <div className="mt-4 bg-red-50 p-4 rounded-2xl border border-red-100 text-left">
-            <p className="text-red-800 text-sm leading-relaxed italic">
-              "{message || "Tài khoản của bạn tạm thời bị khóa do vi phạm chính sách cộng đồng hoặc phát hiện hoạt động bất thường."}"
-            </p>
-          </div>
+      // 2. TÀI KHOẢN BỊ KHÓA (ACCOUNT_BLOCKED)
+      case "ACCOUNT_BLOCKED":
+        return (
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-lg">
+              <span className="text-4xl">🚫</span>
+            </div>
+            <h3 className="text-xl font-bold text-red-600">Truy cập bị từ chối</h3>
+            <p className="text-xs text-slate-400 mt-1 uppercase font-bold tracking-widest">Security Alert</p>
 
-          <div className="mt-6 space-y-3">
+            <div className="mt-4 bg-red-50 p-4 rounded-2xl border border-red-100 text-left">
+              <p className="text-red-800 text-sm leading-relaxed italic">
+                "{message || "Tài khoản của bạn tạm thời bị khóa do vi phạm chính sách cộng đồng hoặc phát hiện hoạt động bất thường."}"
+              </p>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              <button
+                onClick={() => {
+                  handleClose();
+                  router.push("/support"); // Link tới trang hỗ trợ nếu có
+                }}
+                className="w-full bg-red-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-red-100 hover:bg-red-700 transition-all"
+              >
+                LIÊN HỆ HỖ TRỢ
+              </button>
+              <button onClick={handleClose} className="text-slate-400 text-sm font-medium hover:text-slate-600 transition-colors">
+                Đóng
+              </button>
+            </div>
+          </div>
+        );
+
+      // 3. KHUYẾN MÃI / SỰ KIỆN (PROMOTION)
+      case "PROMOTION":
+        return (
+          <div className="text-center relative overflow-hidden">
+            {/* Decor một chút cho giống app xịn */}
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-50 rounded-full blur-3xl" />
+
+            <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-100 -rotate-6">
+              <span className="text-5xl">🎁</span>
+            </div>
+
+            <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-700">
+              Ưu Đãi Đặc Biệt!
+            </h3>
+
+            <p className="mt-3 text-slate-600 font-medium px-2">
+              {message || "Bạn nhận được một món quà bất ngờ từ hệ thống. Khám phá ngay!"}
+            </p>
+
             <button
               onClick={() => {
                 handleClose();
-                router.push("/support"); // Link tới trang hỗ trợ nếu có
+                if (currentNotification.link) router.push(currentNotification.link);
               }}
-              className="w-full bg-red-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-red-100 hover:bg-red-700 transition-all"
+              className="mt-8 w-full bg-emerald-500 text-white py-4 rounded-2xl font-black tracking-wider shadow-lg shadow-emerald-200 hover:bg-emerald-600 hover:-translate-y-1 transition-all"
             >
-              LIÊN HỆ HỖ TRỢ
+              NHẬN QUÀ NGAY 🚀
             </button>
-            <button onClick={handleClose} className="text-slate-400 text-sm font-medium hover:text-slate-600 transition-colors">
-              Đóng
+
+            <button
+              onClick={handleClose}
+              className="mt-4 text-slate-400 text-xs font-bold uppercase tracking-widest hover:text-emerald-500 transition-colors"
+            >
+              Để sau nhé
             </button>
           </div>
-        </div>
-      );
+        );
 
-    // 3. KHUYẾN MÃI / SỰ KIỆN (PROMOTION)
-    case "PROMOTION":
-      return (
-        <div className="text-center relative overflow-hidden">
-          {/* Decor một chút cho giống app xịn */}
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-50 rounded-full blur-3xl" />
-          
-          <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-100 -rotate-6">
-            <span className="text-5xl">🎁</span>
+      case "READER_MATCHED_SUCCESS":
+        return (
+          <div className="text-center p-2">
+            <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner animate-pulse">
+              <span className="text-4xl">🔮</span>
+            </div>
+
+            <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2">
+              Đã Tìm Thấy Reader!
+            </h3>
+
+            <p className="text-slate-500 text-sm leading-relaxed mb-8">
+              Hệ thống đã kết nối thành công với một Reader phù hợp với tần số năng lượng của bạn.
+            </p>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  handleClose(); // Đóng modal
+                  router.push("/booking"); // Bay về trang booking
+                }}
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-orange-200 hover:scale-[1.02] active:scale-95 transition-all"
+              >
+                KẾT NỐI NGAY
+              </button>
+
+              <button
+                onClick={handleClose}
+                className="text-slate-400 text-xs font-medium hover:text-slate-600 transition-colors uppercase tracking-widest"
+              >
+                Để sau
+              </button>
+            </div>
           </div>
-          
-          <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-700">
-            Ưu Đãi Đặc Biệt!
-          </h3>
-          
-          <p className="mt-3 text-slate-600 font-medium px-2">
-            {message || "Bạn nhận được một món quà bất ngờ từ hệ thống. Khám phá ngay!"}
-          </p>
-
-          <button
-            onClick={() => {
-              handleClose();
-              if (currentNotification.link) router.push(currentNotification.link);
-            }}
-            className="mt-8 w-full bg-emerald-500 text-white py-4 rounded-2xl font-black tracking-wider shadow-lg shadow-emerald-200 hover:bg-emerald-600 hover:-translate-y-1 transition-all"
-          >
-            NHẬN QUÀ NGAY 🚀
-          </button>
-          
-          <button 
-            onClick={handleClose}
-            className="mt-4 text-slate-400 text-xs font-bold uppercase tracking-widest hover:text-emerald-500 transition-colors"
-          >
-            Để sau nhé
-          </button>
-        </div>
-      );
+        );
 
       default:
         return (
@@ -458,7 +494,7 @@ export const ModalFCMGlobal = () => {
             <h3 className="text-xl font-bold text-slate-800 tracking-tight">
               Thông báo mới
             </h3>
-            
+
             <p className="mt-3 text-slate-500 text-sm leading-relaxed px-2">
               {message || "Bạn có một cập nhật mới từ hệ thống. Vui lòng kiểm tra để không bỏ lỡ thông tin quan trọng."}
             </p>
@@ -469,7 +505,7 @@ export const ModalFCMGlobal = () => {
             >
               Đã ghi nhận
             </button>
-            
+
             {/* Thêm một lựa chọn nhỏ bên dưới nếu cần */}
             <p className="mt-4 text-[10px] text-slate-300 uppercase tracking-tighter">
               System Notification

@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/store/store";
 import { UserService } from "@/services/userService";
 import { setMatchedReader, fetchRandomReader } from "@/store/slices/userSlice";
-import { fetchReaderProfile } from "@/store/slices/readerProfileSlice"; 
+import { fetchReaderProfile } from "@/store/slices/readerProfileSlice";
 
 import {
   User,
@@ -72,7 +72,10 @@ const NotificationModal = ({ isOpen, type, message, onClose, onConfirm, confirmT
         </div>
         <h3 className="text-2xl font-bold text-white mb-2">{isSuccess ? "Thành Công!" : "Thông Báo"}</h3>
         <p className="text-slate-400 text-sm mb-8">{message}</p>
-        <button onClick={onConfirm || onClose} className={`w-full py-3.5 ${isSuccess ? "bg-green-600 hover:bg-green-500" : "bg-amber-600 hover:bg-amber-500"} text-white font-bold rounded-xl transition-all shadow-lg hover:scale-[1.02]`}>
+        <button onClick={() => {
+          if (onConfirm) onConfirm(); // Chạy logic redirect đã truyền vào
+          else onClose();
+        }} className={`w-full py-3.5 ${isSuccess ? "bg-green-600 hover:bg-green-500" : "bg-amber-600 hover:bg-amber-500"} text-white font-bold rounded-xl transition-all shadow-lg hover:scale-[1.02]`}>
           {confirmText || "Đóng"}
         </button>
       </motion.div>
@@ -124,7 +127,7 @@ export default function BookingRequestPage() {
   const { currentProfile, isLoading: isProfileLoading } = useSelector((state: RootState) => state.readerProfile);
 
   // States
-  const [step, setStep] = useState<1 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 3 | 4>(matchedReader ? 4 : 1);
   const [scanStatus, setScanStatus] = useState("Đang kết nối vệ tinh tâm linh...");
   const [progress, setProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -151,27 +154,69 @@ export default function BookingRequestPage() {
 
   // --- LOGIC: MATCH READER ---
   const handleMatchReader = useCallback(async () => {
+    if (!user?.id || matchedReader) return; // Nếu đã có reader rồi thì thôi không tìm nữa
+
+    setStep(3);
     if (!user?.id) return;
+
+    // Reset trạng thái trước khi tìm
     setStep(3);
     setProgress(0);
     setScanStatus("Đang kết nối vệ tinh tâm linh...");
-    const timer = setInterval(() => { setProgress((prev) => (prev >= 90 ? 90 : prev + 2)); }, 50);
+
+    const timer = setInterval(() => {
+      setProgress((prev) => (prev >= 90 ? 90 : prev + 2));
+    }, 50);
 
     try {
-      await dispatch(fetchRandomReader(user.id)).unwrap();
-      setTimeout(() => { clearInterval(timer); setProgress(100); setStep(4); }, 1500);
-    } catch (err) { clearInterval(timer); setScanStatus("Lỗi kết nối..."); }
-  }, [dispatch, user?.id]);
+      const result = await dispatch(fetchRandomReader(user.id)).unwrap();
+
+      // Nếu kết quả trả về null hoặc rỗng (phòng hờ trường hợp unwrap không ném lỗi)
+      if (!result) {
+        throw new Error("NO_READER");
+      }
+
+      setTimeout(() => {
+        clearInterval(timer);
+        setProgress(100);
+        setStep(4);
+      }, 1000);
+
+    } catch (err) {
+      clearInterval(timer);
+      console.error("Lỗi tìm Reader:", err);
+
+      // HIỆN MODAL NGAY LẬP TỨC VÀ DỪNG MỌI THỨ
+      setModalConfig({
+        isOpen: true,
+        type: "info",
+        message: "Vũ trụ gửi lời cáo lỗi: Hiện tại các Reader đều đang bận thiền định. Vui lòng quay lại sau nhé!",
+        confirmText: "Quay lại trang chủ",
+        onConfirm: () => {
+          sessionStorage.removeItem(TAROT_PERSIST_KEY);
+          // Có thể dọn dẹp thêm các state rút bài ở đây
+          window.location.href = "/"; // Dùng href để force reload trang chủ cho sạch
+        }
+      });
+
+      // Đặt lại status để user không thấy chữ "Lỗi kết nối" quá lâu
+      setScanStatus("Tín hiệu đã ngắt...");
+    }
+  }, [dispatch, user?.id,matchedReader]);
 
   useEffect(() => {
     if (user && drawnCards.length > 0) {
+      if (matchedReader) {
+        setStep(4);
+        return;
+      }
       if (user.fullName && user.birthDate) {
         if (step === 1) handleMatchReader();
       } else {
         if (step === 1) setShowUpdateInfoModal(true);
       }
     }
-  }, [user, drawnCards.length, handleMatchReader, step]);
+  }, [user, drawnCards.length, handleMatchReader, step, matchedReader]);
 
   const handleUpdateSuccess = (updatedData: any) => {
     setShowUpdateInfoModal(false);
@@ -201,27 +246,26 @@ export default function BookingRequestPage() {
         reversed: c.reversed || false,
       })),
       status: "PENDING",
-      amount: 50000,
       note: `KH: ${user.fullName} - Hỏi: ${questionText}`,
       createdAt: new Date().toISOString(),
     };
     try {
       await ReadingSessionService.create(payload as any, token, payload);
-      
+
       // XÓA DỮ LIỆU SESSION KHI KẾT NỐI THÀNH CÔNG
       sessionStorage.removeItem(TAROT_PERSIST_KEY);
       sessionStorage.removeItem("tarot_topic");
       sessionStorage.removeItem("tarot_question");
       sessionStorage.removeItem("tarot_drawn_cards");
-      
-      setModalConfig({ 
-        isOpen: true, 
-        type: "success", 
-        message: "Yêu cầu đã gửi! Đang chuyển hướng...", 
-        onConfirm: () => router.push("/profile"), 
-        confirmText: "Đến trang Hồ sơ" 
+
+      setModalConfig({
+        isOpen: true,
+        type: "success",
+        message: "Yêu cầu đã gửi! Đang chuyển hướng...",
+        onConfirm: () => router.push("/"),
+        confirmText: "Đến trang chủ"
       });
-      setTimeout(() => router.push("/profile"), 2000);
+      setTimeout(() => router.push("/"), 2000);
     } catch (error) { alert("Lỗi gửi yêu cầu!"); } finally { setIsSubmitting(false); }
   };
 
@@ -255,7 +299,7 @@ export default function BookingRequestPage() {
           {step === 4 && (
             <motion.div key="step4" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto bg-[#130823]/80 backdrop-blur-2xl border border-white/10 rounded-[3rem] p-8 md:p-12 text-center shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 p-6 opacity-20"><Sparkles className="w-12 h-12 text-amber-400" /></div>
-              
+
               <div className="relative inline-block mb-8">
                 <div className="absolute inset-0 bg-amber-500/20 blur-2xl rounded-full"></div>
                 <img src={matchedReader?.avatarUrl || matchedReader?.profilePicture || "/default-avatar.png"} className="w-40 h-40 mx-auto rounded-full border-4 border-amber-500/50 relative z-10 object-cover shadow-2xl" />
@@ -264,7 +308,7 @@ export default function BookingRequestPage() {
 
               <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-3">Vũ Trụ Gọi Tên</h2>
               <h3 className="text-2xl md:text-3xl font-bold text-amber-400 mb-6 uppercase tracking-tight">{matchedReader?.fullName}</h3>
-              
+
               <p className="text-slate-400 text-lg max-w-xl mx-auto mb-10 leading-relaxed font-light">
                 Dựa trên năng lượng từ 3 lá bài bạn đã chọn, <span className="text-white font-bold">{matchedReader?.fullName}</span> là Reader có tần số tương thích cao nhất để giải mã định mệnh cho bạn.
               </p>

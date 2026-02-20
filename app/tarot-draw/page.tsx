@@ -23,6 +23,11 @@ import { shuffleDeck } from "@/services/tarotService";
 import { AuthService } from "@/services/authService"; // Import AuthService
 import Link from "next/link";
 
+import { TopicStep } from "@/components/tarot-draw/TopicStep";
+import { ShufflingStep } from "@/components/tarot-draw/ShufflingStep";
+import { PickingStep } from "@/components/tarot-draw/PickingStep";
+import { ResultStep } from "@/components/tarot-draw/ResultStep";
+import { LoadingStep } from "@/components/tarot-draw/LoadingStep";
 // --- 1. ĐỊNH NGHĨA TYPE ---
 interface LocalTarotCard {
   id: number;
@@ -159,7 +164,7 @@ export default function TarotDrawPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
 
-  const [step, setStep] = useState<"topic" | "shuffling" | "picking" | "revealing" | "result">("topic");
+  const [step, setStep] = useState<"loading" | "topic" | "shuffling" | "picking" | "revealing" | "result">("loading");
   const [selectedTopic, setSelectedTopic] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState("");
 
@@ -176,6 +181,7 @@ export default function TarotDrawPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [recoveredStep, setRecoveredStep] = useState<string | null>(null);
 
   // --- LOGIC: KHÔI PHỤC DỮ LIỆU KHI MOUNTED ---
   useEffect(() => {
@@ -184,13 +190,20 @@ export default function TarotDrawPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setStep(parsed.step);
-        setSelectedTopic(parsed.selectedTopic);
-        setSelectedTopicId(parsed.selectedTopicId);
-        setSelectedQuestion(parsed.selectedQuestion);
-        setSelectedQuestionId(parsed.selectedQuestionId);
-        setShuffledDeck(parsed.shuffledDeck);
-        setSelectedIndices(parsed.selectedIndices);
+
+        // 1. LƯU LẠI STEP CŨ VÀO STATE PHỤ, KHÔNG SET TRỰC TIẾP VÀO STEP CHÍNH
+        if (parsed.step && parsed.step !== "loading") {
+          setRecoveredStep(parsed.step);
+        }
+
+        // 2. Khôi phục các dữ liệu khác bình thường
+        setSelectedTopic(parsed.selectedTopic || "");
+        setSelectedTopicId(parsed.selectedTopicId || null);
+        setSelectedQuestion(parsed.selectedQuestion || "");
+        setSelectedQuestionId(parsed.selectedQuestionId || null);
+        setShuffledDeck(parsed.shuffledDeck || []);
+        setSelectedIndices(parsed.selectedIndices || []);
+
         if (parsed.step === "result" || parsed.step === "revealing") {
           setShouldFlipToFace(true);
         }
@@ -372,202 +385,127 @@ export default function TarotDrawPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 font-sans overflow-hidden relative selection:bg-amber-500/30">
 
-      <div className="fixed inset-0 pointer-events-none">
+      {/* BACKGROUND LAYER */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {/* Quầng sáng mờ */}
         <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-purple-900/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-amber-900/10 rounded-full blur-[100px]" />
+
+        {/* Texture hạt bụi sao */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+
+        {/* HIỆU ỨNG SAO BĂNG - BAY TỪ DƯỚI TRÁI LÊN TRÊN PHẢI */}
+        <style jsx>{`
+          @keyframes shooting-star {
+            0% {
+              transform: translate(-100px, 100px) rotate(-45deg) scale(0);
+              opacity: 0;
+            }
+            10% {
+              opacity: 1;
+              scale: 1;
+            }
+            70% {
+              opacity: 1;
+            }
+            100% {
+              transform: translate(120vw, -120vh) rotate(-45deg) scale(1.5);
+              opacity: 0;
+            }
+          }
+          .star {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, white, transparent);
+            border-radius: 999px;
+            filter: drop-shadow(0 0 6px white);
+            animation: shooting-star 4s linear infinite;
+            opacity: 0;
+          }
+        `}</style>
+
+        {/* Các ngôi sao băng với delay khác nhau để không bay cùng lúc */}
+        <div className="star" style={{ bottom: '10%', left: '-5%', animationDelay: '0s' }} />
+        <div className="star" style={{ bottom: '30%', left: '-10%', animationDelay: '5s', width: '150px' }} />
+        <div className="star" style={{ bottom: '-5%', left: '20%', animationDelay: '12s', animationDuration: '6s' }} />
+
+        {/* Các đốm sáng nhấp nháy cũ */}
         <div className="absolute top-20 left-20 w-1 h-1 bg-white rounded-full animate-ping opacity-20"></div>
         <div className="absolute bottom-40 right-20 w-1.5 h-1.5 bg-amber-200 rounded-full animate-pulse opacity-30"></div>
       </div>
 
       <SideDecor />
-        <div className="absolute top-4 right-4 z-50">
-          <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm shadow-lg font-bold">
-            <LogOut className="w-4 h-4" /><span className="text-sm">Quay lại trang chủ</span>
+      {step !== "loading" && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="absolute top-4 right-4 z-50"
+        >
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-200 rounded-full transition-colors border border-red-500/30 backdrop-blur-sm shadow-lg font-bold"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm">Quay lại trang chủ</span>
           </Link>
-        </div>
-      
+        </motion.div>
+      )}
+
 
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-7xl">
           <AnimatePresence mode="wait">
+            {step === "loading" && (
+              <LoadingStep onComplete={() => setStep((recoveredStep as any) || "topic")} />
+            )}
 
             {step === "topic" && (
-              <motion.div
-                key="topic"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-[#130823]/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 md:p-10 shadow-2xl mx-auto w-full relative overflow-hidden"
-              >
-                <div className="absolute top-[-50px] right-[-50px] w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[80px] pointer-events-none"></div>
-                <div className="absolute bottom-[-50px] left-[-50px] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[80px] pointer-events-none"></div>
-
-                <div className="text-center mb-10 relative z-10">
-                  <h1 className="text-3xl md:text-5xl font-bold text-white mb-3 leading-tight tracking-tight">
-                    Những điều thầm kín và khúc mắc <br className="hidden md:block" />
-                    mà bạn đang <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400 font-extrabold uppercase drop-shadow-sm">QUAN TÂM</span>
-                  </h1>
-                  <p className="text-slate-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed font-light">
-                    Hãy để các reader chuyên nghiệp của chúng tôi khám phá những điều sâu thẳm bên trong thông qua những thông điệp mà các lá bài tarot nhắn gửi tới bạn.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full min-h-[450px]">
-                  <div className="lg:col-span-5 space-y-3 flex flex-col justify-center">
-                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 px-2 flex items-center gap-2">
-                      <Moon className="w-3 h-3 text-amber-500" /> Chọn Lĩnh Vực
-                    </h3>
-
-                    {apiTopics.map(t => (
-                      <button
-                        key={t.id}
-                        onClick={() => { setSelectedTopicId(t.id); setSelectedTopic(t.name); setSelectedQuestion(""); setSelectedQuestionId(null); }}
-                        className={`w-full flex items-center gap-4 p-4 rounded-2xl border text-left transition-all duration-300 group relative overflow-hidden ${selectedTopicId === t.id ? 'bg-gradient-to-r from-purple-900/40 to-amber-900/40 border-amber-500/50 shadow-md scale-[1.01]' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
-                      >
-                        {selectedTopicId === t.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>}
-                        <div className={`p-2.5 rounded-xl shrink-0 transition-colors ${selectedTopicId === t.id ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 'bg-black/30 text-slate-400 group-hover:text-white'}`}>
-                          {getTopicIcon(t.name)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className={`font-bold text-base mb-0.5 flex justify-between items-center ${selectedTopicId === t.id ? 'text-amber-400' : 'text-slate-200'}`}>
-                            {t.name}
-                            {selectedTopicId === t.id && <Check className="w-3.5 h-3.5 text-amber-500" />}
-                          </div>
-                          <p className={`text-xs italic truncate ${selectedTopicId === t.id ? 'text-slate-300' : 'text-slate-500'}`}>
-                            "{getQuote(t.name)}"
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="lg:col-span-7 bg-black/20 rounded-[2rem] border border-white/5 p-6 relative overflow-hidden flex flex-col min-h-[400px]">
-                    {!selectedTopicId ? (
-                      <div className="h-full flex items-center justify-center opacity-60">
-                        <div className="relative w-40 h-56">
-                          <div className="absolute inset-0 bg-amber-500/20 blur-[60px] rounded-full animate-pulse"></div>
-                          <motion.div animate={{ y: [0, -15, 0], rotate: [0, 3, 0] }} transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }} className="absolute inset-0 bg-gradient-to-br from-purple-600/90 to-blue-600/90 rounded-xl shadow-2xl border border-white/10"></motion.div>
-                          <motion.div animate={{ y: [0, -10, 0], rotate: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 0.5 }} className="absolute inset-0 bg-[#1a0b2e] border border-amber-500/30 rounded-xl flex items-center justify-center translate-x-3 translate-y-3 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-                            <div className="p-4 border border-amber-500/20 rounded-lg"><Sparkles className="w-12 h-12 text-amber-400/80 animate-pulse" /></div>
-                          </motion.div>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 px-2 flex items-center gap-2">
-                          <Hand className="w-3 h-3 text-amber-500" /> Chọn Câu Hỏi Cụ Thể
-                        </h3>
-                        <div className="flex-grow overflow-y-auto custom-scrollbar pr-2 -mr-2">
-                          {loadingQuestions ? (
-                            <div className="h-full flex items-center justify-center space-x-2 text-amber-500">
-                              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce"></div>
-                              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-1 gap-2.5 pb-20">
-                              {apiQuestions.map((q) => (
-                                <label key={q.id} onClick={() => { setSelectedQuestion(q.questionText); setSelectedQuestionId(q.id); }} className={`relative flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 group hover:shadow-lg ${selectedQuestionId === q.id ? 'bg-amber-500/10 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'}`}>
-                                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${selectedQuestionId === q.id ? 'border-amber-500 bg-amber-500 text-black' : 'border-slate-600 text-transparent group-hover:border-slate-400'}`}>
-                                    {selectedQuestionId === q.id && <div className="w-2 h-2 bg-white rounded-full" />}
-                                  </div>
-                                  <input type="radio" className="hidden" checked={selectedQuestionId === q.id} readOnly />
-                                  <span className={`text-sm font-medium ${selectedQuestionId === q.id ? 'text-white' : 'text-slate-300'}`}>{q.questionText}</span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#150a1f] via-[#150a1f]/95 to-transparent pt-10 flex justify-end">
-                          <button onClick={handleStartDraw} disabled={!selectedQuestionId} className="px-8 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold rounded-xl shadow-lg hover:shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm"><Sparkles className="w-4 h-4" /> Bắt Đầu Trải Bài</button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
+              <TopicStep
+                apiTopics={apiTopics}
+                apiQuestions={apiQuestions}
+                selectedTopicId={selectedTopicId}
+                selectedQuestionId={selectedQuestionId}
+                loadingQuestions={loadingQuestions}
+                getTopicIcon={getTopicIcon} // Dùng hàm có sẵn trong page.tsx của ông
+                getQuote={getQuote}         // Dùng hàm có sẵn trong page.tsx của ông
+                onSelectTopic={(t) => {
+                  setSelectedTopicId(t.id);
+                  setSelectedTopic(t.name);
+                  setSelectedQuestion("");
+                  setSelectedQuestionId(null);
+                }}
+                onSelectQuestion={(q) => {
+                  setSelectedQuestion(q.questionText);
+                  setSelectedQuestionId(q.id);
+                }}
+                onStart={handleStartDraw}
+              />
             )}
 
-            {step === "shuffling" && (
-              <motion.div key="shuffle" className="flex flex-col items-center justify-center h-[60vh] relative" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div className="absolute w-96 h-96 bg-purple-600/10 rounded-full blur-[80px] animate-pulse"></div>
-                <div className="relative w-64 h-64 flex items-center justify-center">
-                  {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-                    <motion.div key={i} className="absolute w-20 h-32 md:w-24 md:h-40 rounded-xl shadow-2xl origin-bottom-center" initial={{ scale: 0, opacity: 0 }} animate={{ rotate: [0, 360], scale: [0.8, 1.2, 0.8], y: [0, -60, 0], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 2.5, ease: "linear", delay: i * 0.2 }}>
-                      <CardBackDesign />
-                    </motion.div>
-                  ))}
-                  <div className="absolute w-4 h-4 bg-amber-400 rounded-full shadow-[0_0_50px_rgba(251,191,36,1)] animate-ping z-10"></div>
-                </div>
-                <div className="mt-16 text-center relative z-10">
-                  <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-purple-200 animate-pulse">Hãy tập trung và kết nối năng lượng với những lá bài</h2>
-                </div>
-              </motion.div>
-            )}
+            {step === "shuffling" && <ShufflingStep />}
 
             {(step === "picking" || step === "revealing") && (
-              <motion.div key="picking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center min-h-[85vh] justify-center pb-24">
-                <div className="text-center mb-6 sticky top-0 z-20 bg-[#050505]/95 backdrop-blur-md w-full py-4 border-b border-white/5">
-                  <h2 className="text-2xl font-bold text-white mb-1">{step === "picking" ? `Đã chọn ${selectedIndices.length}/3 lá` : "Vũ trụ đang hiển thị kết quả..."}</h2>
-                  <p className="text-slate-400 text-sm flex items-center justify-center gap-2">{step === "picking" ? <><Hand className="w-4 h-4" /> Bấm để chọn hoặc bỏ chọn</> : "Bao gồm cả Xuôi và Ngược"}</p>
-                </div>
-                <div className="flex flex-wrap justify-center gap-1.5 md:gap-2 max-w-[1400px] px-2" style={{ perspective: "1000px" }}>
-                  {shuffledDeck.map((card, idx) => {
-                    const isSelected = selectedIndices.includes(idx);
-                    const isHidden = step === "revealing" && !isSelected;
-                    return (
-                      <motion.div key={idx} layout initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: isHidden ? 0.3 : 1, y: step === "picking" && isSelected ? -20 : 0, zIndex: isSelected ? 50 : 0 }} transition={{ duration: 0.3 }} onClick={() => step === "picking" && handleToggleCard(idx)} className={`relative w-12 h-20 md:w-16 md:h-28 rounded cursor-pointer transition-all duration-300 ${step === "picking" ? "hover:-translate-y-2 hover:z-10" : ""}`}>
-                        <motion.div className="w-full h-full relative" style={{ transformStyle: "preserve-3d" }} animate={{ rotateY: shouldFlipToFace ? 0 : 180 }} transition={{ duration: 0.8, ease: "easeInOut" }}>
-                          <div className="absolute inset-0 w-full h-full bg-slate-900 rounded overflow-hidden border border-white/20 shadow-sm flex items-center justify-center" style={{ backfaceVisibility: "hidden" }}>
-                            <img src={card.imageUrl} alt="Face" className={`w-full h-full object-cover transition-transform duration-700 ${card.isReversed ? 'rotate-180' : ''}`} />
-                            {card.isReversed && step === "revealing" && (<div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white text-[6px] md:text-[8px] px-1 rounded font-bold">REV</div>)}
-                          </div>
-                          <div className="absolute inset-0 w-full h-full rounded" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-                            <CardBackDesign />
-                            {isSelected && (
-                              <div className="absolute -top-2 -right-2 w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center text-black font-bold text-[10px] shadow-lg border border-white z-20">
-                                <Check className="w-3 h-3 md:w-4 md:h-4" />
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-                {step === "picking" && selectedIndices.length === 3 && (
-                  <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="fixed bottom-8 z-30">
-                    <button onClick={handleConfirmSelection} className="px-10 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg rounded-full shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-105 transition-transform flex items-center gap-2 animate-bounce">Lật Bài <Eye className="w-5 h-5" /></button>
-                  </motion.div>
-                )}
-              </motion.div>
+              <PickingStep
+                shuffledDeck={shuffledDeck}
+                selectedIndices={selectedIndices}
+                step={step}
+                shouldFlipToFace={shouldFlipToFace}
+                onToggleCard={handleToggleCard}
+                onConfirmSelection={handleConfirmSelection}
+              />
             )}
 
             {step === "result" && (
-              <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10 max-w-4xl mx-auto pb-10">
-                <div className="text-center">
-                  <h2 className="text-3xl font-bold text-white mb-2">Kết Quả Trải Bài</h2>
-                  <p className="text-slate-400">3 lá bài định mệnh của bạn</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4 md:px-0">
-                  {selectedIndices.map(idx => shuffledDeck[idx]).map((card, idx) => (
-                    <motion.div key={idx} initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: idx * 0.2 }} className="bg-[#130823]/80 border border-white/10 rounded-3xl p-6 text-center shadow-xl relative overflow-hidden" >
-                      <div className={`absolute top-4 right-4 text-xs font-bold px-2 py-1 rounded border ${card.isReversed ? 'bg-red-900/50 border-red-500 text-red-300' : 'bg-green-900/50 border-green-500 text-green-300'}`}>
-                        {card.isReversed ? <span className="flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Ngược</span> : "Xuôi"}
-                      </div>
-                      <div className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden mb-5 shadow-2xl bg-[#1e1b2e]">
-                        <img src={card.imageUrl} alt={card.nameVi} className={`w-full h-full object-cover ${card.isReversed ? 'rotate-180' : ''}`} />
-                      </div>
-                      <h3 className="text-xl font-bold text-white mb-1">{card.nameVi}</h3>
-                    </motion.div>
-                  ))}
-                </div>
-                <div className="relative mt-8 text-center flex flex-col md:flex-row gap-4 justify-center items-center relative z-20">
-                  <button onClick={handleRedraw} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold rounded-2xl transition-all flex items-center gap-2 hover:scale-105"><RefreshCw className="w-5 h-5" /> Rút lại bài khác</button>
-                  <button onClick={handleSubmitCards} className="group relative px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-lg rounded-2xl shadow-xl hover:scale-105 transition-transform flex items-center gap-3"><Lock className="w-5 h-5" /> Kết Nối Reader</button>
-                </div>
-              </motion.div>
+              <ResultStep
+                shuffledDeck={shuffledDeck}
+                selectedIndices={selectedIndices}
+                onRedraw={handleRedraw} // Giữ nguyên hàm cũ để reset game
+                onSubmit={handleSubmitCards} // Giữ nguyên hàm cũ để sang bước Booking
+              />
             )}
 
           </AnimatePresence>

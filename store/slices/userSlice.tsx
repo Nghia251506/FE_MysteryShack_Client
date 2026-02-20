@@ -8,6 +8,7 @@ interface UserState {
   excludedIds: number[]; // Lưu danh sách ID đã lướt qua
   loading: boolean;
   error: string | null;
+  showGlobalMatchModal: boolean
 }
 
 // --- ASYNC THUNK: GỌI QUA USER_SERVICE ---
@@ -96,6 +97,7 @@ const initialState: UserState = {
   excludedIds: [],
   loading: false,
   error: null,
+  showGlobalMatchModal: false,
 };
 
 export const userSlice = createSlice({
@@ -129,6 +131,9 @@ export const userSlice = createSlice({
     },
     setMatchedReader: (state, action: PayloadAction<User | null>) => {
       state.matchedReader = action.payload;
+    },
+    setGlobalMatchModal: (state, action) => {
+      state.showGlobalMatchModal = action.payload;
     },
     // Reset khi khách muốn bắt đầu lại từ đầu hoặc thoát màn hình
     resetMatching: (state) => {

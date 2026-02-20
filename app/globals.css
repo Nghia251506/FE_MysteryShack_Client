@@ -44,6 +44,7 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -70,13 +71,46 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
   }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    /* Độ rộng của thanh cuộn dọc */
+    height: 8px;
+    /* Độ cao của thanh cuộn ngang */
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0a0608;
+    /* Màu nền của đường ray (khớp với bg-web) */
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #78350f, #fbbf24);
+    /* Gradient từ Amber-900 đến Amber-400 */
+    border-radius: 10px;
+    border: 2px solid #0a0608;
+    /* Tạo khoảng cách giữa thanh cuộn và mép */
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #fbbf24;
+    /* Sáng rực lên khi di chuột vào */
+  }
+
+  /* Fix cho Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #fbbf24 #0a0608;
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
 }
+

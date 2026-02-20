@@ -202,66 +202,83 @@ export default function Home() {
               tôi đồng hành cùng bạn trên con đường tìm kiếm sự an nhiên và định
               hướng cuộc đời.
             </p>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
-              <Link href="/tarot-draw">
-                <button className="group relative px-12 py-5 bg-gradient-to-r from-amber-600 to-amber-500 text-black font-black text-lg rounded-2xl shadow-[0_0_50px_-10px_rgba(245,158,11,0.6)] hover:scale-[1.03] transition-all flex items-center justify-center gap-3">
-                  Bắt Đầu Rút Bài{" "}
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:gap-6 justify-center pt-8 px-4">
+              <Link href="/tarot-draw" className="w-full sm:w-auto">
+                <button className="w-full group relative px-4 py-3.5 sm:px-12 sm:py-5 bg-gradient-to-r from-amber-600 to-amber-500 text-black font-black text-sm sm:text-lg rounded-xl sm:rounded-2xl shadow-[0_0_30px_-10px_rgba(245,158,11,0.6)] hover:scale-[1.03] transition-all flex items-center justify-center gap-2">
+                  <span className="truncate">Rút Bài</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform shrink-0" />
                 </button>
               </Link>
-              <Link href="/what-is-tarot">
-                <button className="px-12 py-5 bg-white/5 border border-white/10 text-slate-200 font-bold text-lg rounded-2xl hover:bg-white/10 hover:scale-[1.03] transition-all backdrop-blur-xl border-dashed">
-                  Tìm hiểu thêm
+
+              <Link href="/what-is-tarot" className="w-full sm:w-auto">
+                <button className="w-full px-4 py-3.5 sm:px-12 sm:py-5 bg-white/5 border border-white/10 text-slate-200 font-bold text-sm sm:text-lg rounded-xl sm:rounded-2xl hover:bg-white/10 hover:scale-[1.03] transition-all backdrop-blur-xl border-dashed">
+                  Tìm hiểu
                 </button>
               </Link>
             </div>
           </motion.div>
         </section>
 
-        {/* TOPICS SECTION (Dùng handleTopicClick) */}
-        <section className="max-w-7xl mx-auto px-6 py-20">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6 text-center md:text-left">
-            <div className="space-y-4">
-              <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-                Chìa Khoá Mở Cửa Tâm Hồn
-              </h2>
-              <p className="text-slate-500 text-lg">
-                Lựa chọn lĩnh vực bạn đang trăn trở.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <div className="w-12 h-1 bg-amber-500/20 rounded-full" />
-              <div className="w-24 h-1 bg-amber-500 rounded-full" />
-            </div>
-          </div>
+        {/* MYSTIC REVELATION SECTION */}
+        <section className="relative py-40 overflow-hidden">
+          {/* Lớp nền mờ ảo tạo chiều sâu */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(245,158,11,0.08),transparent_70%)]" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {topics.map((topic, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                onClick={() => handleTopicClick(topic.title)}
-                className={`relative group p-10 rounded-[3rem] bg-[#130823]/40 border border-white/5 backdrop-blur-2xl transition-all duration-500 cursor-pointer ${topic.border} shadow-2xl`}
-              >
-                <div
-                  className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${topic.color} flex items-center justify-center mb-10 border border-white/10 group-hover:scale-110 transition-all ${topic.accent}`}
-                >
-                  <topic.icon className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-4">
-                  {topic.title}
-                </h3>
-                <p className="text-slate-500 text-base leading-relaxed">
-                  {topic.description}
+          <div className="max-w-5xl mx-auto px-6 relative z-10 text-center space-y-16">
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1 }}
+              className="space-y-8"
+            >
+              <div className="flex justify-center mb-6">
+                <div className="w-px h-24 bg-gradient-to-b from-transparent via-amber-500/50 to-transparent" />
+              </div>
+
+              <h2 className="text-amber-500/60 text-xs md:text-sm font-bold tracking-[0.8em] uppercase" style={{ fontFamily: "'Cinzel', serif" }}>
+                Bức màn bí mật
+              </h2>
+
+              <p className="text-4xl md:text-6xl font-light text-white leading-[1.4] tracking-tight italic" style={{ fontFamily: "'Crimson Pro', serif" }}>
+                "Vũ trụ không giao tiếp bằng ngôn ngữ, <br />
+                nó thì thầm qua những <span className="text-amber-500 font-medium">biểu tượng cổ xưa</span>."
+              </p>
+
+              <div className="max-w-2xl mx-auto">
+                <p className="text-slate-500 text-lg md:text-xl font-light leading-relaxed">
+                  Đằng sau mỗi lá bài không chỉ là hình vẽ, mà là một tấm gương phản chiếu
+                  những ngóc ngách sâu thẳm nhất trong tiềm thức bạn. Bạn đã sẵn sàng để đối diện
+                  với sự thật đang ẩn giấu?
                 </p>
-                <div className="mt-8 opacity-0 group-hover:opacity-100 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-500">
-                  Khai mở ngay <ChevronRight className="w-4 h-4" />
-                </div>
-              </motion.div>
-            ))}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="flex justify-center"
+            >
+              <Link href="/what-is-tarot" className="group relative">
+                {/* Hiệu ứng hào quang xung quanh nút */}
+                <div className="absolute -inset-4 bg-amber-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                <button className="relative px-16 py-5 bg-transparent border border-amber-600/30 text-amber-500 rounded-full overflow-hidden transition-all duration-500 hover:border-amber-500 hover:shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                  {/* Hiệu ứng quét sáng khi hover */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+
+                  <span className="flex items-center gap-4 tracking-[0.4em] font-bold text-sm uppercase" style={{ fontFamily: "'Cinzel', serif" }}>
+                    Khám phá tri thức <ChevronRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                  </span>
+                </button>
+              </Link>
+            </motion.div>
+
+            <div className="flex justify-center pt-8">
+              <div className="w-px h-24 bg-gradient-to-b from-transparent via-amber-500/50 to-transparent" />
+            </div>
           </div>
         </section>
 

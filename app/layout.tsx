@@ -14,6 +14,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Mystic Tarot",
   description: "Kết nối Reader chuyên nghiệp",
+  icons: {
+    icon: "/logo (1).png", // Đường dẫn tính từ thư mục public
+  }
 };
 
 export default function RootLayout({

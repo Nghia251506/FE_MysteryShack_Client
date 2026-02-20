@@ -46,7 +46,7 @@ const SocialFloating = () => {
   ];
 
   return (
-    <div className="fixed bottom-8 right-8 z-[100] flex flex-col gap-6">
+    <div className="hidden md:flex fixed bottom-8 right-8 z-[100] flex flex-col gap-6">
       {socialLinks.map((social, index) => (
         <motion.a
           key={social.name}

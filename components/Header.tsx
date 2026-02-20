@@ -1,15 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Sparkles,
-  LayoutDashboard,
-  User as UserIcon,
-  LogOut,
-  Menu,
-  X,
-  ChevronRight,
-} from "lucide-react";
+import { LogOut, Menu, X, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -29,6 +21,16 @@ export default function Header() {
 
   useEffect(() => {
     setMounted(true);
+    // Khóa cuộn trang khi mở menu
+    if (isMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+  }, [isMenuOpen]);
+
+  // Tự động đóng menu khi chuyển trang
+  useEffect(() => {
     setIsMenuOpen(false);
   }, [pathname]);
 
@@ -48,223 +50,211 @@ export default function Header() {
   };
 
   const navLinks = [
+    { name: "Trang chủ", href: "/" },
     { name: "Rút Bài", href: "/tarot-draw" },
     { name: "Tarot là gì?", href: "/what-is-tarot" },
-    { name: "So Sánh", href: "/compare-tarot" },
     { name: "Về chúng tôi", href: "/about" },
     { name: "Liên hệ", href: "/contact" },
   ];
 
   return (
-    <header className="sticky top-0 z-[100] bg-[#050505]/60 backdrop-blur-xl border-b border-white/5 px-4 md:px-8 py-4">
-      <nav className="max-w-7xl mx-auto flex justify-between items-center">
-        {/* LOGO */}
-        <Link
-          href="/"
-          className="flex items-center gap-3 group relative z-[110]"
-        >
-          <div className="relative w-[40px] h-[40px]">
-            <Image
-              src="/logo.png"
-              alt="Logo"
-              fill
-              className="rounded-full object-cover transition-transform group-hover:rotate-12"
-            />
-          </div>
-          <span className="font-bold text-lg text-white tracking-tighter">
-            Mystic<span className="text-amber-500"> Tarot</span>
-          </span>
-        </Link>
-
-        {/* DESKTOP NAV */}
-        <div className="hidden lg:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`text-sm font-bold transition-colors ${pathname === link.href ? "text-amber-500" : "text-slate-400 hover:text-amber-500"}`}
-            >
-              {link.name}
-            </Link>
-          ))}
-          {mounted && user ? (
-            <div className="flex items-center gap-4 border-l border-white/10 pl-8">
-              <Link
-                href={user.role === "READER" ? "/readerdashboard" : "/profile"}
-                className="flex items-center gap-2 group"
-              >
-                <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-black font-black text-xs">
-                  <Image
-                    src={user?.profilePicture || "/default-avatar.png"}
-                    alt="Avatar"
-                    width={32}
-                    height={32}
-                    className="rounded-full object-cover"
-                  />
-                </div>
-                <span className="text-sm font-bold text-white group-hover:text-amber-500 transition-colors">
-                  {user.fullName}
-                </span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-              >
-                <LogOut size={18} />
-              </button>
+    <>
+      <header className="sticky top-0 z-[100] bg-[#050505]/80 backdrop-blur-xl border-b border-white/5 px-4 py-4">
+        <nav className="max-w-7xl mx-auto flex justify-between items-center">
+          {/* LOGO */}
+          <Link href="/" className="flex items-center gap-3">
+            <div className="relative w-8 h-8">
+              <Image src="/logo.png" alt="Logo" fill className="rounded-full object-cover" />
             </div>
-          ) : (
-            <div className="flex items-center gap-3">
+            <span className="font-bold text-white tracking-tighter">
+              Mystic<span className="text-amber-500"> Tarot</span>
+            </span>
+          </Link>
+
+          {/* DESKTOP NAV */}
+          <div className="hidden lg:flex items-center gap-8">
+            {navLinks.map((link) => (
               <Link
-                href="/login"
-                className="text-sm font-bold text-white px-5 py-2.5 hover:text-amber-500 transition-colors"
+                key={link.href}
+                href={link.href}
+                className={`text-sm font-bold transition-colors ${pathname === link.href ? "text-amber-500" : "text-slate-400 hover:text-amber-500"}`}
               >
-                Đăng Nhập
+                {link.name}
               </Link>
-              <Link
-                href="/register"
-                className="text-sm font-bold text-white px-5 py-2.5 hover:text-amber-500 transition-colors"
-              >
-                Đăng ký
-              </Link>
-              <Link href="/tarot-draw">
-                <button className="px-6 py-2.5 bg-amber-500 text-black font-black rounded-xl text-sm hover:scale-105 transition-all shadow-lg shadow-amber-500/20">
-                  Bắt đầu ngay
+            ))}
+            {mounted && user ? (
+              <div className="flex items-center gap-4 border-l border-white/10 pl-8">
+                <Link
+                  href={user.role === "READER" ? "/readerdashboard" : "/profile"}
+                  className="flex items-center gap-2 group"
+                >
+                  <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-black font-black text-xs">
+                    <Image
+                      src={user?.profilePicture || "/default-avatar.png"}
+                      alt="Avatar"
+                      width={32}
+                      height={32}
+                      className="rounded-full object-cover"
+                    />
+                  </div>
+                  <span className="text-sm font-bold text-white group-hover:text-amber-500 transition-colors">
+                    {user.fullName}
+                  </span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                >
+                  <LogOut size={18} />
                 </button>
-              </Link>
-            </div>
-          )}
-        </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/login"
+                  className="text-sm font-bold text-white px-5 py-2.5 hover:text-amber-500 transition-colors"
+                >
+                  Đăng Nhập
+                </Link>
+                <Link
+                  href="/register"
+                  className="text-sm font-bold text-white px-5 py-2.5 hover:text-amber-500 transition-colors"
+                >
+                  Đăng ký
+                </Link>
+                <Link href="/tarot-draw">
+                  <button className="px-6 py-2.5 bg-amber-500 text-black font-black rounded-xl text-sm hover:scale-105 transition-all shadow-lg shadow-amber-500/20">
+                    Bắt đầu ngay
+                  </button>
+                </Link>
+              </div>
+            )}
+          </div>
 
-        {/* MOBILE TOGGLE */}
-        <button
-          className="lg:hidden relative z-[110] p-2 text-white bg-white/5 rounded-xl border border-white/10"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-        >
-          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+          {/* MOBILE TOGGLE - Nút mở Menu */}
+          <button onClick={() => setIsMenuOpen(true)} className="lg:hidden p-2 text-white">
+            <Menu size={28} />
+          </button>
+        </nav>
+      </header>
 
-        {/* --- MOBILE NAV OVERLAY --- */}
-        {/* --- MOBILE NAV OVERLAY (BẢN FIX TRIỆT ĐỂ LỖI TRÔI LÊN TRÊN) --- */}
-        <AnimatePresence>
-          {isMenuOpen && (
+      {/* --- MOBILE DRAWER OVERLAY --- */}
+      {/* --- MOBILE DRAWER OVERLAY --- */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <div className="fixed inset-0 z-[9999]">
+            {/* Backdrop tối nền - tạo cảm giác tách biệt hoàn toàn */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90 backdrop-blur-md p-6"
-              style={{ height: "100vh", width: "100vw" }}
-            >
-              {/* Click ra ngoài để đóng */}
-              <div
-                className="absolute inset-0"
-                onClick={() => setIsMenuOpen(false)}
-              />
+              onClick={() => setIsMenuOpen(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
 
-              {/* Menu Block chính */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 50 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 50 }}
-                className="relative w-full max-w-[350px] bg-[#0a0a0a] border border-amber-500/30 rounded-[3rem] p-8 shadow-[0_0_80px_rgba(0,0,0,0.9)] z-[1000] flex flex-col"
-              >
-                {/* Nút đóng X */}
+            {/* Menu Content trượt từ phải sang - Tông màu tối theo Background */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="absolute top-0 right-0 w-[85%] max-w-[320px] h-full bg-[#0d0d0d] flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.5)] border-l border-white/5"
+            >
+              {/* Header của Menu: Amber & White Contrast */}
+              <div className="flex justify-between items-center p-6 border-b border-white/5">
+                <span className="font-black text-xs uppercase tracking-[0.3em] text-amber-500">
+                  Danh mục
+                </span>
                 <button
                   onClick={() => setIsMenuOpen(false)}
-                  className="absolute -top-16 left-1/2 -translate-x-1/2 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white border border-white/20 hover:bg-amber-500 hover:text-black transition-all"
+                  className="p-2 -mr-2 text-slate-400 hover:text-white transition-colors"
                 >
                   <X size={24} />
                 </button>
+              </div>
 
-                {/* PHẦN 2: DANH SÁCH MENU (Đưa lên trên) */}
-                <div className="flex flex-col gap-3">
-                  {navLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={`
-                        flex items-center justify-between p-4 rounded-2xl border transition-all duration-300
-                        ${
-                          pathname === link.href
-                            ? "bg-amber-500 border-amber-500 text-black shadow-[0_8px_20px_rgba(245,158,11,0.3)]"
-                            : "bg-white/[0.03] border-white/10 text-slate-300 hover:border-amber-500/50 hover:text-amber-500"
-                        }
-                      `}
-                    >
-                      <span className="text-[11px] font-black uppercase tracking-widest">
-                        {link.name}
-                      </span>
-                      <ChevronRight
-                        size={16}
-                        className={
-                          pathname === link.href
-                            ? "text-black"
-                            : "text-amber-500/40"
-                        }
-                      />
-                    </Link>
-                  ))}
-                </div>
+              {/* Danh sách Links: Độ tương phản cao trên nền tối */}
+              <div className="flex-1 overflow-y-auto py-4">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center justify-between px-8 py-5 transition-all duration-300 border-b border-white/[0.02] ${pathname === link.href
+                      ? "bg-amber-500/10 text-amber-500"
+                      : "text-slate-200 hover:text-white hover:bg-white/[0.02]"
+                      }`}
+                  >
+                    <span className="text-sm font-bold tracking-tight">
+                      {link.name}
+                    </span>
+                    <ChevronRight
+                      size={18}
+                      className={pathname === link.href ? "text-amber-500" : "text-slate-600"}
+                    />
+                  </Link>
+                ))}
+              </div>
 
-                {/* KHOẢNG CÁCH & ĐƯỜNG KẺ NGĂN CÁCH (Fix lỗi dính) */}
-                <div className="my-6 border-t border-white/10 w-full" />
-
-                {/* PHẦN 1: THÔNG TIN USER / LOGIN (Đưa xuống dưới) */}
-                <div className="w-full">
-                  {mounted && user ? (
-                    <div className="flex items-center justify-between bg-amber-500/5 p-4 rounded-2xl border border-amber-500/20">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-black font-black shadow-[0_0_15px_rgba(245,158,11,0.4)]">
-                          {user.fullName?.charAt(0) || "U"}
+              {/* Phần Footer của Menu (User Card) - High Contrast */}
+              <div className="p-6 bg-[#080808] border-t border-white/5">
+                {mounted && user ? (
+                  <div className="flex items-center justify-between bg-white/[0.03] p-4 rounded-2xl border border-white/10 shadow-inner">
+                    <Link href={"/profile"}>
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="relative w-10 h-10 rounded-full border-2 border-amber-500/30 overflow-hidden shrink-0">
+                          <Image
+                            src={user.profilePicture || "/default-avatar.png"}
+                            alt="avatar"
+                            fill
+                            className="object-cover"
+                          />
                         </div>
-                        <Link href="/profile">
-                          <div className="max-w-[120px]">
-                            <p className="text-[9px] text-amber-500/60 uppercase font-black tracking-widest">
-                              Xin chào,
-                            </p>
-                            <p className="text-sm font-bold text-white truncate">
-                              {user.fullName || user.username}
-                            </p>
-                          </div>
-                        </Link>
+                        <div className="truncate">
+                          <p className="text-[9px] text-amber-500/60 uppercase font-black tracking-widest leading-none mb-1">
+                            Xin chào,
+                          </p>
+                          <p className="text-sm font-bold text-white truncate">
+                            {user.fullName || user.username}
+                          </p>
+                        </div>
                       </div>
-                      <button
-                        onClick={handleLogout}
-                        className="p-2.5 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all border border-red-500/20"
-                      >
-                        <LogOut size={18} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <Link
-                          href="/login"
-                          className="py-3.5 bg-white/5 border border-white/10 text-white text-center rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-white/10"
-                        >
-                          Đăng nhập
-                        </Link>
-                        <Link
-                          href="/login"
-                          className="py-3.5 bg-white text-black text-center rounded-xl font-black text-[10px] uppercase tracking-widest"
-                        >
-                          Đăng ký
-                        </Link>
-                      </div>
-                      <Link
-                        href="/tarot-draw"
-                        className="block w-full py-4 bg-amber-500 text-black text-center rounded-xl font-black text-[11px] uppercase tracking-[0.2em] shadow-[0_5px_20px_rgba(245,158,11,0.3)] hover:scale-[1.02] transition-transform"
-                      >
-                        Bắt đầu ngay
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="p-2.5 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all border border-red-500/10"
+                    >
+                      <LogOut size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] text-center mb-2">Hỗ trợ trải nghiệm</p>
+                    <Link
+                      href="/login"
+                      className="block w-full py-4 bg-white text-black text-center rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] transition-transform active:scale-95"
+                    >
+                      Đăng nhập
+                    </Link>
+                    <Link
+                      href="/tarot-draw"
+                      className="block w-full py-4 bg-amber-500 text-black text-center rounded-xl font-black text-xs uppercase tracking-widest shadow-[0_10px_20px_rgba(245,158,11,0.2)] hover:scale-[1.02] transition-transform active:scale-95"
+                    >
+                      Bắt đầu ngay
+                    </Link>
+                  </div>
+                )}
+
+                {/* Social Dots - Giống ảnh mẫu ông gửi
+                <div className="flex justify-center gap-4 mt-8 opacity-20">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                  ))}
+                </div> */}
+              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </nav>
-    </header>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

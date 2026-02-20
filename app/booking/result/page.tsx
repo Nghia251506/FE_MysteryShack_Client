@@ -236,7 +236,7 @@ export default function InterpretationResultPage() {
                 </div>
                 <img
                   src={
-                    data?.qrPayment?.startsWith("data:image")
+                    data?.qrPayment
                       ? data.qrPayment
                       : `data:image/png;base64,${data?.qrPayment}`
                   }
