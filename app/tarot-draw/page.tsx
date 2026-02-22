@@ -184,32 +184,65 @@ export default function TarotDrawPage() {
   const [recoveredStep, setRecoveredStep] = useState<string | null>(null);
 
   // --- LOGIC: KHÔI PHỤC DỮ LIỆU KHI MOUNTED ---
+  // --- LOGIC: KHÔI PHỤC DỮ LIỆU TỪ NHIỀU NGUỒN (SESSION + LOCAL) ---
   useEffect(() => {
     setMounted(true);
-    const saved = sessionStorage.getItem(TAROT_PERSIST_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
+    
+    // 1. Lấy dữ liệu từ 2 nguồn
+    const savedPersist = sessionStorage.getItem(TAROT_PERSIST_KEY);
+    const savedSession = localStorage.getItem("tarot-session");
 
-        // 1. LƯU LẠI STEP CŨ VÀO STATE PHỤ, KHÔNG SET TRỰC TIẾP VÀO STEP CHÍNH
-        if (parsed.step && parsed.step !== "loading") {
-          setRecoveredStep(parsed.step);
+    try {
+      let finalData: any = {};
+      
+      // Ưu tiên lấy dữ liệu từ tarot-session (LocalStorage) vì nó chứa kết quả đã đăng nhập
+      if (savedSession) {
+        const sessionParsed = JSON.parse(savedSession);
+        // Map lại format để tương thích với state hiện tại của page
+        finalData = {
+          selectedTopic: sessionParsed.topic,
+          selectedTopicId: sessionParsed.topicId,
+          selectedQuestion: sessionParsed.questionText,
+          selectedQuestionId: sessionParsed.question,
+          shuffledDeck: sessionParsed.drawnCards?.map((c: any) => ({
+             id: c.id,
+             nameVi: c.nameVi,
+             imageUrl: c.imageUrl,
+             isReversed: c.reversed,
+             shortMsg: "" 
+          })) || [],
+          // Logic quyết định STEP:
+          // Nếu đã có bài (drawnCards) -> Nhảy tới picking (để người dùng xem/chọn lại nếu muốn) 
+          // Nếu chỉ có câu hỏi -> Nhảy tới shuffling
+          step: sessionParsed.drawnCards?.length > 0 ? "picking" : (sessionParsed.question ? "shuffling" : "topic")
+        };
+      } 
+      // Nếu Local không có thì mới xét tới SessionStorage (Bản nháp của Guest)
+      else if (savedPersist) {
+        finalData = JSON.parse(savedPersist);
+      }
+
+      if (Object.keys(finalData).length > 0) {
+        setRecoveredStep(finalData.step);
+        setSelectedTopic(finalData.selectedTopic || "");
+        setSelectedTopicId(finalData.selectedTopicId || null);
+        setSelectedQuestion(finalData.selectedQuestion || "");
+        setSelectedQuestionId(finalData.selectedQuestionId || null);
+        setShuffledDeck(finalData.shuffledDeck || []);
+        
+        // Nếu nhảy thẳng tới picking từ drawnCards, ta mặc định chọn luôn 3 lá đó
+        if (finalData.step === "picking" && finalData.shuffledDeck?.length > 0) {
+            setSelectedIndices([0, 1, 2]); 
+        } else {
+            setSelectedIndices(finalData.selectedIndices || []);
         }
 
-        // 2. Khôi phục các dữ liệu khác bình thường
-        setSelectedTopic(parsed.selectedTopic || "");
-        setSelectedTopicId(parsed.selectedTopicId || null);
-        setSelectedQuestion(parsed.selectedQuestion || "");
-        setSelectedQuestionId(parsed.selectedQuestionId || null);
-        setShuffledDeck(parsed.shuffledDeck || []);
-        setSelectedIndices(parsed.selectedIndices || []);
-
-        if (parsed.step === "result" || parsed.step === "revealing") {
+        if (finalData.step === "result" || finalData.step === "revealing") {
           setShouldFlipToFace(true);
         }
-      } catch (e) {
-        console.error("Lỗi restore session", e);
       }
+    } catch (e) {
+      console.error("Lỗi khôi phục linh hồn Tarot:", e);
     }
   }, []);
 

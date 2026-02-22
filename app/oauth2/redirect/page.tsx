@@ -9,32 +9,50 @@ export default function OAuth2RedirectHandler() {
     const searchParams = useSearchParams();
     const dispatch = useDispatch();
 
-    // --- HELPER LOGIC: GỘP DATA GUEST VÀO USER ---
-    const mergeTarotData = () => {
-        const guestDataRaw = sessionStorage.getItem('guestTarotSession');
-        if (guestDataRaw) {
-            try {
-                const guestData = JSON.parse(guestDataRaw);
-                const userDataRaw = sessionStorage.getItem('tarot_draw_state_persist');
-                const userData = userDataRaw ? JSON.parse(userDataRaw) : {};
+    // --- LOGIC GỘP DATA TOÀN DIỆN (SESSION + LOCAL) ---
+    const mergeAllPossibleTarotData = () => {
+        try {
+            // 1. Quét tất cả các nguồn có thể chứa data cũ
+            const guestSession = sessionStorage.getItem('guestTarotSession');
+            const persistSession = sessionStorage.getItem('tarot_draw_state_persist');
+            const localTarotSession = localStorage.getItem('tarot-session');
+            const localPersist = localStorage.getItem('tarot_draw_state_persist');
 
-                // Gộp data và đánh dấu đã migrate
-                const mergedData = {
-                    ...userData,
-                    ...guestData,
-                    updatedAt: Date.now(),
-                    isMigrated: true
-                };
+            // 2. Phân tích data (Ưu tiên lấy cái nào có dữ liệu mới nhất)
+            const gData = guestSession ? JSON.parse(guestSession) : null;
+            const pData = persistSession ? JSON.parse(persistSession) : null;
+            const lTData = localTarotSession ? JSON.parse(localTarotSession) : null;
+            const lPData = localPersist ? JSON.parse(localPersist) : null;
 
-                sessionStorage.setItem('tarot_draw_state_persist', JSON.stringify(mergedData));
-                sessionStorage.removeItem('guestTarotSession');
-                console.log("Đã đồng bộ dữ liệu khách từ Google Login");
-                return true;
-            } catch (e) {
-                console.error("Lỗi gộp session OAuth2:", e);
-            }
+            // Nếu không có bất kỳ data nào thì thoát
+            if (!gData && !pData && !lTData && !lPData) return false;
+
+            // 3. Hợp nhất dữ liệu (Gộp tất cả vào một object chung)
+            // Thứ tự spread: lPData < lTData < pData < gData (Cái sau đè cái trước, ưu tiên guestSession nhất)
+            const mergedData = {
+                ...lPData,
+                ...lTData,
+                ...pData,
+                ...gData,
+                updatedAt: Date.now(),
+                isMigrated: true
+            };
+
+            // 4. Lưu đồng bộ vào cả 2 key quan trọng nhất ở LocalStorage để "bất tử"
+            const finalString = JSON.stringify(mergedData);
+            localStorage.setItem('tarot-session', finalString);
+            localStorage.setItem('tarot_draw_state_persist', finalString);
+
+            // 5. Dọn dẹp rác ở SessionStorage
+            sessionStorage.removeItem('guestTarotSession');
+            sessionStorage.removeItem('tarot_draw_state_persist');
+            
+            console.log("Hệ thống Google OAuth2 đã gộp và đồng bộ hóa linh hồn bài Tarot.");
+            return true;
+        } catch (e) {
+            console.error("Lỗi gộp data Tarot toàn diện:", e);
+            return false;
         }
-        return false;
     };
 
     useEffect(() => {
@@ -57,15 +75,12 @@ export default function OAuth2RedirectHandler() {
                 profilePicture: profilePicture,
             };
 
-            // 1. Cập nhật Auth State
             dispatch(loginSuccess({ user: userData, token: token }));
 
-            // 2. Thực hiện gộp dữ liệu Tarot
-            const hasMerged = mergeTarotData();
+            // Gộp data toàn diện
+            const hasData = mergeAllPossibleTarotData();
 
-            // 3. Chuyển hướng thông minh
-            // Nếu vừa gộp data xong, ưu tiên đưa về trang rút bài để họ tiếp tục
-            if (hasMerged) {
+            if (hasData) {
                 router.push('/tarot-draw');
             } else {
                 router.push('/profile');

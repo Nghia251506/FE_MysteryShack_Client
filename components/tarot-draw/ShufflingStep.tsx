@@ -18,7 +18,7 @@ export const CardBackDesign = () => (
 
 export const ShufflingStep = () => {
   // Tạo 20 lá bài giả để chạy hiệu ứng chẻ bài
-  const cards = Array.from({ length: 10 });
+  const cards = Array.from({ length: 6 });
 
   return (
     <motion.div 
