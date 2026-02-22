@@ -214,7 +214,7 @@ export default function TarotDrawPage() {
           // Logic quyết định STEP:
           // Nếu đã có bài (drawnCards) -> Nhảy tới picking (để người dùng xem/chọn lại nếu muốn) 
           // Nếu chỉ có câu hỏi -> Nhảy tới shuffling
-          step: sessionParsed.drawnCards?.length > 0 ? "picking" : (sessionParsed.question ? "shuffling" : "topic")
+          step: sessionParsed.drawnCards?.length > 0 ? "result" : (sessionParsed.question ? "shuffling" : "topic")
         };
       } 
       // Nếu Local không có thì mới xét tới SessionStorage (Bản nháp của Guest)
