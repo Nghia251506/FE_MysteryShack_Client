@@ -242,7 +242,7 @@ export default function LoginPage() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center px-1">
                     <Label className="text-slate-300 text-xs uppercase tracking-wider font-semibold">Mật khẩu</Label>
-                    <Link href="/forgot-password" size="sm" className="text-[10px] text-amber-500/50">Quên mật khẩu?</Link>
+                    <Link href="/forgot-password" className="text-[10px] text-amber-500/50">Quên mật khẩu?</Link>
                   </div>
                   <div className="relative group/input">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within/input:text-amber-500 transition-colors" />
