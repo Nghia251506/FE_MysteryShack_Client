@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ReadingSessionService } from "@/services/readingSessionService";
+import { toast } from "react-toastify";
 
 // --- 1. ĐỊNH NGHĨA KEY CHO SESSION PERSIST ---
 const TAROT_PERSIST_KEY = "tarot_booking_state_persist";
@@ -94,9 +95,9 @@ const UserInfoUpdateModal = ({ isOpen, onClose, user, token, onUpdateSuccess }: 
     if (!name || !dob) return alert("Vui lòng nhập đầy đủ thông tin!");
     setIsLoading(true);
     try {
-      await axios.patch(`https://bemystictarot-1040470993124.asia-southeast1.run.app/api/users/booking-info/${user.id}`, { fullName: name, birthDate: dob }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch(`https://api.mystictarots.xyz/api/users/booking-info/${user.id}`, { fullName: name, birthDate: dob }, { headers: { Authorization: `Bearer ${token}` } });
       onUpdateSuccess({ fullName: name, birthDate: dob });
-    } catch (error) { alert("Lỗi cập nhật thông tin!"); } finally { setIsLoading(false); }
+    } catch (error) { toast.error("Lỗi cập nhật thông tin!"); } finally { setIsLoading(false); }
   };
 
   return (
@@ -154,7 +155,7 @@ export default function BookingRequestPage() {
 
   // --- LOGIC: MATCH READER ---
   const handleMatchReader = useCallback(async (isManual = false) => {
-    if (!user?.id || matchedReader) return; // Nếu đã có reader rồi thì thôi không tìm nữa
+    if (!isManual && matchedReader) return; // Nếu đã có reader rồi thì thôi không tìm nữa
 
     setStep(3);
     if (!user?.id) return;
