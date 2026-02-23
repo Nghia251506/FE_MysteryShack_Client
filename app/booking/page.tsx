@@ -153,13 +153,14 @@ export default function BookingRequestPage() {
   }, [step, mounted]);
 
   // --- LOGIC: MATCH READER ---
-  const handleMatchReader = useCallback(async () => {
+  const handleMatchReader = useCallback(async (isManual = false) => {
     if (!user?.id || matchedReader) return; // Nếu đã có reader rồi thì thôi không tìm nữa
 
     setStep(3);
     if (!user?.id) return;
 
     // Reset trạng thái trước khi tìm
+    dispatch(setMatchedReader(null));
     setStep(3);
     setProgress(0);
     setScanStatus("Đang kết nối vệ tinh tâm linh...");
@@ -205,18 +206,21 @@ export default function BookingRequestPage() {
   }, [dispatch, user?.id,matchedReader]);
 
   useEffect(() => {
-    if (user && drawnCards.length > 0) {
-      if (matchedReader) {
-        setStep(4);
-        return;
-      }
+  if (user && drawnCards.length > 0) {
+    if (step === 1) {
       if (user.fullName && user.birthDate) {
-        if (step === 1) handleMatchReader();
+        // CHỈ CHẠY TỰ ĐỘNG NẾU CHƯA CÓ READER
+        if (!matchedReader) {
+          handleMatchReader(false); 
+        } else {
+          setStep(4); // Có rồi thì nhảy thẳng sang màn hình kết quả
+        }
       } else {
-        if (step === 1) setShowUpdateInfoModal(true);
+        setShowUpdateInfoModal(true);
       }
     }
-  }, [user, drawnCards.length, handleMatchReader, step, matchedReader]);
+  }
+}, [user, drawnCards.length, step, matchedReader, handleMatchReader]);
 
   const handleUpdateSuccess = (updatedData: any) => {
     setShowUpdateInfoModal(false);
@@ -317,7 +321,7 @@ export default function BookingRequestPage() {
                 <button onClick={handleOpenProfile} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 hover:scale-105">
                   {isProfileLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <User className="w-5 h-5" />} Xem Hồ Sơ Chi Tiết
                 </button>
-                <button onClick={handleMatchReader} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 hover:scale-105">
+                <button onClick={() => handleMatchReader(true)} className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 hover:scale-105">
                   <RefreshCw className="w-5 h-5" /> Tìm Reader Khác
                 </button>
                 <button onClick={submitBookingRequest} disabled={isSubmitting} className="px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-lg rounded-2xl shadow-xl hover:shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
