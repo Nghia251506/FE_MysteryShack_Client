@@ -214,7 +214,7 @@ export default function RegisterPage() {
     );
 
     if (registerUser.fulfilled.match(resultAction)) {
-      localStorage.removeItem('draft_register_data'); // Đăng ký xong thì xóa nháp
+      localStorage.removeItem('draft_register_data'); 
       setIsSuccessModalOpen(true);
     } else {
       const serverErrors = resultAction.payload;
@@ -257,7 +257,7 @@ export default function RegisterPage() {
                   <Label htmlFor="fullName" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">Họ và tên</Label>
                   <div className="relative group/input">
                     <UserCircle className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${errors.fullName ? 'text-red-400' : 'text-slate-500 group-focus-within/input:text-amber-500'}`} />
-                    <Input id="fullName" value={formData.fullName} onChange={handleChange} placeholder="Nguyễn Văn A" className={`h-10 pl-10 bg-slate-950/50 border-white/10 ${errors.fullName ? 'border-red-500/50' : 'focus:border-amber-500/50'}`} disabled={loading} />
+                    <Input id="fullName" value={formData.fullName} onChange={handleChange} placeholder="Nguyễn Văn A" className={`h-10 pl-10 bg-slate-950/50 border-white/10 text-white ${errors.fullName ? 'border-red-500/50' : 'focus:border-amber-500/50'}`} disabled={loading} />
                   </div>
                   <AnimatePresence>{errors.fullName && <ErrorMessage message={errors.fullName} />}</AnimatePresence>
                 </div>
@@ -266,7 +266,7 @@ export default function RegisterPage() {
                   <Label htmlFor="username" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">Tên đăng nhập</Label>
                   <div className="relative group/input">
                     <User className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${errors.username ? 'text-red-400' : 'text-slate-500 group-focus-within/input:text-amber-500'}`} />
-                    <Input id="username" value={formData.username} onChange={handleChange} placeholder="username123" className={`h-10 pl-10 bg-slate-950/50 border-white/10 ${errors.username ? 'border-red-500/50' : 'focus:border-amber-500/50'}`} disabled={loading} />
+                    <Input id="username" value={formData.username} onChange={handleChange} placeholder="username123" className={`h-10 pl-10 bg-slate-950/50 border-white/10 text-white ${errors.username ? 'border-red-500/50' : 'focus:border-amber-500/50'}`} disabled={loading} />
                   </div>
                   <AnimatePresence>{errors.username && <ErrorMessage message={errors.username} />}</AnimatePresence>
                 </div>
@@ -275,7 +275,7 @@ export default function RegisterPage() {
                   <Label htmlFor="birthDate" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">Ngày sinh</Label>
                   <div className="relative group/input">
                     <Calendar className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${errors.birthDate ? 'text-red-400' : 'text-slate-500 group-focus-within/input:text-amber-500'}`} />
-                    <Input id="birthDate" type="date" value={formData.birthDate} onChange={handleChange} className={`h-10 pl-10 bg-slate-950/50 border-white/10 text-slate-200 [color-scheme:dark] ${errors.birthDate ? 'border-red-500/50' : 'focus:border-amber-500/50'}`} disabled={loading} />
+                    <Input id="birthDate" type="date" value={formData.birthDate} onChange={handleChange} className={`h-10 pl-10 bg-slate-950/50 border-white/10 text-white [color-scheme:dark] ${errors.birthDate ? 'border-red-500/50' : 'focus:border-amber-500/50'}`} disabled={loading} />
                   </div>
                   <AnimatePresence>{errors.birthDate && <ErrorMessage message={errors.birthDate} />}</AnimatePresence>
                 </div>
@@ -284,7 +284,7 @@ export default function RegisterPage() {
                   <Label htmlFor="email" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">Email</Label>
                   <div className="relative group/input">
                     <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${errors.email ? 'text-red-400' : 'text-slate-500 group-focus-within/input:text-amber-500'}`} />
-                    <Input id="email" type="email" value={formData.email} onChange={handleChange} placeholder="name@example.com" autoComplete="off" className={`h-10 pl-10 bg-slate-950/50 border-white/10 ${errors.email ? 'border-red-500/50' : 'focus:border-amber-500/50'}`} disabled={loading} />
+                    <Input id="email" type="email" value={formData.email} onChange={handleChange} placeholder="name@example.com" autoComplete="off" className={`h-10 pl-10 bg-slate-950/50 border-white/10 text-white ${errors.email ? 'border-red-500/50' : 'focus:border-amber-500/50'}`} disabled={loading} />
                   </div>
                   <AnimatePresence>{errors.email && <ErrorMessage message={errors.email} />}</AnimatePresence>
                 </div>
@@ -294,7 +294,7 @@ export default function RegisterPage() {
                     <Label htmlFor="password" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">Mật khẩu</Label>
                     <div className="relative group/input">
                       <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${errors.password ? 'text-red-400' : 'text-slate-500'}`} />
-                      <Input id="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleChange} placeholder="••••••" className={`h-10 pl-10 pr-8 bg-slate-950/50 border-white/10 ${errors.password ? 'border-red-500/50' : ''}`} disabled={loading} />
+                      <Input id="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleChange} placeholder="••••••" className={`h-10 pl-10 pr-8 bg-slate-950/50 border-white/10 text-white ${errors.password ? 'border-red-500/50' : ''}`} disabled={loading} />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-amber-400">
                         {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
@@ -305,7 +305,7 @@ export default function RegisterPage() {
                     <Label htmlFor="confirmPassword" className="text-slate-300 text-xs uppercase tracking-wider font-semibold ml-1">Xác nhận</Label>
                     <div className="relative group/input">
                       <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${errors.confirmPassword ? 'text-red-400' : 'text-slate-500'}`} />
-                      <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={formData.confirmPassword} onChange={handleChange} placeholder="••••••" className={`h-10 pl-10 pr-8 bg-slate-950/50 border-white/10 ${errors.confirmPassword ? 'border-red-500/50' : ''}`} disabled={loading} />
+                      <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={formData.confirmPassword} onChange={handleChange} placeholder="••••••" className={`h-10 pl-10 pr-8 bg-slate-950/50 border-white/10 text-white ${errors.confirmPassword ? 'border-red-500/50' : ''}`} disabled={loading} />
                       <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-amber-400">
                         {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>

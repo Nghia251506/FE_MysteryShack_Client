@@ -3,15 +3,38 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Sparkles, ArrowRight, Lock, Eye, Heart, Briefcase, Wallet,
-  ChevronRight, Hand, RotateCcw, LogOut, LogIn, UserPlus, RefreshCw, Check, Star,
-  Moon, Sun, Cloud, Hexagon, Triangle, Circle
+  Sparkles,
+  ArrowRight,
+  Lock,
+  Eye,
+  Heart,
+  Briefcase,
+  Wallet,
+  ChevronRight,
+  Hand,
+  RotateCcw,
+  LogOut,
+  LogIn,
+  UserPlus,
+  RefreshCw,
+  Check,
+  Star,
+  Moon,
+  Sun,
+  Cloud,
+  Hexagon,
+  Triangle,
+  Circle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
-import { setTopicAndQuestion, addCard, resetSession } from "@/store/slices/tarotSlice";
+import {
+  setTopicAndQuestion,
+  addCard,
+  resetSession,
+} from "@/store/slices/tarotSlice";
 import { logout } from "@/store/features/authSlice";
 import { LogoutModal } from "@/components/LogoutModal";
 // --- IMPORT SERVICES ---
@@ -47,9 +70,9 @@ const TOPIC_QUOTES: Record<string, string> = {
   "tình yêu": "Yêu và được yêu là may mắn nhất trên đời.",
   "sự nghiệp": "Nơi nào có ý chí, nơi đó có con đường.",
   "tài chính": "Sự kiên nhẫn là chìa khóa của đầu tư thông minh.",
-  "love": "Lắng nghe tiếng vọng của nhân duyên tiền định.",
-  "career": "Vén màn bí mật phía sau những ngã rẽ.",
-  "finance": "Khơi thông dòng chảy năng lượng thịnh vượng.",
+  love: "Lắng nghe tiếng vọng của nhân duyên tiền định.",
+  career: "Vén màn bí mật phía sau những ngã rẽ.",
+  finance: "Khơi thông dòng chảy năng lượng thịnh vượng.",
 };
 
 const CardBackDesign = () => (
@@ -66,7 +89,7 @@ const CardBackDesign = () => (
 );
 
 const getCardImg = (prefix: string, number: number) => {
-  const padded = number.toString().padStart(2, '0');
+  const padded = number.toString().padStart(2, "0");
   return `https://www.sacred-texts.com/tarot/pkt/img/${prefix}${padded}.jpg`;
 };
 
@@ -75,31 +98,80 @@ const SideDecor = () => {
   return (
     <>
       <div className="fixed left-6 top-1/4 bottom-1/4 w-12 hidden 2xl:flex flex-col justify-between items-center z-0 pointer-events-none opacity-30">
-        <motion.div animate={{ y: [0, -15, 0], rotate: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}>
+        <motion.div
+          animate={{ y: [0, -15, 0], rotate: [0, 10, 0] }}
+          transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+        >
           <Sun className="w-10 h-10 text-amber-500" />
         </motion.div>
-        <motion.div animate={{ y: [0, 15, 0], rotate: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 7, ease: "easeInOut", delay: 1 }}>
+        <motion.div
+          animate={{ y: [0, 15, 0], rotate: [0, -10, 0] }}
+          transition={{
+            repeat: Infinity,
+            duration: 7,
+            ease: "easeInOut",
+            delay: 1,
+          }}
+        >
           <Moon className="w-8 h-8 text-purple-400" />
         </motion.div>
-        <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 2 }}>
+        <motion.div
+          animate={{ scale: [1, 1.5, 1] }}
+          transition={{
+            repeat: Infinity,
+            duration: 5,
+            ease: "easeInOut",
+            delay: 2,
+          }}
+        >
           <Star className="w-5 h-5 text-white" />
         </motion.div>
-        <motion.div animate={{ y: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 8, ease: "easeInOut", delay: 0.5 }}>
+        <motion.div
+          animate={{ y: [0, -20, 0] }}
+          transition={{
+            repeat: Infinity,
+            duration: 8,
+            ease: "easeInOut",
+            delay: 0.5,
+          }}
+        >
           <Cloud className="w-10 h-10 text-slate-500" />
         </motion.div>
       </div>
 
       <div className="fixed right-6 top-1/4 bottom-1/4 w-12 hidden 2xl:flex flex-col justify-between items-center z-0 pointer-events-none opacity-30">
-        <motion.div animate={{ rotate: [0, 360] }} transition={{ repeat: Infinity, duration: 20, ease: "linear" }}>
+        <motion.div
+          animate={{ rotate: [0, 360] }}
+          transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+        >
           <Hexagon className="w-10 h-10 text-amber-600" />
         </motion.div>
-        <motion.div animate={{ y: [0, -10, 0], rotate: [0, 45, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 1.5 }}>
+        <motion.div
+          animate={{ y: [0, -10, 0], rotate: [0, 45, 0] }}
+          transition={{
+            repeat: Infinity,
+            duration: 6,
+            ease: "easeInOut",
+            delay: 1.5,
+          }}
+        >
           <Sparkles className="w-8 h-8 text-purple-500" />
         </motion.div>
-        <motion.div animate={{ scale: [1, 0.8, 1], rotate: [0, -180] }} transition={{ repeat: Infinity, duration: 10, ease: "easeInOut", delay: 0.5 }}>
+        <motion.div
+          animate={{ scale: [1, 0.8, 1], rotate: [0, -180] }}
+          transition={{
+            repeat: Infinity,
+            duration: 10,
+            ease: "easeInOut",
+            delay: 0.5,
+          }}
+        >
           <Triangle className="w-6 h-6 text-white" />
         </motion.div>
-        <motion.div animate={{ opacity: [0.3, 0.8, 0.3] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}>
+        <motion.div
+          animate={{ opacity: [0.3, 0.8, 0.3] }}
+          transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+        >
           <Circle className="w-3 h-3 text-slate-400 bg-slate-400 rounded-full" />
         </motion.div>
       </div>
@@ -108,7 +180,13 @@ const SideDecor = () => {
 };
 
 // --- GUEST MODAL COMPONENT ---
-const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+const GuestPromptModal = ({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
   const router = useRouter();
   if (!isOpen) return null;
 
@@ -130,7 +208,8 @@ const GuestPromptModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         </div>
         <h3 className="text-2xl font-bold text-white mb-3">Lưu Trữ Kết Quả</h3>
         <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-          Bạn đã chọn xong 3 lá bài. Để gửi chúng cho Reader luận giải chi tiết, bạn cần đăng nhập vào hệ thống.
+          Bạn đã chọn xong 3 lá bài. Để gửi chúng cho Reader luận giải chi tiết,
+          bạn cần đăng nhập vào hệ thống.
         </p>
         <div className="space-y-3">
           <button
@@ -164,7 +243,9 @@ export default function TarotDrawPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
 
-  const [step, setStep] = useState<"loading" | "topic" | "shuffling" | "picking" | "revealing" | "result">("loading");
+  const [step, setStep] = useState<
+    "loading" | "topic" | "shuffling" | "picking" | "revealing" | "result"
+  >("loading");
   const [selectedTopic, setSelectedTopic] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState("");
 
@@ -176,7 +257,9 @@ export default function TarotDrawPage() {
   const [apiQuestions, setApiQuestions] = useState<Question[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
-  const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(
+    null,
+  );
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
@@ -187,36 +270,52 @@ export default function TarotDrawPage() {
   // --- LOGIC: KHÔI PHỤC DỮ LIỆU TỪ NHIỀU NGUỒN (SESSION + LOCAL) ---
   useEffect(() => {
     setMounted(true);
-    
+
     // 1. Lấy dữ liệu từ 2 nguồn
     const savedPersist = sessionStorage.getItem(TAROT_PERSIST_KEY);
     const savedSession = localStorage.getItem("tarot-session");
 
     try {
       let finalData: any = {};
-      
+
       // Ưu tiên lấy dữ liệu từ tarot-session (LocalStorage) vì nó chứa kết quả đã đăng nhập
       if (savedSession) {
         const sessionParsed = JSON.parse(savedSession);
         // Map lại format để tương thích với state hiện tại của page
+        const realDrawnCards =
+          sessionParsed.drawnCards?.map((c: any) => ({
+            id: c.id,
+            nameVi: c.nameVi,
+            imageUrl: c.imageUrl,
+            isReversed: c.reversed,
+            shortMsg: "",
+          })) || [];
+
+        let fakeFullDeck = Array.from({ length: 78 }).map((_, i) => ({
+          id: -1 - i, // ID âm để không trùng
+          nameVi: "Lá bài bí ẩn",
+          imageUrl: "", // Mặt sau sẽ che hết nên không lo
+          shortMsg: "",
+        }));
+
+        if (realDrawnCards.length > 0) {
+          fakeFullDeck[0] = realDrawnCards[0];
+          fakeFullDeck[1] = realDrawnCards[1];
+          fakeFullDeck[2] = realDrawnCards[2];
+        }
         finalData = {
           selectedTopic: sessionParsed.topic,
           selectedTopicId: sessionParsed.topicId,
           selectedQuestion: sessionParsed.questionText,
           selectedQuestionId: sessionParsed.question,
-          shuffledDeck: sessionParsed.drawnCards?.map((c: any) => ({
-             id: c.id,
-             nameVi: c.nameVi,
-             imageUrl: c.imageUrl,
-             isReversed: c.reversed,
-             shortMsg: "" 
-          })) || [],
+          shuffledDeck: fakeFullDeck,
           // Logic quyết định STEP:
-          // Nếu đã có bài (drawnCards) -> Nhảy tới picking (để người dùng xem/chọn lại nếu muốn) 
+          // Nếu đã có bài (drawnCards) -> Nhảy tới picking (để người dùng xem/chọn lại nếu muốn)
           // Nếu chỉ có câu hỏi -> Nhảy tới shuffling
-          step: sessionParsed.drawnCards?.length > 0 ? "result" : (sessionParsed.question ? "shuffling" : "topic")
+          step: sessionParsed.drawnCards?.length > 0 ? "result" : "shuffling",
+          selectedIndices: [0, 1, 2], // Mặc định chọn 3 lá thật ở đầu
         };
-      } 
+      }
       // Nếu Local không có thì mới xét tới SessionStorage (Bản nháp của Guest)
       else if (savedPersist) {
         finalData = JSON.parse(savedPersist);
@@ -229,12 +328,15 @@ export default function TarotDrawPage() {
         setSelectedQuestion(finalData.selectedQuestion || "");
         setSelectedQuestionId(finalData.selectedQuestionId || null);
         setShuffledDeck(finalData.shuffledDeck || []);
-        
+
         // Nếu nhảy thẳng tới picking từ drawnCards, ta mặc định chọn luôn 3 lá đó
-        if (finalData.step === "picking" && finalData.shuffledDeck?.length > 0) {
-            setSelectedIndices([0, 1, 2]); 
+        if (
+          (finalData.step === "picking" || finalData.step === "result") &&
+          finalData.shuffledDeck?.length > 0
+        ) {
+          setSelectedIndices([0, 1, 2]);
         } else {
-            setSelectedIndices(finalData.selectedIndices || []);
+          setSelectedIndices(finalData.selectedIndices || []);
         }
 
         if (finalData.step === "result" || finalData.step === "revealing") {
@@ -256,17 +358,28 @@ export default function TarotDrawPage() {
       selectedQuestion,
       selectedQuestionId,
       shuffledDeck,
-      selectedIndices
+      selectedIndices,
     };
     sessionStorage.setItem(TAROT_PERSIST_KEY, JSON.stringify(stateToSave));
-  }, [step, selectedTopic, selectedTopicId, selectedQuestion, selectedQuestionId, shuffledDeck, selectedIndices, mounted]);
+  }, [
+    step,
+    selectedTopic,
+    selectedTopicId,
+    selectedQuestion,
+    selectedQuestionId,
+    shuffledDeck,
+    selectedIndices,
+    mounted,
+  ]);
 
   useEffect(() => {
     const fetchTopics = async () => {
       try {
         const data = await TopicService.getAllTopics();
         setApiTopics(data);
-      } catch (error) { console.error(error); }
+      } catch (error) {
+        console.error(error);
+      }
     };
     fetchTopics();
   }, []);
@@ -274,11 +387,17 @@ export default function TarotDrawPage() {
   useEffect(() => {
     const fetchQuestions = async () => {
       if (selectedTopicId) {
+        // Khi dữ liệu khôi phục set cái này, useEffect này phải chạy
         setLoadingQuestions(true);
         try {
-          const data = await QuestionService.getQuestionsByTopic(selectedTopicId);
+          const data =
+            await QuestionService.getQuestionsByTopic(selectedTopicId);
           setApiQuestions(data);
-        } catch (error) { console.error(error); } finally { setLoadingQuestions(false); }
+        } catch (error) {
+          console.error(error);
+        } finally {
+          setLoadingQuestions(false);
+        }
       }
     };
     fetchQuestions();
@@ -296,7 +415,7 @@ export default function TarotDrawPage() {
       localStorage.removeItem("currentUser");
       sessionStorage.removeItem(TAROT_PERSIST_KEY); // Xóa bản nháp khi logout
       dispatch(logout());
-      router.push('/login');
+      router.push("/login");
     }
   };
 
@@ -310,7 +429,7 @@ export default function TarotDrawPage() {
         nameVi: card.nameVi || card.nameEn,
         imageUrl: card.imageUrl || getCardImg("ar", 0),
         shortMsg: card.uprightMeaning?.substring(0, 50) + "...",
-        isReversed: Math.random() < 0.5
+        isReversed: Math.random() < 0.5,
       }));
       setTimeout(() => {
         setShuffledDeck(mappedCards);
@@ -319,16 +438,17 @@ export default function TarotDrawPage() {
         setSelectedIndices([]);
       }, 3000);
     } catch (error) {
-      alert("Lỗi kết nối vũ trụ."); setStep("topic");
+      alert("Lỗi kết nối vũ trụ.");
+      setStep("topic");
     }
   };
 
   const handleToggleCard = (index: number) => {
     if (selectedIndices.includes(index)) {
-      setSelectedIndices(prev => prev.filter(i => i !== index));
+      setSelectedIndices((prev) => prev.filter((i) => i !== index));
     } else {
       if (selectedIndices.length < 3) {
-        setSelectedIndices(prev => [...prev, index]);
+        setSelectedIndices((prev) => [...prev, index]);
       }
     }
   };
@@ -358,24 +478,28 @@ export default function TarotDrawPage() {
       return;
     }
 
-    const finalCards = selectedIndices.map(idx => shuffledDeck[idx]);
+    const finalCards = selectedIndices.map((idx) => shuffledDeck[idx]);
     dispatch(resetSession());
 
-    dispatch(setTopicAndQuestion({
-      topic: selectedTopic || "",
-      questionText: selectedQuestion || "",
-      question: selectedQuestionId,
-      topicId: selectedTopicId || 0
-    }));
+    dispatch(
+      setTopicAndQuestion({
+        topic: selectedTopic || "",
+        questionText: selectedQuestion || "",
+        question: selectedQuestionId,
+        topicId: selectedTopicId || 0,
+      }),
+    );
 
-    finalCards.forEach(card => {
-      dispatch(addCard({
-        id: card.id,
-        cardNumber: card.cardNumber,
-        nameVi: card.nameVi,
-        imageUrl: card.imageUrl || "",
-        reversed: card.isReversed || false
-      }));
+    finalCards.forEach((card) => {
+      dispatch(
+        addCard({
+          id: card.id,
+          cardNumber: card.cardNumber,
+          nameVi: card.nameVi,
+          imageUrl: card.imageUrl || "",
+          reversed: card.isReversed || false,
+        }),
+      );
     });
 
     const sessionData = {
@@ -383,12 +507,12 @@ export default function TarotDrawPage() {
       question: selectedQuestionId,
       questionText: selectedQuestion,
       topic: selectedTopic,
-      cards: finalCards.map(c => ({
+      cards: finalCards.map((c) => ({
         id: c.id,
         name: c.nameVi,
         img: c.imageUrl,
-        isReversed: c.isReversed || false
-      }))
+        isReversed: c.isReversed || false,
+      })),
     };
     sessionStorage.setItem("guestTarotSession", JSON.stringify(sessionData));
     sessionStorage.removeItem(TAROT_PERSIST_KEY);
@@ -402,22 +526,28 @@ export default function TarotDrawPage() {
 
   const getTopicIcon = (name: string) => {
     const n = name.toLowerCase();
-    if (n.includes("tình") || n.includes("love")) return <Heart className="w-5 h-5" />;
-    if (n.includes("việc") || n.includes("nghiệp")) return <Briefcase className="w-5 h-5" />;
-    if (n.includes("tiền") || n.includes("tài") || n.includes("finance")) return <Wallet className="w-5 h-5" />;
+    if (n.includes("tình") || n.includes("love"))
+      return <Heart className="w-5 h-5" />;
+    if (n.includes("việc") || n.includes("nghiệp"))
+      return <Briefcase className="w-5 h-5" />;
+    if (n.includes("tiền") || n.includes("tài") || n.includes("finance"))
+      return <Wallet className="w-5 h-5" />;
     return <Sparkles className="w-5 h-5" />;
   };
 
   const getQuote = (topicName: string) => {
-    const key = Object.keys(TOPIC_QUOTES).find(k => topicName.toLowerCase().includes(k));
-    return key ? TOPIC_QUOTES[key] : "Khám phá thông điệp vũ trụ dành riêng cho bạn.";
+    const key = Object.keys(TOPIC_QUOTES).find((k) =>
+      topicName.toLowerCase().includes(k),
+    );
+    return key
+      ? TOPIC_QUOTES[key]
+      : "Khám phá thông điệp vũ trụ dành riêng cho bạn.";
   };
 
   if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 font-sans relative selection:bg-amber-500/30">
-
       {/* BACKGROUND LAYER */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         {/* Quầng sáng mờ */}
@@ -461,9 +591,28 @@ export default function TarotDrawPage() {
         `}</style>
 
         {/* Các ngôi sao băng với delay khác nhau để không bay cùng lúc */}
-        <div className="star" style={{ bottom: '10%', left: '-5%', animationDelay: '0s' }} />
-        <div className="star" style={{ bottom: '30%', left: '-10%', animationDelay: '5s', width: '150px' }} />
-        <div className="star" style={{ bottom: '-5%', left: '20%', animationDelay: '12s', animationDuration: '6s' }} />
+        <div
+          className="star"
+          style={{ bottom: "10%", left: "-5%", animationDelay: "0s" }}
+        />
+        <div
+          className="star"
+          style={{
+            bottom: "30%",
+            left: "-10%",
+            animationDelay: "5s",
+            width: "150px",
+          }}
+        />
+        <div
+          className="star"
+          style={{
+            bottom: "-5%",
+            left: "20%",
+            animationDelay: "12s",
+            animationDuration: "6s",
+          }}
+        />
 
         {/* Các đốm sáng nhấp nháy cũ */}
         <div className="absolute top-20 left-20 w-1 h-1 bg-white rounded-full animate-ping opacity-20"></div>
@@ -488,12 +637,13 @@ export default function TarotDrawPage() {
         </motion.div>
       )}
 
-
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-7xl">
           <AnimatePresence mode="wait">
             {step === "loading" && (
-              <LoadingStep onComplete={() => setStep((recoveredStep as any) || "topic")} />
+              <LoadingStep
+                onComplete={() => setStep((recoveredStep as any) || "topic")}
+              />
             )}
 
             {step === "topic" && (
@@ -504,7 +654,7 @@ export default function TarotDrawPage() {
                 selectedQuestionId={selectedQuestionId}
                 loadingQuestions={loadingQuestions}
                 getTopicIcon={getTopicIcon} // Dùng hàm có sẵn trong page.tsx của ông
-                getQuote={getQuote}         // Dùng hàm có sẵn trong page.tsx của ông
+                getQuote={getQuote} // Dùng hàm có sẵn trong page.tsx của ông
                 onSelectTopic={(t) => {
                   setSelectedTopicId(t.id);
                   setSelectedTopic(t.name);
@@ -540,13 +690,19 @@ export default function TarotDrawPage() {
                 onSubmit={handleSubmitCards} // Giữ nguyên hàm cũ để sang bước Booking
               />
             )}
-
           </AnimatePresence>
         </div>
       </div>
 
-      <LogoutModal isOpen={showLogoutModal} onClose={() => setShowLogoutModal(false)} onConfirm={handleConfirmLogout} />
-      <GuestPromptModal isOpen={showGuestModal} onClose={() => setShowGuestModal(false)} />
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+      />
+      <GuestPromptModal
+        isOpen={showGuestModal}
+        onClose={() => setShowGuestModal(false)}
+      />
     </div>
   );
 }

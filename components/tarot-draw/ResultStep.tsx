@@ -11,59 +11,68 @@ interface ResultStepProps {
 }
 
 export const ResultStep = ({ shuffledDeck, selectedIndices, onRedraw, onSubmit }: ResultStepProps) => {
-  const selectedCards = selectedIndices.map(idx => shuffledDeck[idx]);
+  // Lấy ra đúng 3 lá đã chọn từ bộ bài (Dù là bộ bài thật hay bộ bài giả lập 78 lá)
+  const selectedCards = selectedIndices.map(idx => shuffledDeck[idx]).filter(Boolean);
 
   return (
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="w-full max-w-6xl mx-auto pb-20 px-2"
+      className="w-full max-w-6xl mx-auto pb-20 px-2 md:px-4"
     >
       <div className="text-center mb-6 md:mb-10">
         <h2 className="text-2xl md:text-5xl font-black text-white mb-1 tracking-tighter uppercase italic">
-          Kết Quả Trải Bài
+          Thông Điệp Vũ Trụ
         </h2>
-        <p className="text-amber-400 text-[10px] md:text-sm font-medium tracking-[0.3em] uppercase opacity-80">Insight từ các lá bài</p>
+        <p className="text-amber-400 text-[9px] md:text-sm font-medium tracking-[0.3em] uppercase opacity-80">
+          Kết quả trải bài dành cho bạn
+        </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 md:gap-10 mb-12">
+      <div className="grid grid-cols-3 gap-2 md:gap-8 mb-12">
         {selectedCards.map((card, idx) => (
           <motion.div 
-            key={idx} 
+            key={card.id || idx} 
             initial={{ y: 30, opacity: 0 }} 
             animate={{ y: 0, opacity: 1 }} 
             transition={{ delay: idx * 0.15 }}
             className="relative"
           >
             {/* KHUNG NEON CHÍNH */}
-            <div className="relative p-[1.5px] md:p-[3px] rounded-xl md:rounded-[2.5rem] bg-gradient-to-br from-amber-400 via-fuchsia-500 to-cyan-500 shadow-[0_0_15px_rgba(168,85,247,0.4)] overflow-hidden">
+            <div className="relative p-[1px] md:p-[3px] rounded-xl md:rounded-[2.5rem] bg-gradient-to-br from-amber-400 via-fuchsia-500 to-cyan-500 shadow-[0_0_15px_rgba(168,85,247,0.3)] overflow-hidden">
               
-              {/* TAG RIBBON KIỂU PROMOTION - FIX LỖI BỊ CẮT */}
-              <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 z-50 overflow-hidden pointer-events-none">
-                <div className={`absolute top-[15%] right-[-30%] w-[140%] py-0.5 md:py-1 transform rotate-45 text-center font-black text-[7px] md:text-[11px] uppercase tracking-tighter shadow-md border-b border-white/20
+              {/* TAG RIBBON - FIX LỖI HIỂN THỊ MOBILE */}
+              <div className="absolute top-0 right-0 w-10 h-10 md:w-24 md:h-24 z-50 overflow-hidden pointer-events-none">
+                <div className={`absolute top-[10%] right-[-35%] w-[150%] py-0.5 transform rotate-45 text-center font-black text-[6px] md:text-[11px] uppercase tracking-tighter shadow-md border-b border-white/20
                   ${card.isReversed ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}
                 >
                   {card.isReversed ? 'Ngược' : 'Xuôi'}
                 </div>
               </div>
 
-              <div className="bg-[#0b0416] rounded-[10px] md:rounded-[2.3rem] p-1.5 md:p-6 flex flex-col items-center">
+              <div className="bg-[#0b0416] rounded-[11px] md:rounded-[2.3rem] p-1 md:p-6 flex flex-col items-center">
                 
-                {/* ẢNH BÀI - GIỮ OBJECT CONTAIN */}
-                <div className="relative w-full aspect-[2/3] rounded-lg md:rounded-2xl overflow-hidden mb-2 md:mb-6 bg-black/40 border border-white/5">
-                  <img 
-                    src={card.imageUrl} 
-                    alt={card.nameVi} 
-                    className={`w-full h-full object-contain transition-transform duration-1000 ${card.isReversed ? 'rotate-180 scale-100' : 'scale-100'}`} 
-                  />
+                {/* ẢNH BÀI */}
+                <div className="relative w-full aspect-[2/3] rounded-lg md:rounded-2xl overflow-hidden mb-2 md:mb-6 bg-black/60 border border-white/5">
+                  {card.imageUrl ? (
+                    <img 
+                      src={card.imageUrl} 
+                      alt={card.nameVi} 
+                      className={`w-full h-full object-cover transition-transform duration-1000 ${card.isReversed ? 'rotate-180' : ''}`} 
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-amber-500/30" />
+                    </div>
+                  )}
                 </div>
                 
                 {/* TÊN BÀI */}
-                <div className="text-center w-full px-1">
-                  <h3 className="text-[9px] md:text-xl font-black text-white uppercase truncate drop-shadow-sm">
-                    {card.nameVi}
+                <div className="text-center w-full px-1 mb-1">
+                  <h3 className="text-[8px] md:text-xl font-bold text-white uppercase truncate leading-tight">
+                    {card.nameVi || "Đang giải mã..."}
                   </h3>
-                  <div className="h-[1.5px] w-6 md:w-10 bg-amber-500/60 mx-auto mt-1 md:mt-2 rounded-full" />
+                  <div className="h-[1px] md:h-[2px] w-4 md:w-10 bg-amber-500/60 mx-auto mt-1 rounded-full" />
                 </div>
               </div>
             </div>
@@ -71,22 +80,27 @@ export const ResultStep = ({ shuffledDeck, selectedIndices, onRedraw, onSubmit }
         ))}
       </div>
 
-      {/* BUTTONS */}
-      <div className="flex flex-col md:flex-row gap-4 justify-center items-center px-4">
+      {/* CỤM NÚT ĐIỀU HƯỚNG */}
+      <div className="flex flex-col md:flex-row gap-3 md:gap-6 justify-center items-center px-4">
+        {/* Nút rút lại ẩn bớt trên mobile nếu muốn tập trung vào nút chính */}
         <button 
           onClick={onRedraw} 
-          className="w-full md:w-auto order-2 md:order-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 text-xs md:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+          className="w-full md:w-auto order-2 md:order-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 text-[10px] md:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2"
         >
-          <RefreshCw className="w-4 h-4" /> Rút lại bài
+          <RefreshCw className="w-3 h-3 md:w-4 md:h-4" /> Rút lại bài
         </button>
         
         <button 
           onClick={onSubmit} 
-          className="w-full md:w-auto order-1 md:order-2 px-10 py-4 bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 text-white font-black text-sm md:text-xl rounded-xl shadow-[0_10px_30px_rgba(245,158,11,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
+          className="w-full md:w-auto order-1 md:order-2 px-8 py-4 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 text-white font-black text-xs md:text-lg rounded-xl shadow-[0_10px_30px_rgba(245,158,11,0.4)] hover:scale-[1.03] active:scale-95 transition-all flex items-center justify-center gap-2 uppercase tracking-wider"
         >
-          <Sparkles className="w-5 h-5" /> KẾT NỐI READER
+          <Sparkles className="w-4 h-4 md:w-5 md:h-5" /> Kết nối Reader ngay
         </button>
       </div>
+
+      <p className="text-center text-slate-500 text-[8px] md:text-[10px] mt-8 uppercase tracking-[0.2em]">
+        Năng lượng đã sẵn sàng cho sự thấu thị
+      </p>
     </motion.div>
   );
 };

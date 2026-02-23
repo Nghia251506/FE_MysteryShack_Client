@@ -233,7 +233,7 @@ export default function WorkspacePage() {
         <div className="bg-[#130823]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
           <div className="flex-1">
             <button onClick={() => router.push("/readerdashboard")} className="text-slate-500 text-xs mb-4 flex items-center gap-2 hover:text-amber-500 transition-colors"><ArrowLeft className="w-3 h-3"/> Quay về</button>
-            <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic">{activeRequest.topic}</h2>
+            <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic">{activeRequest.questionText}</h2>
             <div className="mt-2 flex gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
                 <span>{activeRequest.querentName}</span>
                 <span>•</span>

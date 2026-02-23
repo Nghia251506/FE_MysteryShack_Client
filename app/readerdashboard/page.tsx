@@ -140,7 +140,7 @@ export default function ReaderDashboardPage() {
               initial={{ x: 20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -20, opacity: 0 }}
-              onClick={() => router.push(`/workspace/${processingSession.id}`)}
+              onClick={() => router.push(`/readerdashboard/workspace/${processingSession.id}`)}
               className="relative group cursor-pointer"
             >
               <div className="absolute -inset-1 bg-gradient-to-r from-red-600/20 to-amber-600/20 rounded-[2rem] blur-md opacity-75"></div>

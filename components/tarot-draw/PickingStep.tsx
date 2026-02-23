@@ -21,11 +21,11 @@ export const PickingStep = ({
   onToggleCard,
   onConfirmSelection,
 }: PickingStepProps) => {
+  // Tinh chỉnh layout cho mobile hẹp (iPhone X, Galaxy A06)
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-  const rowCount = isMobile ? 3 : 2;
+  const rowCount = isMobile ? 4 : 2; // Tăng số hàng trên mobile để mỗi hàng ngắn lại, dễ nhìn hơn
   const cardsPerRow = Math.ceil(shuffledDeck.length / rowCount);
 
-  // Render lá bài - layoutId phải dựa trên globalIdx duy nhất của lá bài đó
   const renderCard = (card: any, globalIdx: number) => (
     <motion.div
       layoutId={`card-container-${globalIdx}`}
@@ -41,9 +41,24 @@ export const PickingStep = ({
         animate={{ rotateY: shouldFlipToFace ? 0 : 180 }}
         transition={{ duration: 0.7, ease: "easeInOut" }}
       >
-        <div className="absolute inset-0 w-full h-full bg-[#1a1b26] rounded-md overflow-hidden border border-amber-500/50 shadow-xl" style={{ backfaceVisibility: "hidden" }}>
-          <img src={card.imageUrl} className={`w-full h-full object-cover ${card.isReversed ? "rotate-180" : ""}`} alt="tarot" />
+        {/* MẶT TRƯỚC (Hình lá bài) */}
+        <div 
+          className="absolute inset-0 w-full h-full bg-[#1a1b26] rounded-md overflow-hidden border border-amber-500/50 shadow-xl" 
+          style={{ backfaceVisibility: "hidden" }}
+        >
+          {card.imageUrl ? (
+             <img 
+              src={card.imageUrl} 
+              className={`w-full h-full object-cover ${card.isReversed ? "rotate-180" : ""}`} 
+              alt="tarot" 
+             />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-slate-900">
+               <Sparkles className="w-6 h-6 text-amber-500/20" />
+            </div>
+          )}
         </div>
+        {/* MẶT SAU (Hoa văn) */}
         <div className="absolute inset-0 w-full h-full rounded-md shadow-lg" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
           <CardBackDesign />
         </div>
@@ -52,51 +67,56 @@ export const PickingStep = ({
   );
 
   return (
-    <motion.div className="flex flex-col items-center w-full min-h-[90vh] pt-10 px-2 overflow-hidden">
+    <motion.div className="flex flex-col items-center w-full min-h-[90vh] pt-6 md:pt-10 px-2 overflow-x-hidden">
       
-      {/* 1. KHU VỰC 3 Ô CHỜ CỐ ĐỊNH - GIẢI QUYẾT LỖI DỒN BÀI */}
-      <div className="flex justify-center gap-4 md:gap-8 mb-12 min-h-[140px] md:min-h-[180px]">
+      {/* 1. KHU VỰC 3 Ô CHỜ - Cố định kích thước để không bị nhảy */}
+      <div className="flex justify-center gap-3 md:gap-8 mb-8 md:mb-12 min-h-[120px] md:min-h-[180px]">
         {[0, 1, 2].map((slotIdx) => {
-          // Quan trọng: lấy cardIdx theo đúng vị trí trong mảng đã chọn
           const cardIdx = selectedIndices[slotIdx];
-          const hasCard = cardIdx !== undefined;
+          const hasCard = cardIdx !== undefined && shuffledDeck[cardIdx];
 
           return (
-            <div key={slotIdx} className="w-20 h-32 md:w-28 md:h-44 relative bg-white/5 rounded-xl shadow-inner border border-white/5">
-              {/* Sử dụng AnimatePresence để xử lý việc bay đi bay về của từng ô độc lập */}
+            <div key={slotIdx} className="w-16 h-28 md:w-28 md:h-44 relative bg-white/5 rounded-lg md:rounded-xl shadow-inner border border-white/5">
               <AnimatePresence mode="popLayout">
                 {hasCard && (
                   <motion.div 
-                    key={cardIdx} // Key phải là cardIdx để Framer Motion không bị nhầm khi xóa bài
+                    key={cardIdx} 
                     className="absolute inset-0 z-20"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
                   >
                     {renderCard(shuffledDeck[cardIdx], cardIdx)}
                   </motion.div>
                 )}
               </AnimatePresence>
+              {!hasCard && (
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-1 h-1 bg-amber-500/20 rounded-full animate-ping" />
+                 </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* 2. DẢI BÀI 78 LÁ */}
-      <div className="flex flex-col gap-2 w-full max-w-5xl">
+      {/* 2. DẢI BÀI 78 LÁ - Fix lỗi tràn màn hình mobile */}
+      <div className="flex flex-col gap-1 md:gap-2 w-full max-w-5xl items-center">
         {Array.from({ length: rowCount }).map((_, rowIndex) => (
-          <div key={rowIndex} className="flex justify-center items-center w-full">
+          <div key={rowIndex} className="flex justify-center items-center w-full pl-4">
             {shuffledDeck.slice(rowIndex * cardsPerRow, (rowIndex + 1) * cardsPerRow).map((card, cardIdx) => {
               const globalIdx = rowIndex * cardsPerRow + cardIdx;
               const isSelected = selectedIndices.includes(globalIdx);
 
               return (
-                <div key={globalIdx} className="relative w-8 h-12 md:w-16 md:h-24 -ml-4 md:-ml-8 first:ml-0">
-                  {/* Nếu không chọn, lá bài nằm ở đây. Nếu chọn, để lại lỗ trống */}
+                <div 
+                  key={globalIdx} 
+                  className={`relative transition-all duration-300 ${isMobile ? 'w-5 h-8 -ml-2' : 'w-16 h-24 -ml-8'} first:ml-0`}
+                >
                   {!isSelected ? (
                     renderCard(card, globalIdx)
                   ) : (
-                    <div className="w-full h-full bg-black/40 rounded-sm border border-white/5" />
+                    <div className="w-full h-full bg-amber-500/5 rounded-sm border border-amber-500/10 border-dashed" />
                   )}
                 </div>
               );
@@ -105,34 +125,25 @@ export const PickingStep = ({
         ))}
       </div>
 
-      {/* 3. NÚT LẬT BÀI NHẢY TƯNG TƯNG */}
+      {/* 3. NÚT LẬT BÀI */}
       {selectedIndices.length === 3 && step === "picking" && (
         <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ 
-            y: [0, -15, 0],
-            opacity: 1 
-          }}
-          transition={{
-            y: { duration: 1.5, repeat: Infinity, ease: "easeInOut" },
-            opacity: { duration: 0.3 }
-          }}
-          className="fixed bottom-10 z-50 px-6 w-full max-w-xs"
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="fixed bottom-6 md:bottom-10 z-50 px-6 w-full max-w-xs"
         >
           <button
             onClick={onConfirmSelection}
-            className="group relative w-full py-4 bg-gradient-to-r from-amber-500 via-orange-600 to-amber-500 bg-[length:200%_auto] hover:bg-right text-white font-black rounded-2xl shadow-[0_10px_40px_rgba(245,158,11,0.5)] flex items-center justify-center gap-3 active:scale-95 transition-all duration-500 border border-white/20"
+            className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black rounded-2xl shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all"
           >
-            <Sparkles className="w-5 h-5 animate-pulse" />
-            <span className="tracking-widest">LẬT BÀI NGAY</span>
-            <Eye className="w-6 h-6" />
-            <div className="absolute inset-0 rounded-2xl bg-amber-400/20 blur-xl animate-pulse -z-10" />
+            <span className="tracking-widest text-sm">LẬT BÀI NGAY</span>
+            <Eye className="w-5 h-5" />
           </button>
         </motion.div>
       )}
 
-      <p className="mt-8 text-white/40 text-[10px] uppercase tracking-widest text-center">
-        {selectedIndices.length < 3 ? `Hãy chọn thêm ${3 - selectedIndices.length} lá bài` : "Bấm vào lá bài ở trên để chọn lại"}
+      <p className="mt-6 text-white/30 text-[9px] uppercase tracking-widest text-center">
+        {selectedIndices.length < 3 ? `Chọn thêm ${3 - selectedIndices.length} lá để kết nối` : "Chạm vào lá bài để thay đổi"}
       </p>
     </motion.div>
   );
