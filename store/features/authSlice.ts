@@ -96,8 +96,9 @@ export const resendVerification = createAsyncThunk(
 // 5. Thunk: Quên mật khẩu
 export const forgotPassword = createAsyncThunk(
   'auth/forgotPassword',
-  async (email: string, {rejectWithValue}) => {
-    try {      const response = await AuthService.forgotPassword(email);
+  async (email: string, { rejectWithValue }) => {
+    try {
+      const response = await AuthService.forgotPassword(email);
       return response;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Yêu cầu quên mật khẩu thất bại');
@@ -108,7 +109,7 @@ export const forgotPassword = createAsyncThunk(
 //6. Thunk: Đổi mật khẩu
 export const changePassword = createAsyncThunk(
   'auth/changePassword',
-  async (data: ChangPasswordRequest, {rejectWithValue}) => { 
+  async (data: ChangPasswordRequest, { rejectWithValue }) => {
     try {
       const response = await AuthService.changePassword(data);
       return response;
@@ -134,14 +135,23 @@ const authSlice = createSlice({
       }
     },
     logout: (state) => {
+      // 1. Reset State trong Redux về mặc định
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
       state.error = null;
       state.verificationStatus = 'idle';
+
+      // 2. Clear sạch sành sanh Storage
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('currentUser');
+        // Xóa sạch LocalStorage (Token, User, Register Draft...)
+        localStorage.clear();
+
+        // Xóa sạch SessionStorage (Dữ liệu bốc bài, chủ đề đang chọn...)
+        sessionStorage.clear();
+
+        // Nếu ông muốn giữ lại một vài thứ (ví dụ: Theme hay Ngôn ngữ) thì mới dùng removeItem
+        // Còn muốn Clear sạch để Demo không lỗi thì dùng .clear() là chuẩn nhất.
       }
     },
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
@@ -229,7 +239,7 @@ const authSlice = createSlice({
       .addCase(forgotPassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-        })
+      })
       .addCase(changePassword.pending, (state) => {
         state.loading = true;
       }
