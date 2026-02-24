@@ -263,7 +263,7 @@ export const ModalFCMGlobal = () => {
             <button
               onClick={() => {
                 handleClose();
-                router.push(`/booking/result?sessionId=${sessionId}`);
+                window.location.reload();
               }}
               className="mt-6 w-full bg-green-500 text-white py-3 rounded-xl font-bold"
             >

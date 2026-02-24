@@ -45,7 +45,7 @@ export default function WorkspacePage() {
 
   const [timeLeft, setTimeLeft] = useState<number>(3600);
   const [isTimeUp, setIsTimeUp] = useState(false);
-
+  console.log("activeRequest:", activeRequest);
   const transformData = useCallback((item: any) => {
     const acceptedAt = item.acceptedAt || item.accepted_at;
     const querentName = item.customer?.fullName || item.fullName || "Khách ẩn danh";
@@ -233,7 +233,8 @@ export default function WorkspacePage() {
         <div className="bg-[#130823]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
           <div className="flex-1">
             <button onClick={() => router.push("/readerdashboard")} className="text-slate-500 text-xs mb-4 flex items-center gap-2 hover:text-amber-500 transition-colors"><ArrowLeft className="w-3 h-3"/> Quay về</button>
-            <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic">{activeRequest.questionText}</h2>
+            <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic">Chủ đề: {activeRequest.topic}</h2>
+            <span className="text-l font-black text-amber-500 tracking-tighter uppercase italic">Câu hỏi: {activeRequest.question}</span>
             <div className="mt-2 flex gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
                 <span>{activeRequest.querentName}</span>
                 <span>•</span>
@@ -304,7 +305,7 @@ export default function WorkspacePage() {
           {!isReadOnly && (
             <motion.div initial={{ y: 50 }} animate={{ y: 0 }} className="bg-[#1a1025]/90 border border-white/10 p-4 px-10 rounded-[3rem] flex items-center gap-10 shadow-2xl backdrop-blur-3xl">
               <div className="flex flex-col items-start border-r border-white/10 pr-6">
-                 <span className="text-[10px] text-green-500 font-black flex items-center gap-1 animate-pulse"><Save className="w-3 h-3"/> AUTO SAVE</span>
+                 <span className="text-[10px] text-green-500 font-black flex items-center gap-1 animate-pulse"><Save className="w-3 h-3"/> Tự động lưu</span>
                  <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest">{Object.keys(cardInputs).length}/{activeRequest.cards.length} LÁ XONG</span>
               </div>
               <button onClick={handleSubmit} disabled={isSubmitting} className="bg-amber-600 px-10 py-4 rounded-2xl text-white font-black uppercase text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-amber-900/20">{isSubmitting ? <Loader2 className="animate-spin"/> : "GỬI KẾT QUẢ"}</button>
