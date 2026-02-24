@@ -267,7 +267,7 @@ export default function BookingRequestPage() {
         isOpen: true,
         type: "success",
         message: "Yêu cầu đã gửi! Đang chuyển hướng...",
-        onConfirm: () => router.push("/"),
+        onConfirm: () => router.push("/profile"),
         confirmText: "Đến trang chủ"
       });
       setTimeout(() => router.push("/"), 2000);
@@ -311,7 +311,7 @@ export default function BookingRequestPage() {
                 <div className="absolute -bottom-2 -right-2 bg-green-500 p-2 rounded-full border-4 border-[#130823] z-20"><CheckCircle2 className="w-5 h-5 text-white" /></div>
               </div>
 
-              <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-3">Vũ Trụ Gọi Tên</h2>
+              <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-3">Hệ thống đã kết nối thành công với Reader</h2>
               <h3 className="text-2xl md:text-3xl font-bold text-amber-400 mb-6 uppercase tracking-tight">{matchedReader?.fullName}</h3>
 
               <p className="text-slate-400 text-lg max-w-xl mx-auto mb-10 leading-relaxed font-light">

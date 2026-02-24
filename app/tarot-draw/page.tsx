@@ -51,6 +51,7 @@ import { ShufflingStep } from "@/components/tarot-draw/ShufflingStep";
 import { PickingStep } from "@/components/tarot-draw/PickingStep";
 import { ResultStep } from "@/components/tarot-draw/ResultStep";
 import { LoadingStep } from "@/components/tarot-draw/LoadingStep";
+import { HistoryService } from "@/services/historyService";
 // --- 1. ĐỊNH NGHĨA TYPE ---
 interface LocalTarotCard {
   id: number;
@@ -237,6 +238,55 @@ const GuestPromptModal = ({
   );
 };
 
+const PendingSessionModal = ({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
+  const router = useRouter();
+  if (!isOpen) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
+    >
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        className="max-w-md w-full bg-[#1a1025] border border-red-500/30 rounded-[2rem] p-8 text-center shadow-2xl"
+      >
+        <div className="mx-auto w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/30">
+          <RefreshCw className="w-8 h-8 text-red-400 animate-spin-slow" />
+        </div>
+        <h3 className="text-2xl font-bold text-white mb-3">
+          Phiên Đang Chờ Luận Giải
+        </h3>
+        <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+          Vũ trụ đang bận rộn! Bạn đang có một phiên luận giải chưa hoàn thành.
+          Vui lòng chờ Reader phản hồi hoặc kết thúc phiên hiện tại trước khi
+          bắt đầu hành trình mới.
+        </p>
+        <button
+          onClick={() => router.push("/history")} // Điều hướng về trang lịch sử để họ xem phiên đó
+          className="w-full py-3.5 bg-gradient-to-r from-red-600 to-purple-700 text-white font-bold rounded-xl transition-all hover:scale-[1.02]"
+        >
+          Kiểm tra lịch sử của tôi
+        </button>
+        <button
+          onClick={onClose}
+          className="mt-4 text-xs text-slate-500 hover:text-slate-300"
+        >
+          Đóng
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 // --- MAIN PAGE ---
 export default function TarotDrawPage() {
   const router = useRouter();
@@ -265,6 +315,38 @@ export default function TarotDrawPage() {
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [recoveredStep, setRecoveredStep] = useState<string | null>(null);
+  const [isCheckingHistory, setIsCheckingHistory] = useState(false);
+  const [hasPendingSession, setHasPendingSession] = useState(false);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+
+  const checkExistingSession = async () => {
+    if (!user) return false; // Nếu là Guest thì không check history (vì chưa có ID)
+
+    setIsCheckingHistory(true);
+    try {
+      // Giả sử API của ông trả về mảng các phiên đặt lịch
+      const history = await HistoryService.getMyHistories();
+
+      // Tìm xem có phiên nào status KHÁC 'completed' và KHÁC 'cancelled' không
+      // (Tùy thuộc vào enum status bên phía Backend của ông)
+      const pending = history.find(
+        (session: any) =>
+          session.status !== "completed" && session.status !== "cancelled",
+      );
+
+      if (pending) {
+        setHasPendingSession(true);
+        setShowPendingModal(true);
+        return true; // Có phiên đang chờ
+      }
+      return false; // Không có phiên nào
+    } catch (error) {
+      console.error("Lỗi kiểm tra lịch sử:", error);
+      return false;
+    } finally {
+      setIsCheckingHistory(false);
+    }
+  };
 
   // --- LOGIC: KHÔI PHỤC DỮ LIỆU KHI MOUNTED ---
   // --- LOGIC: KHÔI PHỤC DỮ LIỆU TỪ NHIỀU NGUỒN (SESSION + LOCAL) ---
@@ -472,10 +554,15 @@ export default function TarotDrawPage() {
     handleStartDraw();
   };
 
-  const handleSubmitCards = () => {
+  const handleSubmitCards = async () => {
     if (!selectedQuestionId) {
       alert("Vui lòng chọn câu hỏi cụ thể trước khi kết nối Reader!");
       return;
+    }
+
+    if (user) {
+      const isPending = await checkExistingSession();
+      if (isPending) return; // Dừng lại, Modal thông báo sẽ hiện lên từ hàm check
     }
 
     const finalCards = selectedIndices.map((idx) => shuffledDeck[idx]);
@@ -702,6 +789,10 @@ export default function TarotDrawPage() {
       <GuestPromptModal
         isOpen={showGuestModal}
         onClose={() => setShowGuestModal(false)}
+      />
+      <PendingSessionModal
+        isOpen={showPendingModal}
+        onClose={() => setShowPendingModal(false)}
       />
     </div>
   );

@@ -31,13 +31,14 @@ export const TopicStep = ({
   getTopicIcon,
   getQuote,
 }: TopicStepProps) => {
-
   // Tự động cuộn đến câu hỏi đã chọn (Hữu ích khi khôi phục data)
   useEffect(() => {
     if (selectedQuestionId && !loadingQuestions) {
-      const activeElement = document.getElementById(`question-${selectedQuestionId}`);
+      const activeElement = document.getElementById(
+        `question-${selectedQuestionId}`,
+      );
       if (activeElement) {
-        activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        activeElement.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }
   }, [selectedQuestionId, loadingQuestions]);
@@ -55,18 +56,23 @@ export const TopicStep = ({
       <div className="absolute top-[-50px] right-[-50px] w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[80px] pointer-events-none"></div>
 
       {/* Header Text */}
-      <div className="text-center mb-6 md:mb-10 relative z-10">
-        <h1 className="text-xl md:text-5xl font-bold text-white mb-2 leading-tight tracking-tight">
-          Sứ Giả <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400 font-extrabold uppercase">TAROT</span>
+      <div className="text-center mb-10 relative z-10">
+        <h1 className="text-3xl md:text-5xl font-bold text-white mb-3 leading-tight tracking-tight">
+          Những điều thầm kín và khúc mắc <br className="hidden md:block" />
+          mà bạn đang{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400 font-extrabold uppercase drop-shadow-sm">
+            QUAN TÂM
+          </span>
         </h1>
-        <p className="text-slate-400 text-xs md:text-lg max-w-2xl mx-auto font-light">
-          Chọn lĩnh vực và câu hỏi bạn đang trăn trở
+        <p className="text-slate-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed font-light">
+          Hãy để các reader chuyên nghiệp của chúng tôi khám phá những điều sâu
+          thẳm bên trong thông qua những thông điệp mà các lá bài tarot nhắn gửi
+          tới bạn.
         </p>
       </div>
 
       {/* Main Grid */}
       <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6">
-        
         {/* CỘT TRÁI: CHỌN LĨNH VỰC */}
         <div className="lg:col-span-5 space-y-3">
           <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 px-2 flex items-center gap-2">
@@ -84,15 +90,21 @@ export const TopicStep = ({
                     : "bg-white/5 border-white/5 hover:bg-white/10"
                 }`}
               >
-                <div className={`p-2 rounded-xl shrink-0 ${selectedTopicId === t.id ? "bg-amber-500 text-black" : "bg-black/30 text-slate-400"}`}>
+                <div
+                  className={`p-2 rounded-xl shrink-0 ${selectedTopicId === t.id ? "bg-amber-500 text-black" : "bg-black/30 text-slate-400"}`}
+                >
                   {getTopicIcon(t.name)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className={`font-bold text-sm md:text-base ${selectedTopicId === t.id ? "text-amber-400" : "text-slate-200"}`}>
+                  <div
+                    className={`font-bold text-sm md:text-base ${selectedTopicId === t.id ? "text-amber-400" : "text-slate-200"}`}
+                  >
                     {t.name}
                   </div>
                 </div>
-                {selectedTopicId === t.id && <Check className="w-4 h-4 text-amber-500" />}
+                {selectedTopicId === t.id && (
+                  <Check className="w-4 h-4 text-amber-500" />
+                )}
               </button>
             ))}
           </div>
@@ -103,7 +115,9 @@ export const TopicStep = ({
           {!selectedTopicId ? (
             <div className="flex-1 flex flex-col items-center justify-center opacity-60 py-10">
               <Sparkles className="w-10 h-10 text-amber-400/80 animate-pulse mb-3" />
-              <p className="text-slate-500 text-sm italic">Chọn lĩnh vực phía trên trước</p>
+              <p className="text-slate-500 text-sm italic">
+                Chọn lĩnh vực phía trên trước
+              </p>
             </div>
           ) : (
             <>
@@ -111,9 +125,13 @@ export const TopicStep = ({
                 <Hand className="w-3 h-3 text-amber-500" /> 2. Câu Hỏi Cụ Thể
               </h3>
 
-              <div className="space-y-2 mb-20 md:mb-20"> {/* Tạo khoảng trống cho nút Submit */}
+              <div className="space-y-2 mb-20 md:mb-20">
+                {" "}
+                {/* Tạo khoảng trống cho nút Submit */}
                 {loadingQuestions ? (
-                  <div className="py-10 flex justify-center text-amber-500 animate-pulse">Đang tải câu hỏi...</div>
+                  <div className="py-10 flex justify-center text-amber-500 animate-pulse">
+                    Đang tải câu hỏi...
+                  </div>
                 ) : (
                   apiQuestions.map((q) => (
                     <label
@@ -126,10 +144,16 @@ export const TopicStep = ({
                           : "bg-white/5 border-white/5 hover:bg-white/10"
                       }`}
                     >
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedQuestionId === q.id ? "border-amber-500 bg-amber-500" : "border-slate-600"}`}>
-                        {selectedQuestionId === q.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                      <div
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedQuestionId === q.id ? "border-amber-500 bg-amber-500" : "border-slate-600"}`}
+                      >
+                        {selectedQuestionId === q.id && (
+                          <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                        )}
                       </div>
-                      <span className={`text-xs md:text-sm font-medium ${selectedQuestionId === q.id ? "text-white" : "text-slate-300"}`}>
+                      <span
+                        className={`text-xs md:text-sm font-medium ${selectedQuestionId === q.id ? "text-white" : "text-slate-300"}`}
+                      >
                         {q.questionText}
                       </span>
                     </label>

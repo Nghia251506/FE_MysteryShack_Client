@@ -2,6 +2,7 @@ import axios from "@/lib/axios"; // Hoặc axios tùy cấu hình của bạn
 import { History } from "@/types/history";
 
 interface PageResponse<T> {
+  [x: string]: any;
   content: T[];
   totalPages: number;
   totalElements: number;
