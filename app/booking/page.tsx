@@ -365,10 +365,10 @@ export default function BookingRequestPage() {
                       <p className="font-bold text-amber-400 flex items-center justify-center gap-1">{displayReader?.averageRating?.toFixed(1) || "5.0"} <Star className="w-4 h-4 fill-current" /></p>
                       <span className="text-[10px] text-slate-500">{displayReader?.totalReviews || 0} lượt</span>
                     </div>
-                    <div className="bg-white/5 p-4 rounded-2xl text-center border border-white/5">
+                    {/* <div className="bg-white/5 p-4 rounded-2xl text-center border border-white/5">
                       <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Tín nhiệm</p>
                       <p className="font-bold text-white flex items-center justify-center gap-1">{displayReader?.eloScore?.toFixed(0) || "500"}</p>
-                    </div>
+                    </div> */}
                   </div>
 
                   <div className="space-y-6">

@@ -13,16 +13,15 @@ import {
   Clock,
   MessageSquare,
   Sparkles,
+  Lock,
 } from "lucide-react";
 
-// Import các Component
 import Header from "@/components/Header";
 import SocialFloating from "@/components/SocialFloating";
 import RatingModal from "@/components/RatingModal";
 
-// Import Services & Hooks chuẩn của ông
 import { InterpretationService } from "@/services/interpretationService";
-import { useAppSelector } from "@/hooks/useAppRedux"; // Dùng hook này để lấy user
+import { useAppSelector } from "@/hooks/useAppRedux";
 import { RootState } from "@/store/store";
 
 export default function InterpretationResultPage() {
@@ -30,14 +29,11 @@ export default function InterpretationResultPage() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
 
-  // Dùng hook chuẩn của ông để lấy thông tin user từ Redux
   const { user } = useAppSelector((state: RootState) => state.auth);
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [showRating, setShowRating] = useState(false);
-  const [showCountdown, setShowCountdown] = useState(false);
-  const [countdown, setCountdown] = useState(30);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchResult = async (isSilent = false) => {
@@ -45,12 +41,11 @@ export default function InterpretationResultPage() {
     try {
       if (!isSilent) setLoading(true);
       const result = await InterpretationService.getView(sessionId);
-      console.log(result);
       setData(result);
       setLoading(false);
     } catch (err) {
       console.error("Lỗi fetch:", err);
-      setLoading(true);
+      setLoading(false);
     }
   };
 
@@ -58,7 +53,7 @@ export default function InterpretationResultPage() {
     fetchResult();
   }, [sessionId]);
 
-  // Reload ngầm mỗi 10s nếu chưa hoàn thành
+  // Reload ngầm mỗi 10s nếu chưa hoàn thành để tự động mở khóa khi Reader chốt đơn
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (data && data.status !== "COMPLETED" && data.status !== 2) {
@@ -72,59 +67,27 @@ export default function InterpretationResultPage() {
     try {
       if (sessionId)
         await InterpretationService.updateStatus(sessionId, "PAID");
-      setShowCountdown(true);
+      // Sau khi bấm, gọi lại API để cập nhật UI sang trạng thái chờ check
+      fetchResult(true);
     } catch (err) {
-      setShowCountdown(true);
+      console.error("Lỗi xác nhận:", err);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // --- LOGIC MÀN HÌNH CHỜ (ĐÃ FIX MẠNH) ---
-  // Check nếu data tồn tại nhưng chưa có nội dung luận giải hoặc status chưa xong
-  const isPending =
-    data &&
-    data.status === "PENDING" && // Bắt lỗi hiện "" như trong ảnh
-    data.status !== "COMPLETED" &&
-    data.status !== 2 &&
-    loading === true;
-
-  if (loading === false && isPending && data?.status === "PENDING")
+  // Màn hình Loading ban đầu
+  if (loading && !data) {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center">
         <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
-        <p className="text-purple-300 font-serif italic">
-          Đang kết nối năng lượng vũ trụ...
-        </p>
+        <p className="text-purple-300 font-serif italic">Đang kết nối năng lượng vũ trụ...</p>
       </div>
     );
+  }
 
-  if (loading === true)
-    return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-6 text-center">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-[#0f0a18] border border-purple-500/30 p-12 rounded-[3rem] max-w-lg shadow-2xl relative z-10"
-        >
-          <Clock className="w-16 h-16 text-purple-500 animate-pulse mx-auto mb-6" />
-          <h2 className="text-2xl font-serif text-white mb-4">
-            Reader {data?.reader?.fullName || ""} đang nhập kết quả...
-          </h2>
-          <p className="text-slate-400 italic mb-8">
-            Năng lượng đang được chuyển hóa. Kết quả sẽ tự động hiển thị ngay
-            khi Reader hoàn tất.
-          </p>
-          <button
-            onClick={() => router.push("/profile")}
-            className="px-8 py-3 border border-purple-500/30 rounded-full text-purple-400 uppercase text-[10px] font-black tracking-widest"
-          >
-            Xem các phiên khác
-          </button>
-        </motion.div>
-        <SocialFloating />
-      </div>
-    );
+  // Biến check trạng thái hoàn tất
+  const isFinished = data?.status === "COMPLETED" || data?.status === 2;
 
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 relative">
@@ -142,6 +105,7 @@ export default function InterpretationResultPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-[#0f0a18] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl"
         >
+          {/* Header Thông tin Reader & Câu hỏi */}
           <div className="p-8 md:p-12 border-b border-white/5 bg-gradient-to-br from-purple-500/5 to-transparent">
             <div className="flex items-center gap-5 mb-10">
               <img
@@ -150,129 +114,111 @@ export default function InterpretationResultPage() {
                 alt="avatar"
               />
               <div>
-                <h1 className="text-3xl font-serif text-white">
-                  {data?.reader?.fullName}
-                </h1>
+                <h1 className="text-3xl font-serif text-white">{data?.reader?.fullName}</h1>
                 <p className="text-amber-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 mt-1">
                   <Star className="w-3 h-3 fill-current" /> Reader Chuyên Nghiệp
                 </p>
               </div>
             </div>
             <div className="bg-black/40 p-8 rounded-[2rem] border border-white/5">
-              <p className="text-[10px] uppercase font-black text-purple-400 mb-4 tracking-widest">
-                Câu hỏi của bạn
-              </p>
-              <p className="text-2xl italic text-slate-200 font-serif leading-relaxed">
-                "{data?.questionContent}"
-              </p>
+              <p className="text-[10px] uppercase font-black text-purple-400 mb-4 tracking-widest">Câu hỏi của bạn</p>
+              <p className="text-2xl italic text-slate-200 font-serif leading-relaxed">"{data?.questionContent}"</p>
             </div>
           </div>
 
-          <div className="p-8 md:p-12 grid grid-cols-3 gap-6">
+          {/* Hiển thị các lá bài đã chọn */}
+          <div className="p-8 md:p-12 grid grid-cols-3 gap-6 bg-black/20">
             {data?.selectedCards?.map((item: any, idx: number) => (
               <div key={idx} className="space-y-4">
-                <div
-                  className={`aspect-[2/3.2] rounded-2xl overflow-hidden border-2 ${item.isReversed ? "rotate-180 border-rose-500/30" : "border-purple-500/20"}`}
-                >
-                  <img
-                    src={item.imageUrl}
-                    className="w-full h-full object-cover"
-                    alt={item.cardName}
-                  />
+                <div className={`aspect-[2/3.2] rounded-2xl overflow-hidden border-2 shadow-2xl ${item.isReversed ? "rotate-180 border-rose-500/30" : "border-purple-500/20"}`}>
+                  <img src={item.imageUrl} className="w-full h-full object-cover" alt={item.cardName} />
                 </div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
-                  {item.cardName}
-                </p>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">{item.cardName}</p>
               </div>
             ))}
           </div>
 
-          
-            <div className="p-8 md:p-12 bg-black/30 border-t border-white/5 space-y-12">
-            {[data?.interpretation1, data?.interpretation2, data?.interpretation3].map((text, i) => text && (
-              <div key={i} className="flex gap-8 group">
-                <span className="text-5xl font-serif text-purple-900/40 font-bold leading-none transition-colors group-hover:text-purple-600/40">
-                  0{i + 1}
-                </span>
-                <div className="space-y-2">
-                  <div className="h-px w-8 bg-purple-500/30 mb-4" />
-                  <p className="text-slate-300 leading-[1.8] text-lg font-light font-sans tracking-wide whitespace-pre-wrap first-letter:text-2xl first-letter:font-serif">
-                    {text}
-                  </p>
-                </div>
-              </div>
-            ))}
+          {/* PHẦN LUẬN GIẢI - CHỈ MỞ KHI COMPLETED */}
+          <AnimatePresence mode="wait">
+            {isFinished ? (
+              <motion.div 
+                key="content"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="p-8 md:p-12 bg-black/30 border-t border-white/5 space-y-12"
+              >
+                {[data?.interpretation1, data?.interpretation2, data?.interpretation3].map((text, i) => text && (
+                  <div key={i} className="flex gap-8 group">
+                    <span className="text-5xl font-serif text-purple-900/40 font-bold leading-none group-hover:text-purple-600/40 transition-colors">0{i + 1}</span>
+                    <div className="space-y-2">
+                      <div className="h-px w-8 bg-purple-500/30 mb-4" />
+                      <p className="text-slate-300 leading-[1.8] text-lg font-light whitespace-pre-wrap">{text}</p>
+                    </div>
+                  </div>
+                ))}
+                
+                {data?.advice && (
+                  <div className="mt-16 p-10 rounded-[2.5rem] bg-gradient-to-br from-amber-500/[0.07] to-transparent border border-amber-500/10 relative overflow-hidden">
+                    <Sparkles className="absolute top-6 right-6 w-8 h-8 text-amber-500/20" />
+                    <h4 className="text-amber-500 font-black uppercase text-[10px] tracking-[0.4em] mb-6">Lời khuyên tâm linh</h4>
+                    <p className="text-slate-100 italic font-serif text-2xl leading-[1.6]">{data.advice}</p>
+                  </div>
+                )}
 
-            {data?.advice && (
-              <div className="mt-16 p-10 rounded-[2.5rem] bg-gradient-to-br from-amber-500/[0.07] to-transparent border border-amber-500/10 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Sparkles className="w-12 h-12 text-amber-500" />
+                <div className="mt-10 py-10 border-t border-white/5 flex flex-col items-center">
+                  <div className="bg-green-500/10 border border-green-500/20 px-6 py-2 rounded-full mb-8 text-green-500 font-bold text-[10px] tracking-widest uppercase">
+                    <CheckCircle2 className="inline mr-2" size={16} /> Phiên đã hoàn tất
+                  </div>
+                  <button
+                    onClick={() => setShowRating(true)}
+                    className="px-12 py-5 bg-gradient-to-r from-amber-600 to-amber-400 rounded-2xl text-black font-black text-xs tracking-widest flex items-center gap-3 shadow-xl"
+                  >
+                    <Award className="w-5 h-5" /> ĐÁNH GIÁ READER
+                  </button>
                 </div>
-                <h4 className="text-amber-500 font-black uppercase text-[10px] tracking-[0.4em] mb-6">Lời khuyên tâm linh</h4>
-                <p className="text-slate-100 italic font-serif text-2xl leading-[1.6] relative z-10 antialiased">
-                  {data.advice}
-                </p>
-              </div>
-            )}
-
-            {/* Thanh toán QR */}
-            {data?.status !== "COMPLETED" && data?.status !== 2 && (
-              <div className="mt-10 pt-10 border-t border-white/5 flex flex-col items-center">
-                <div className="mb-6 text-center">
-                  <p className="text-[10px] uppercase font-black text-amber-500 tracking-[0.2em] mb-2">
-                    Số tiền cần thanh toán
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="locked"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="p-12 bg-black/40 border-t border-white/5 text-center"
+              >
+                <div className="max-w-md mx-auto py-12">
+                  <div className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.1)]">
+                    <Lock className="w-8 h-8 text-purple-500" />
+                  </div>
+                  <h3 className="text-2xl font-serif text-white mb-3">Thông điệp đang được niêm phong</h3>
+                  <p className="text-slate-400 text-sm mb-10 leading-relaxed">
+                    Bạn cần hoàn tất thanh toán và đợi Reader xác nhận để có thể xem luận giải chi tiết từ vũ trụ.
                   </p>
-                  <div className="text-4xl font-serif text-white flex items-baseline gap-2">
-                    {/* Giả sử amount nằm trong data.amount hoặc data.readingSession.amount */}
-                    {(
-                      data?.amount ||
-                      data?.readingSession?.amount ||
-                      0
-                    ).toLocaleString("vi-VN")}
-                    <span className="text-sm font-sans text-slate-500 uppercase">
-                      VNĐ
-                    </span>
+
+                  {/* Khu vực Thanh toán QR */}
+                  <div className="bg-black/40 border border-white/10 rounded-[2rem] p-8">
+                    <p className="text-[10px] uppercase font-black text-amber-500 tracking-[0.2em] mb-4">Quét mã để giải mã</p>
+                    <div className="text-3xl font-serif text-white mb-6">
+                      {(data?.amount || 0).toLocaleString("vi-VN")} <span className="text-sm font-sans text-slate-500">VNĐ</span>
+                    </div>
+                    <img
+                      src={data?.qrPayment?.startsWith('http') ? data.qrPayment : `data:image/png;base64,${data?.qrPayment}`}
+                      className="w-48 h-48 mx-auto object-contain bg-white p-3 rounded-2xl mb-8 shadow-2xl"
+                      alt="QR Payment"
+                    />
+                    <button
+                      onClick={handlePaidConfirmation}
+                      disabled={isProcessing || data?.status === "PAID"}
+                      className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all ${
+                        data?.status === "PAID" 
+                        ? "bg-slate-800 text-slate-500 cursor-not-allowed" 
+                        : "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:scale-[1.02]"
+                      }`}
+                    >
+                      {isProcessing ? <Loader2 className="animate-spin w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
+                      {data?.status === "PAID" ? "ĐANG CHỜ XÁC NHẬN..." : "XÁC NHẬN ĐÃ CHUYỂN KHOẢN"}
+                    </button>
                   </div>
                 </div>
-                <img
-                  src={
-                    data?.qrPayment
-                      ? data.qrPayment
-                      : `data:image/png;base64,${data?.qrPayment}`
-                  }
-                  className="w-60 h-60 object-contain bg-white p-4 rounded-3xl mb-8"
-                  alt="QR"
-                />
-                <button
-                  onClick={handlePaidConfirmation}
-                  disabled={isProcessing}
-                  className="px-10 py-5 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl text-white font-bold flex items-center gap-3"
-                >
-                  {isProcessing ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <ShieldCheck />
-                  )}{" "}
-                  XÁC NHẬN THANH TOÁN
-                </button>
-              </div>
+              </motion.div>
             )}
-
-            {/* Rating Button */}
-            {(data?.status === "COMPLETED" || data?.status === 2) && (
-              <div className="mt-10 py-10 border-t border-white/5 flex flex-col items-center">
-                <div className="bg-green-500/10 border border-green-500/20 px-6 py-2 rounded-full mb-8 text-green-500 font-bold text-[10px] tracking-widest">
-                  <CheckCircle2 className="inline mr-2" size={16} /> HOÀN TẤT
-                </div>
-                <button
-                  onClick={() => setShowRating(true)}
-                  className="px-12 py-5 bg-gradient-to-r from-amber-600 to-amber-400 rounded-2xl text-black font-black text-xs tracking-widest flex items-center gap-3 shadow-xl shadow-amber-500/20"
-                >
-                  <Award className="w-5 h-5" /> ĐÁNH GIÁ READER
-                </button>
-              </div>
-            )}
-          </div>
+          </AnimatePresence>
         </motion.div>
       </div>
       <SocialFloating />
