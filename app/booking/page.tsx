@@ -270,7 +270,7 @@ export default function BookingRequestPage() {
         onConfirm: () => router.push("/profile"),
         confirmText: "Đến trang chủ"
       });
-      setTimeout(() => router.push("/"), 2000);
+      setTimeout(() => router.push("/profile"), 2000);
     } catch (error) { alert("Lỗi gửi yêu cầu!"); } finally { setIsSubmitting(false); }
   };
 
