@@ -109,7 +109,7 @@ export default function InterpretationResultPage() {
           <div className="p-8 md:p-12 border-b border-white/5 bg-gradient-to-br from-purple-500/5 to-transparent">
             <div className="flex items-center gap-5 mb-10">
               <img
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${data?.reader?.fullName}`}
+                src={data?.reader?.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data?.reader?.fullName}`}
                 className="w-20 h-20 rounded-3xl bg-purple-900/20 border border-purple-500/30 p-1"
                 alt="avatar"
               />
